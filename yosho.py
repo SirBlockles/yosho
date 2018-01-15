@@ -1,18 +1,110 @@
-import telegram
-import random
-from telegram import InlineQueryResultArticle, InputTextMessageContent
-from telegram.ext import Updater, CommandHandler, InlineQueryHandler
-from telegram.error import TelegramError, Unauthorized, BadRequest, TimedOut, ChatMigrated, NetworkError
+from random import randint
+
+import datetime
 import logging
+import re
+import requests
+import stopit
+import telegram
+import time
+import csv
+from asteval import Interpreter
+from telegram import InlineQueryResultArticle, InputTextMessageContent
+from telegram.error import TelegramError
+from telegram.ext import Updater, CommandHandler, InlineQueryHandler, RegexHandler
 
 # initialize bot and logging for debugging #
-bot = telegram.Bot(token="token")
-updater = Updater(token="token")
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+
+token_dict = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
+TOKEN = token_dict['debug']
+
+MODS = ('wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'pjberri', 'pawjob')
+DEBUGGING_MODE = False
+MESSAGE_TIMEOUT = 1
+
+EVAL_TIMEOUT = 1
+EVAL_MAX_DIGITS = 50
+
+GLOBAL_MESSAGES = {
+'help':
+    r"""Available commands:
+/echo text - echoes text
+/roll x - rolls a number between 1 and x
+/eval - does math
+
+Inline subcommands:
+shrug - sends an ascii shrug.
+badtime - fucken love undertale""",
+
+'badtime':
+    r"""…………/´¯/)…………….(\¯`.…………..
+………../…//……….i…….\….…………..
+………./…//…fuken luv….\….………….
+…../´¯/…./´¯..undertale./¯` .…\¯`.…….
+.././…/…./…./.|_.have._|..….……..…..
+(.(b.(..a.(..d./..)..)……(..(.\ti.)..m.)..e.).)….
+..……………\/…/………\/……………./….
+……………….. /……….……………..""",
+
+'effective.':
+    "Power لُلُصّ؜بُلُلصّبُررًً ॣ h؜ ॣ؜ ॣ ॣ",
+
+'ointments':
+    "Ointments."}
+
+GLOBAL_INLINE = {
+'badtime':
+    r"""…………/´¯/)…………….(\¯`.…………..
+………../…//……….i…….\….…………..
+………./…//…fuken luv….\….………….
+…../´¯/…./´¯..undertale./¯` .…\¯`.…….
+.././…/…./…./.|_.have._|..….……..…..
+(.(b.(..a.(..d./..)..)……(..(.\ti.)..m.)..e.).)….
+..……………\/…/………\/……………./….
+……………….. /……….……………..""",
+
+'shrug':
+    r"¯\_(ツ)_/¯"}
+
+bot = telegram.Bot(token=TOKEN)
+updater = Updater(token=TOKEN)
+logging.basicConfig(format='%(asctime)s - [%(levelname)s] - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+logger.info("Loading bot...")
+
+
+# message timeout decorator
+def silence(x):
+    def wrap(*args, **kwargs):
+        if (datetime.datetime.now() - args[1].message.date).total_seconds() / 60 < MESSAGE_TIMEOUT:
+            return x(*args, **kwargs)
+        else:
+            return
+
+    return wrap
+
+
+# mod-only commands decorator
+def mods(x):
+    def wrap(*args, **kwargs):
+        if args[1].message.from_user.username.lower() in MODS:
+            return x(*args, **kwargs)
+        else:
+            return
+
+    return wrap
+
+
+clean = lambda s: str.strip(re.sub('/[@\w]+\s', '', s+' ', 1))  # fuck off PyCharm idc if it's PEP8 compliant
+
 
 def error(bot, update, error):
     logger.warning('Update "%s" caused error "%s"' % (update, error))
+
+
+updater.dispatcher.add_error_handler(error)
+
 
 # start text
 def start(bot, update):
@@ -23,218 +115,175 @@ start_handler = CommandHandler("start", start)
 updater.dispatcher.add_handler(start_handler)
 
 
-# help command
-def helpme(bot, update):
-    bot.sendMessage(chat_id=update.message.chat_id,
-                    text="Available commands:\n/echo text - echoes text\n/roll x - rolls a number between 1 and x\n/add x y - adds two numbers\n/subtract x y - subtracts two numbers (x - y)\n/multiply x y - multiplies two numbers\n/divide x y - divides two numbers (x / y)\n\nInline subcommands:\nshrug - sends an ascii shrug.\nbadtime - fucken love undertale")
+# toggle debug mode command
+@silence
+def toggle_debug(bot, update):
+    global DEBUGGING_MODE
+    message = ("Noodles are the best, no doubt, can't deny - tastes better than water, but don't ask you why",
+               "But then again, many things can be tasty - cornbread, potatoes, rice, and even pastries")
+    bot.sendMessage(chat_id=update.message.chat_id, text=message[DEBUGGING_MODE])
+    DEBUGGING_MODE ^= True
 
 
-help_handler = CommandHandler("help", helpme)
-updater.dispatcher.add_handler(help_handler)
-
-debuggingon = False
-
-def toggledebug(bot, update):
-    global debuggingon
-    if debuggingon:
-        bot.sendMessage(chat_id=update.message.chat_id, text="No")
-        debuggingon = False
-        return
-    if not debuggingon:
-        bot.sendMessage(chat_id=update.message.chat_id, text="Yes")
-        debuggingon = True
-        return
-
-debug_handler = CommandHandler("amicute", toggledebug)
+debug_handler = CommandHandler("NoodlesAreTheBestNoDoubtCantDeny", toggle_debug)
 updater.dispatcher.add_handler(debug_handler)
 
-# ping command to make sure that the bot is alive
-def pingpong(bot, update):
-    bot.sendMessage(chat_id=update.message.chat_id, text="Ointments.")
 
-
-ping_handler = CommandHandler("ointments", pingpong)
-updater.dispatcher.add_handler(ping_handler)
-
-
-# adds numbers
-def addcommand(bot, update, args):
-    if(args == []):
-        bot.sendMessage(chat_id=update.message.chat_id, text="Incorrect usage.\n\nUsage: `/add x y z ...`", parse_mode=telegram.ParseMode.MARKDOWN)
+@silence
+def dice_roll(bot, update, args):
+    if not args:
+        output = randint(1, 6)
+    elif str.isnumeric(args[0]):
+        output = randint(1, int(args[0]))
     else:
-        bot.sendChatAction(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
-        output = 0
-        tick = -1
-        for i in args:
-            tick = int(tick)
-            tick = tick + 1
-            tick = str(tick)
-            if debuggingon:
-                bot.sendMessage(chat_id=update.message.chat_id, text="value of args[" + tick + "]: " + i)
-            i = int(i)
-            output = output + i
-        output = str(output)
-        if debuggingon:
-            bot.sendMessage(chat_id=update.message.chat_id, text="result: " + output)
-        else:
-            bot.sendMessage(chat_id=update.message.chat_id, text=output)
+        output = "Invalid input.\n\nProper syntax is /roll <integer>."
+    bot.sendMessage(chat_id=update.message.chat_id, text=str(output))
 
 
-addition_handler = CommandHandler("add", addcommand, pass_args=True)
-updater.dispatcher.add_handler(addition_handler)
-
-
-# subtracts numbers
-def subtract(bot, update, args):
-    if(args == []):
-        bot.sendMessage(chat_id=update.message.chat_id, text="Incorrect usage.\n\nUsage: `/subtract x y z ...`\n(it subtracts left to right be careful of order)", parse_mode=telegram.ParseMode.MARKDOWN)
-    else:
-        bot.sendChatAction(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
-        output = int(args[0])
-        tick = -1
-        for i in args:
-            tick = int(tick)
-            tick = tick + 1
-            tick = str(tick)
-            if debuggingon:
-                bot.sendMessage(chat_id=update.message.chat_id, text="value of args[" + tick + "]: " + i)
-            i = int(i)
-            if tick != "0": #don't subtract the very first tick, cause then you'd subtract args[0] from args[0], bad
-                output = output - i
-        output = str(output)
-        if debuggingon:
-            bot.sendMessage(chat_id=update.message.chat_id, text="result: " + output)
-        else:
-            bot.sendMessage(chat_id=update.message.chat_id, text=output)
-
-
-subtraction_handler = CommandHandler("subtract", subtract, pass_args=True)
-updater.dispatcher.add_handler(subtraction_handler)
-
-
-# multiply two numbers
-def multipl(bot, update, args):
-    if(args == []):
-        bot.sendMessage(chat_id=update.message.chat_id, text="Incorrect usage.\n\nUsage: `/multiply x y z ...`", parse_mode=telegram.ParseMode.MARKDOWN)
-
-    else:
-        bot.sendChatAction(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
-        tick = -1
-        output = 1
-        for i in args:
-            tick = int(tick)
-            tick = tick + 1
-            tick = str(tick)
-            if debuggingon:
-                bot.sendMessage(chat_id=update.message.chat_id, text="value of args[" + tick + "]: " + i)
-            i = int(i)
-            output = output * i
-        output = str(output)
-        if debuggingon:
-            bot.sendMessage(chat_id=update.message.chat_id, text="result: " + output)
-        else:
-            bot.sendMessage(chat_id=update.message.chat_id, text=output)
-
-
-multiplication_handler = CommandHandler("multiply", multipl, pass_args=True)
-updater.dispatcher.add_handler(multiplication_handler)
-
-
-# divide two numbers
-def divid(bot, update, args):
-    if(args == []):
-        bot.sendMessage(chat_id=update.message.chat_id, text="Incorrect usage.\n\nUsage: `/divide x y z ...`\n(it divides left to right be careful of order)", parse_mode=telegram.ParseMode.MARKDOWN)
-    else:
-        bot.sendChatAction(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
-        output = int(args[0])
-        tick = -1
-        for i in args:
-            tick = int(tick)
-            tick = tick + 1
-            tick = str(tick)
-            if debuggingon:
-                bot.sendMessage(chat_id=update.message.chat_id, text="value of args[" + tick + "]: " + i)
-            i = int(i)
-            if tick != "0": #don't subtract the very first tick, cause then you'd subtract args[0] from args[0], bad
-                output = output / i
-        output = str(output)
-        if debuggingon:
-            bot.sendMessage(chat_id=update.message.chat_id, text="result: " + output)
-        else:
-            bot.sendMessage(chat_id=update.message.chat_id, text=output)
-
-
-division_handler = CommandHandler("divide", divid, pass_args=True)
-updater.dispatcher.add_handler(division_handler)
-
-def diceroll(bot, update, args):
-    if(args == []):
-        bot.sendMessage(chat_id=update.message.chat_id, text="Incorrect usage.\n\nUsage: `/roll <range>`", parse_mode=telegram.ParseMode.MARKDOWN)
-        return
-    else:
-        bot.sendChatAction(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
-        num = int(args[0])
-        output = str(random.randint(1,num))
-        bot.sendMessage(chat_id=update.message.chat_id, text=output)
-
-dice_handler = CommandHandler("roll", diceroll, pass_args=True)
+dice_handler = CommandHandler("roll", dice_roll, pass_args=True)
 updater.dispatcher.add_handler(dice_handler)
 
-# inline commands
-def inlinestuff(bot, update):
-    query = update.inline_query.query
-    if not query:
-        return
-    results = list()
-    print(query)
-    if(query == "shrug"):
-        results.append(InlineQueryResultArticle(id="shrug", title="¯\_(ツ)_/¯", input_message_content=InputTextMessageContent("¯\_(ツ)_/¯")))
-    if(query == "ping"):
-        results.append(InlineQueryResultArticle(id="ping", title="ping", input_message_content=InputTextMessageContent("pong")))
-    if (query == "badtime"):
-        results.append(InlineQueryResultArticle(id="badtime", title="fucken love undertale", input_message_content=InputTextMessageContent("…………/´¯/)…………….(\¯`.…………..\n………../…//……….i…….\….…………..\n………./…//…fuken luv….\….………….\n…../´¯/…./´¯..undertale./¯` .…\¯`.…….\n.././…/…./…./.|_.have._|..….……..…..\n(.(b.(..a.(..d./..)..)……(..(." + "\\" + "ti.)..m.)..e.).)….\n..……………\/…/………\/……………./….\n……………….. /……….……………..")))
-    update.inline_query.answer(results)
-    #bot.answerInlineQuery("shrug", results)
 
-
-inline_shrug_handler = InlineQueryHandler(inlinestuff)
-updater.dispatcher.add_handler(inline_shrug_handler)
-
-
-def getchatid(bot, update):
+@silence
+def get_chat_id(bot, update):
     bot.sendMessage(chat_id=update.message.chat_id, text=update.message.chat_id)
 
-getchathandler = CommandHandler("chatid", getchatid)
+
+getchathandler = CommandHandler("chatid", get_chat_id)
 updater.dispatcher.add_handler(getchathandler)
 
+
+@silence
 def echo(bot, update):
     bot.sendChatAction(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
-    reply = update.message.text[6:]
-    if reply == "":
+    reply = clean(update.message.text)
+
+    if reply in ('', '@Yosho_bot'):
         bot.sendMessage(chat_id=update.message.chat_id, text="Gimmie some text to echo!")
-        return
-    if reply == "Gimmie some text to echo!":
+    elif reply == "Gimmie some text to echo!":
         bot.sendMessage(chat_id=update.message.chat_id, text="That's my line.")
-        return
-    if reply != "":
+    else:
         bot.sendMessage(chat_id=update.message.chat_id, text=reply)
-        return
+
+    logger.info("Processed echo command. Input: " + reply)
+
 
 echo_handler = CommandHandler("echo", echo)
 updater.dispatcher.add_handler(echo_handler)
 
-def effective(bot, update):
-    bot.sendMessage(chat_id=update.message.chat_id, text='Power لُلُصّ؜بُلُلصّبُررًً ॣ h؜ ॣ؜ ॣ ॣ')
 
-effective_handler = CommandHandler("effective.", effective)
-updater.dispatcher.add_handler(effective_handler)
+@mods
+@silence
+def die(bot, update):
+    bot.sendMessage(chat_id=update.message.chat_id, text='KMS')
+    quit()
 
-def badtime(bot, update):
-    bot.sendMessage(chat_id=update.message.chat_id, text="…………/´¯/)…………….(\¯`.…………..\n………../…//……….i…….\….…………..\n………./…//…fuken luv….\….………….\n…../´¯/…./´¯..undertale./¯` .…\¯`.…….\n.././…/…./…./.|_.have._|..….……..…..\n(.(b.(..a.(..d./..)..)……(..(." + "\\" + "ti.)..m.)..e.).)….\n..……………\/…/………\/……………./….\n……………….. /……….……………..")
 
-badtime_handler = CommandHandler("badtime", badtime)
-updater.dispatcher.add_handler(badtime_handler)
+die_handler = CommandHandler("die", die)
+updater.dispatcher.add_handler(die_handler)
 
-updater.dispatcher.add_error_handler(error)
 
+@silence
+def e926(bot, update, tags=None):
+    failed = 'Error:\n\ne926 query failed.'
+    post_count = 50
+
+    if tags is None:
+        tags = clean(update.message.text)
+
+    index = 'https://e926.net/post/index.json'
+    params = {'limit': str(post_count), 'tags': tags}
+    headers = {'User-Agent': 'YoshoBot || @WyreYote and @TeamFortress on Telegram'}
+
+    r = requests.get(index, params=params, headers=headers)
+    time.sleep(.5)
+
+    if r.status_code == requests.codes.ok:
+        data = r.json()
+        posts = [p['file_url'] for p in data if p['file_ext'] in ('jpg', 'png')]
+        try:
+            p = posts[randint(0, len(posts)-1)]
+            if DEBUGGING_MODE:
+                bot.sendMessage(chat_id=update.message.chat_id, text=p)
+            bot.sendPhoto(chat_id=update.message.chat_id, photo=p)
+            time.sleep(.5)
+        except TelegramError:
+            logger.warning('TelegramError in e926 call')
+            bot.sendMessage(chat_id=update.message.chat_id, text=failed)
+        except ValueError:
+            logger.warning('ValueError in e926 call, probably incorrect tags')
+            bot.sendMessage(chat_id=update.message.chat_id, text=failed)
+    else:
+        bot.sendMessage(chat_id=update.message.chat_id, text=failed)
+
+
+e926_handler = CommandHandler("e926", e926)
+updater.dispatcher.add_handler(e926_handler)
+
+
+def why(bot, update):
+    e926(bot, update, tags='~what_has_science_done ~where_is_your_god_now')
+
+
+why_handler = CommandHandler("why", why)
+updater.dispatcher.add_handler(why_handler)
+
+
+@silence
+def evaluate(bot, update):
+    result = 'Invalid input:\n\n'
+    expr = clean(update.message.text)
+    out = None
+
+    with stopit.ThreadingTimeout(EVAL_TIMEOUT) as ctx:
+        a = Interpreter()
+        out = a(expr)
+
+    if ctx.state == ctx.TIMED_OUT:
+        result += 'Timed out.'
+    else:
+        if out is None:
+            result += 'Fuck off lol.'
+        elif len(str(out)) > EVAL_MAX_DIGITS:
+            result += 'Fuck off lol.'
+        else:
+            result = out
+
+    logger.info("Processed eval command. Input: " + expr + ", output: " + str(result))
+    bot.sendMessage(chat_id=update.message.chat_id, text=str(result))
+
+
+eval_handler = CommandHandler("eval", evaluate)
+updater.dispatcher.add_handler(eval_handler)
+
+
+# inline commands
+def inline_stuff(bot, update):
+    results = list()
+    query = update.inline_query.query
+
+    if query:
+        if query in GLOBAL_INLINE.keys():
+            results.append(InlineQueryResultArticle(id=query, title=GLOBAL_INLINE[query],
+                                                    input_message_content=InputTextMessageContent(GLOBAL_INLINE[query])))
+    else:
+        return
+    update.inline_query.answer(results)
+
+
+inline_shrug_handler = InlineQueryHandler(inline_stuff)
+updater.dispatcher.add_handler(inline_shrug_handler)
+
+
+@silence
+def unknown(bot, update):
+    command = clean(update.message.text)
+    if command in GLOBAL_MESSAGES.keys():
+        bot.sendMessage(chat_id=update.message.chat_id, text=GLOBAL_MESSAGES[command])
+
+
+unknown_handler = RegexHandler(r'/.*', unknown)
+updater.dispatcher.add_handler(unknown_handler)
+
+logger.info("Bot loaded.")
 updater.start_polling()
