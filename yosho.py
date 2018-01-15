@@ -16,7 +16,7 @@ from telegram.ext import Updater, CommandHandler, InlineQueryHandler, RegexHandl
 # initialize bot and logging for debugging #
 
 token_dict = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
-TOKEN = token_dict['debug']
+TOKEN = token_dict['production']
 
 MODS = ('wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'pjberri', 'pawjob')
 DEBUGGING_MODE = False
@@ -233,7 +233,6 @@ updater.dispatcher.add_handler(why_handler)
 def evaluate(bot, update):
     result = 'Invalid input:\n\n'
     expr = clean(update.message.text)
-    out = None
 
     with stopit.ThreadingTimeout(EVAL_TIMEOUT) as ctx:
         a = Interpreter()
@@ -271,13 +270,13 @@ def inline_stuff(bot, update):
     update.inline_query.answer(results)
 
 
-inline_shrug_handler = InlineQueryHandler(inline_stuff)
-updater.dispatcher.add_handler(inline_shrug_handler)
+inline_handler = InlineQueryHandler(inline_stuff)
+updater.dispatcher.add_handler(inline_handler)
 
 
 @silence
 def unknown(bot, update):
-    command = clean(update.message.text)
+    command = str.strip(re.sub('@[\w]+\s', '', update.message.text + ' ', 1))
     if command in GLOBAL_MESSAGES.keys():
         bot.sendMessage(chat_id=update.message.chat_id, text=GLOBAL_MESSAGES[command])
 
