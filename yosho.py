@@ -16,7 +16,7 @@ from telegram.ext import Updater, CommandHandler, InlineQueryHandler, RegexHandl
 # initialize bot and logging for debugging #
 
 token_dict = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
-TOKEN = token_dict['production']
+TOKEN = token_dict['debug']
 
 MODS = ('wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'pjberri', 'pawjob')
 DEBUGGING_MODE = False
@@ -26,7 +26,7 @@ EVAL_TIMEOUT = 1
 EVAL_MAX_DIGITS = 50
 
 GLOBAL_MESSAGES = {
-'help':
+'/help':
     r"""Available commands:
 /echo text - echoes text
 /roll x - rolls a number between 1 and x
@@ -36,7 +36,7 @@ Inline subcommands:
 shrug - sends an ascii shrug.
 badtime - fucken love undertale""",
 
-'badtime':
+'/badtime':
     r"""…………/´¯/)…………….(\¯`.…………..
 ………../…//……….i…….\….…………..
 ………./…//…fuken luv….\….………….
@@ -46,10 +46,10 @@ badtime - fucken love undertale""",
 ..……………\/…/………\/……………./….
 ……………….. /……….……………..""",
 
-'effective.':
+'/effective.':
     "Power لُلُصّ؜بُلُلصّبُررًً ॣ h؜ ॣ؜ ॣ ॣ",
 
-'ointments':
+'/ointments':
     "Ointments."}
 
 GLOBAL_INLINE = {
