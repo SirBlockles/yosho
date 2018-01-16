@@ -90,9 +90,9 @@ def silence(method=None, age=True, name=False, mods=False):
         message_user = args[1].message.from_user.username.lower()
         message_age = (datetime.datetime.now() - args[1].message.date).total_seconds() / 60
 
-        if (message_age < MESSAGE_TIMEOUT or not age) and\
-                (message_bot == '@' + TOKEN_SELECTION or not name) and\
-                (message_user in MODS or not mods):
+        if (not age or message_age < MESSAGE_TIMEOUT) and\
+                (not name or message_bot == '@' + TOKEN_SELECTION) and\
+                (not mods or message_user in MODS):
             return method(*args, **kwargs)
         else:
             return
