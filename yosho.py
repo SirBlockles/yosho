@@ -10,6 +10,7 @@ import telegram
 import time
 import csv
 from asteval import Interpreter
+from telegram import ChatAction as Ca
 from telegram import InlineQueryResultArticle, InputTextMessageContent
 from telegram.error import TelegramError
 from telegram.ext import Updater, CommandHandler, InlineQueryHandler, RegexHandler
@@ -78,10 +79,10 @@ logger = logging.getLogger(__name__)
 logger.info("Loading bot...")
 
 
-# message age filter, mod filter and /command@botname filter decorator
-def silence(method=None, age=True, name=False, mods=False):
+# message modifiers decorator.
+def modifiers(method=None, age=True, name=False, mods=False, action=False):
     if method is None:
-        return functools.partial(silence, age=age, name=name, mods=mods)
+        return functools.partial(modifiers, age=age, name=name, mods=mods, action=action)
 
     @functools.wraps(method)
     def wrap(*args, **kwargs):
@@ -93,6 +94,8 @@ def silence(method=None, age=True, name=False, mods=False):
         if (not age or message_age < MESSAGE_TIMEOUT) and\
                 (not name or message_bot == '@' + TOKEN_SELECTION) and\
                 (not mods or message_user in MODS):
+            if action:
+                args[0].sendChatAction(chat_id=args[1].message.chat_id, action=action)
             return method(*args, **kwargs)
         else:
             return
@@ -110,6 +113,7 @@ updater.dispatcher.add_error_handler(error)
 
 
 # start text
+@modifiers(age=False, action=Ca.TYPING)
 def start(bot, update):
     bot.sendMessage(chat_id=update.message.chat_id, text="Hi. I do a bunch of misc shit. Add me to a group I guess")
 
@@ -119,7 +123,7 @@ updater.dispatcher.add_handler(start_handler)
 
 
 # toggle debug mode command
-@silence(mods=True)
+@modifiers(mods=True, action=Ca.TYPING)
 def toggle_debug(bot, update):
     global DEBUGGING_MODE
     message = ("Noodles are the best, no doubt, can't deny - tastes better than water, but don't ask you why",
@@ -132,7 +136,7 @@ debug_handler = CommandHandler("NoodlesAreTheBestNoDoubtCantDeny", toggle_debug)
 updater.dispatcher.add_handler(debug_handler)
 
 
-@silence
+@modifiers(action=Ca.TYPING)
 def dice_roll(bot, update, args):
     if not args:
         output = randint(1, 6)
@@ -147,7 +151,7 @@ dice_handler = CommandHandler("roll", dice_roll, pass_args=True)
 updater.dispatcher.add_handler(dice_handler)
 
 
-@silence
+@modifiers(action=Ca.TYPING)
 def get_chat_id(bot, update):
     update.message.reply_text(text=update.message.chat_id)
 
@@ -156,9 +160,8 @@ getchathandler = CommandHandler("chatid", get_chat_id)
 updater.dispatcher.add_handler(getchathandler)
 
 
-@silence
+@modifiers(action=Ca.TYPING)
 def echo(bot, update):
-    bot.sendChatAction(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
     reply = clean(update.message.text)
 
     if reply in ('', '@Yosho_bot'):
@@ -175,7 +178,7 @@ echo_handler = CommandHandler("echo", echo)
 updater.dispatcher.add_handler(echo_handler)
 
 
-@silence(mods=True)
+@modifiers(mods=True, action=Ca.TYPING)
 def die(bot, update):
     update.message.reply_text(text='KMS')
     quit()
@@ -185,18 +188,16 @@ die_handler = CommandHandler("die", die)
 updater.dispatcher.add_handler(die_handler)
 
 
-@silence
+@modifiers(action=Ca.UPLOAD_PHOTO)
 def e926(bot, update, tags=None):
     failed = 'Error:\n\ne926 query failed.'
     post_count = 50
-    page_count = 4
-
 
     if tags is None:
         tags = clean(update.message.text)
 
     index = 'https://e926.net/post/index.json'
-    params = {'limit': str(post_count), 'page': str(randint(0, page_count)), 'tags': tags}
+    params = {'limit': str(post_count), 'tags': tags}
     headers = {'User-Agent': 'YoshoBot || @WyreYote and @TeamFortress on Telegram'}
 
     r = requests.get(index, params=params, headers=headers)
@@ -214,6 +215,7 @@ def e926(bot, update, tags=None):
             time.sleep(.5)
         except TelegramError:
             logger.warning('TelegramError in e926 call, post value: ' + str(p))
+            update.message.reply_text(text=failed)
         except ValueError:
             logger.warning('ValueError in e926 call, probably incorrect tags')
             update.message.reply_text(text=failed)
@@ -233,7 +235,7 @@ why_handler = CommandHandler("why", why)
 updater.dispatcher.add_handler(why_handler)
 
 
-@silence
+@modifiers(action=Ca.TYPING)
 def evaluate(bot, update):
     result = 'Invalid input:\n\n'
     expr = clean(update.message.text)
@@ -278,18 +280,19 @@ inline_handler = InlineQueryHandler(inline_stuff)
 updater.dispatcher.add_handler(inline_handler)
 
 
-@silence
+@modifiers
 def unknown(bot, update):
     command = str.strip(re.sub('@[\w]+\s', '', update.message.text + ' ', 1))
     if command in GLOBAL_MESSAGES.keys():
+        bot.sendChatAction(chat_id=update.message.chat_id, action=Ca.TYPING)
         update.message.reply_text(text=GLOBAL_MESSAGES[command])
     else:
-        unknown_reply(bot, update, command)
+        unknown_reply(bot, update, 'Error:\n\nUnknown command: ' + command)
 
 
-@silence(age=False, name=True)
-def unknown_reply(bot, update, command):
-    update.message.reply_text(text='Error:\n\nUnknown command: ' + command)
+@modifiers(age=False, name=True, action=Ca.TYPING)
+def unknown_reply(bot, update, text):
+    update.message.reply_text(text=text)
 
 
 unknown_handler = RegexHandler(r'/.*', unknown)
