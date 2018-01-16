@@ -140,7 +140,7 @@ def dice_roll(bot, update, args):
         output = randint(1, int(args[0]))
     else:
         output = "Invalid input.\n\nProper syntax is /roll <integer>."
-        update.message.reply_text(text=str(output))
+    update.message.reply_text(text=str(output))
 
 
 dice_handler = CommandHandler("roll", dice_roll, pass_args=True)
