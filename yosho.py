@@ -239,8 +239,9 @@ def evaluate(bot, update):
     result = 'Invalid input:\n\n'
     expr = clean(update.message.text)
 
-    if '~preceding' in expr and not update.message.reply_to_message.text is None:
-        expr = expr.replace('~preceding', update.message.reply_to_message.text)
+    repl = update.message.reply_to_message
+    if '~preceding' in expr and repl is not None:
+        expr = expr.replace('~preceding', repl.text)
 
     with stopit.ThreadingTimeout(EVAL_TIMEOUT) as ctx:
         a = Interpreter()
