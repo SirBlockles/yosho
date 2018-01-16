@@ -203,6 +203,7 @@ def e926(bot, update, tags=None):
     if r.status_code == requests.codes.ok:
         data = r.json()
         posts = [p['file_url'] for p in data if p['file_ext'] in ('jpg', 'png')]
+        p = None
         try:
             p = posts[randint(0, len(posts)-1)]
             if DEBUGGING_MODE:
@@ -210,7 +211,7 @@ def e926(bot, update, tags=None):
             bot.sendPhoto(chat_id=update.message.chat_id, photo=p)
             time.sleep(.5)
         except TelegramError:
-            logger.warning('TelegramError in e926 call')
+            logger.warning('TelegramError in e926 call, post value: ' + str(p))
         except ValueError:
             logger.warning('ValueError in e926 call, probably incorrect tags')
             bot.sendMessage(chat_id=update.message.chat_id, text=failed)
