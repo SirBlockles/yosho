@@ -16,7 +16,7 @@ from telegram.ext import Updater, CommandHandler, InlineQueryHandler, RegexHandl
 # initialize bot and logging for debugging #
 
 token_dict = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
-TOKEN = token_dict['debug']
+TOKEN = token_dict['production']
 
 MODS = ('wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'pjberri', 'pawjob')
 DEBUGGING_MODE = False
@@ -28,9 +28,11 @@ EVAL_MAX_DIGITS = 50
 GLOBAL_MESSAGES = {
 '/help':
     r"""Available commands:
-/echo text - echoes text
-/roll x - rolls a number between 1 and x
+/echo <text> - echoes text
+/roll <int> - rolls a number between 1 and x
 /eval - does math
+/e926 <tags> - search e926
+/why - post random cursed image
 
 Inline subcommands:
 shrug - sends an ascii shrug.
@@ -209,7 +211,6 @@ def e926(bot, update, tags=None):
             time.sleep(.5)
         except TelegramError:
             logger.warning('TelegramError in e926 call')
-            bot.sendMessage(chat_id=update.message.chat_id, text=failed)
         except ValueError:
             logger.warning('ValueError in e926 call, probably incorrect tags')
             bot.sendMessage(chat_id=update.message.chat_id, text=failed)
