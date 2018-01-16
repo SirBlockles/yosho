@@ -249,7 +249,7 @@ def evaluate(bot, update):
         if out is None:
             result += 'Fuck off lol.'
         elif len(str(out)) > EVAL_MAX_DIGITS:
-            result = out[:EVAL_MAX_DIGITS] + '...'
+            result = str(out)[:EVAL_MAX_DIGITS] + '...'
         else:
             result = out
 
