@@ -93,7 +93,7 @@ def modifiers(method=None, age=True, name=False, mods=False, action=False):
 
         if DEBUGGING_MODE:
             chat = args[1].message.chat
-            logger.info(chat.type + ' : ' + chat.title)
+            logger.info(method.__name__ + ' method called from: ' + chat.username or (chat.type + ' -> ' + chat.title))
 
         if (not age or message_age < MESSAGE_TIMEOUT) and\
                 (not name or message_bot == '@' + TOKEN_SELECTION) and\
@@ -134,6 +134,7 @@ def toggle_debug(bot, update):
                "But then again, many things can be tasty - cornbread, potatoes, rice, and even pastries")
     update.message.reply_text(text=message[DEBUGGING_MODE])
     DEBUGGING_MODE ^= True
+    logger.info('Debugging mode set to ' + str(DEBUGGING_MODE).lower())
 
 
 debug_handler = CommandHandler("NoodlesAreTheBestNoDoubtCantDeny", toggle_debug)
@@ -218,9 +219,11 @@ def e926(bot, update, tags=None):
             update.message.reply_photo(photo=p)
             time.sleep(.5)
         except TelegramError:
-            logger.warning('TelegramError in e926 call, post value: ' + str(p))
+            if DEBUGGING_MODE:
+                logger.warning('TelegramError in e926 call, post value: ' + str(p))
         except ValueError:
-            logger.warning('ValueError in e926 call, probably incorrect tags')
+            if DEBUGGING_MODE:
+                logger.warning('ValueError in e926 call, probably incorrect tags')
             update.message.reply_text(text=failed)
     else:
         update.message.reply_text(text=failed)
@@ -260,8 +263,8 @@ def evaluate(bot, update):
             result = str(out)[:EVAL_MAX_CHARS] + '...'
         else:
             result = out
-
-    logger.info("Processed eval command. Input: " + expr + ", output: " + str(result))
+    if DEBUGGING_MODE:
+        logger.info("Processed eval command. Input: " + expr + ", output: " + str(result))
     update.message.reply_text(text=str(result))
 
 
@@ -276,6 +279,8 @@ def inline_stuff(bot, update):
 
     if query:
         if query in GLOBAL_INLINE.keys():
+            if DEBUGGING_MODE:
+                logger.info('Inline query called: ' + query)
             results.append(InlineQueryResultArticle(id=query, title=GLOBAL_INLINE[query],
                                                     input_message_content=InputTextMessageContent(GLOBAL_INLINE[query])))
     else:
