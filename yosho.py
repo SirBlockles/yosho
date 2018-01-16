@@ -26,7 +26,7 @@ DEBUGGING_MODE = False
 MESSAGE_TIMEOUT = 1
 
 EVAL_TIMEOUT = 1
-EVAL_MAX_DIGITS = 300
+EVAL_MAX_CHARS = 200
 
 GLOBAL_MESSAGES = {
 '/help':
@@ -239,6 +239,9 @@ def evaluate(bot, update):
     result = 'Invalid input:\n\n'
     expr = clean(update.message.text)
 
+    if '~preceding' in expr and not update.message.reply_to_message.text is None:
+        expr = expr.replace('~preceding', update.message.reply_to_message.text)
+
     with stopit.ThreadingTimeout(EVAL_TIMEOUT) as ctx:
         a = Interpreter()
         out = a(expr)
@@ -247,9 +250,9 @@ def evaluate(bot, update):
         result += 'Timed out.'
     else:
         if out is None:
-            result += 'Fuck off lol.'
-        elif len(str(out)) > EVAL_MAX_DIGITS:
-            result = str(out)[:EVAL_MAX_DIGITS] + '...'
+            result = 'Fuck off lol.'
+        elif len(str(out)) > EVAL_MAX_CHARS:
+            result = str(out)[:EVAL_MAX_CHARS] + '...'
         else:
             result = out
 
