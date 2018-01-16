@@ -241,7 +241,7 @@ def evaluate(bot, update):
 
     repl = update.message.reply_to_message
     if '~preceding' in expr and repl is not None:
-        expr = expr.replace('~preceding', repl.text)
+        expr = expr.replace('~preceding', 'r"'+repl.text.replace('"', "'")+'"')
 
     with stopit.ThreadingTimeout(EVAL_TIMEOUT) as ctx:
         a = Interpreter()
