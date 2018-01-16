@@ -162,9 +162,9 @@ def echo(bot, update):
     reply = clean(update.message.text)
 
     if reply in ('', '@Yosho_bot'):
-        bot.sendMessage(chat_id=update.message.chat_id, text="Gimmie some text to echo!")
+        update.message.reply_text(text="Gimmie some text to echo!")
     elif reply == "Gimmie some text to echo!":
-        bot.sendMessage(chat_id=update.message.chat_id, text="That's my line.")
+        update.message.reply_text(text="That's my line.")
     else:
         bot.sendMessage(chat_id=update.message.chat_id, text=reply)
 
