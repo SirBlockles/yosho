@@ -81,21 +81,22 @@ logger.info("Loading bot...")
 
 # message modifiers decorator.
 def modifiers(method=None, age=True, name=False, mods=False, action=False):
-    if method is None:
+    if method is None:  # if method is None optional arguments have been passed, return usable decorator
         return functools.partial(modifiers, age=age, name=name, mods=mods, action=action)
 
     @functools.wraps(method)
-    def wrap(*args, **kwargs):
+    def wrap(*args, **kwargs):  # otherwise wrap function and continue
         n = re.findall('@[\w]+\s', args[1].message.text + ' ')
-        message_bot = (n[0].lower().strip() if len(n) > 0 else None)
-        message_user = args[1].message.from_user.username.lower()
-        message_age = (datetime.datetime.now() - args[1].message.date).total_seconds() / 60
+        message_bot = (n[0].lower().strip() if len(n) > 0 else None)  # name of bot @name used in command if present
+        message_user = args[1].message.from_user.username.lower()  # name of OP/user of command
+        message_age = (datetime.datetime.now() - args[1].message.date).total_seconds() / 60  # age of message in minutes
 
-        if DEBUGGING_MODE:
+        if DEBUGGING_MODE:  # log the method and various other data if in debug mode
             chat = args[1].message.chat
             logger.info(method.__name__ + ' method called from: ' + (chat.username or (chat.type + ' -> ' + chat.title))
                         + ', with message text: "' + args[1].message.text + '"')
 
+        # check incoming message attributes, return function or None depending on conditionals
         if (not age or message_age < MESSAGE_TIMEOUT) and\
                 (not name or message_bot == '@' + TOKEN_SELECTION) and\
                 (not mods or message_user in MODS):
@@ -107,7 +108,7 @@ def modifiers(method=None, age=True, name=False, mods=False, action=False):
     return wrap
 
 
-clean = lambda s: str.strip(re.sub('/[@\w]+\s', '', s+' ', 1))  # fuck off PyCharm idc if it's PEP8 compliant
+clean = lambda s: str.strip(re.sub('/[@\w]+\s', '', s+' ', 1))  # strips command name and bot name from input
 
 
 def error(bot, update, error):
@@ -202,23 +203,25 @@ def e926(bot, update, tags=None):
     if tags is None:
         tags = clean(update.message.text)
 
+    # construct the request
     index = 'https://e926.net/post/index.json'
     params = {'limit': str(post_count), 'tags': tags}
     headers = {'User-Agent': 'YoshoBot || @WyreYote and @TeamFortress on Telegram'}
 
     r = requests.get(index, params=params, headers=headers)
-    time.sleep(.5)
+    time.sleep(.5)  # rate limit, can be lowered to .25 if needed.
 
     if r.status_code == requests.codes.ok:
         data = r.json()
-        posts = [p['file_url'] for p in data if p['file_ext'] in ('jpg', 'png')]
+        posts = [p['file_url'] for p in data if p['file_ext'] in ('jpg', 'png')]  # find image urls in json response
         p = None
         try:
             p = posts[randint(0, len(posts)-1)]
             if DEBUGGING_MODE:
                 logger.info(p)
             update.message.reply_photo(photo=p)
-            time.sleep(.5)
+            time.sleep(.5)  # rate limit, can be lowered to .25 if needed.
+
         except TelegramError:
             if DEBUGGING_MODE:
                 logger.warning('TelegramError in e926 call, post value: ' + str(p))
@@ -247,10 +250,12 @@ def evaluate(bot, update):
     result = 'Invalid input:\n\n'
     expr = clean(update.message.text)
 
+    # replace instances of '~preceding' in input with quoted comment if present
     repl = update.message.reply_to_message
     if '~preceding' in expr and repl is not None:
         expr = expr.replace('~preceding', 'r"'+repl.text.replace('"', "'")+'"')
 
+    # execute command with timeout
     with stopit.ThreadingTimeout(EVAL_TIMEOUT) as ctx:
         a = Interpreter()
         out = a(expr)
@@ -294,7 +299,7 @@ updater.dispatcher.add_handler(inline_handler)
 
 
 @modifiers
-def unknown(bot, update):
+def unknown(bot, update):  # process dict reply commands
     command = str.strip(re.sub('@[\w]+\s', '', update.message.text + ' ', 1))
     if command in GLOBAL_MESSAGES.keys():
         bot.sendChatAction(chat_id=update.message.chat_id, action=Ca.TYPING)
