@@ -88,22 +88,25 @@ def modifiers(method=None, age=True, name=False, mods=False, action=False):
     def wrap(*args, **kwargs):  # otherwise wrap function and continue
         n = re.findall('@[\w]+\s', args[1].message.text + ' ')
         message_bot = (n[0].lower().strip() if len(n) > 0 else None)  # name of bot @name used in command if present
-        message_user = args[1].message.from_user.username.lower()  # name of OP/user of command
+        message_user = args[1].message.from_user.username  # name of OP/user of command
         message_age = (datetime.datetime.now() - args[1].message.date).total_seconds() / 60  # age of message in minutes
 
         if DEBUGGING_MODE:  # log the method and various other data if in debug mode
             chat = args[1].message.chat
-            logger.info(method.__name__ + ' method called from: ' + (chat.username or (chat.type + ' -> ' + chat.title))
-                        + ', with message text: "' + args[1].message.text + '"')
+            title = chat.type + ' -> ' + (chat.title if chat.username is None else '@' + chat.username)
+            logger.info(method.__name__ + ' method called from ' + title
+                        + ', user: @' + message_user + ', with message text: "' + args[1].message.text + '"')
 
         # check incoming message attributes, return function or None depending on conditionals
         if (not age or message_age < MESSAGE_TIMEOUT) and\
                 (not name or message_bot == '@' + TOKEN_SELECTION) and\
-                (not mods or message_user in MODS):
+                (not mods or message_user.lower() in MODS):
             if action:
                 args[0].sendChatAction(chat_id=args[1].message.chat_id, action=action)
             return method(*args, **kwargs)
         else:
+            if DEBUGGING_MODE:
+                logger.info('Message canceled by decorator.')
             return
     return wrap
 
