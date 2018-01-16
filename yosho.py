@@ -16,7 +16,7 @@ from telegram.ext import Updater, CommandHandler, InlineQueryHandler, RegexHandl
 
 # initialize bot and logging for debugging #
 
-TOKEN_SELECTION = 'yoshobeta_bot'
+TOKEN_SELECTION = 'yosho_bot'
 token_dict = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
 TOKEN = token_dict[TOKEN_SELECTION]
 
@@ -32,7 +32,7 @@ GLOBAL_MESSAGES = {
     r"""Available commands:
 /echo <text> - echoes text
 /roll <int> - rolls a number between 1 and x
-/eval - does math
+/eval <expression> - does math
 /e926 <tags> - search e926
 /why - post random cursed image
 
@@ -124,7 +124,7 @@ def toggle_debug(bot, update):
     global DEBUGGING_MODE
     message = ("Noodles are the best, no doubt, can't deny - tastes better than water, but don't ask you why",
                "But then again, many things can be tasty - cornbread, potatoes, rice, and even pastries")
-    bot.sendMessage(chat_id=update.message.chat_id, text=message[DEBUGGING_MODE])
+    update.message.reply_text(text=message[DEBUGGING_MODE])
     DEBUGGING_MODE ^= True
 
 
@@ -140,7 +140,7 @@ def dice_roll(bot, update, args):
         output = randint(1, int(args[0]))
     else:
         output = "Invalid input.\n\nProper syntax is /roll <integer>."
-    bot.sendMessage(chat_id=update.message.chat_id, text=str(output))
+        update.message.reply_text(text=str(output))
 
 
 dice_handler = CommandHandler("roll", dice_roll, pass_args=True)
@@ -149,7 +149,7 @@ updater.dispatcher.add_handler(dice_handler)
 
 @silence
 def get_chat_id(bot, update):
-    bot.sendMessage(chat_id=update.message.chat_id, text=update.message.chat_id)
+    update.message.reply_text(text=update.message.chat_id)
 
 
 getchathandler = CommandHandler("chatid", get_chat_id)
@@ -177,7 +177,7 @@ updater.dispatcher.add_handler(echo_handler)
 
 @silence(mods=True)
 def die(bot, update):
-    bot.sendMessage(chat_id=update.message.chat_id, text='KMS')
+    update.message.reply_text(text='KMS')
     quit()
 
 
@@ -190,6 +190,7 @@ def e926(bot, update, tags=None):
     failed = 'Error:\n\ne926 query failed.'
     post_count = 50
     page_count = 4
+
 
     if tags is None:
         tags = clean(update.message.text)
@@ -208,16 +209,16 @@ def e926(bot, update, tags=None):
         try:
             p = posts[randint(0, len(posts)-1)]
             if DEBUGGING_MODE:
-                bot.sendMessage(chat_id=update.message.chat_id, text=p)
-            bot.sendPhoto(chat_id=update.message.chat_id, photo=p)
+                update.message.reply_text(text=p)
+            update.message.reply_photo(photo=p)
             time.sleep(.5)
         except TelegramError:
             logger.warning('TelegramError in e926 call, post value: ' + str(p))
         except ValueError:
             logger.warning('ValueError in e926 call, probably incorrect tags')
-            bot.sendMessage(chat_id=update.message.chat_id, text=failed)
+            update.message.reply_text(text=failed)
     else:
-        bot.sendMessage(chat_id=update.message.chat_id, text=failed)
+        update.message.reply_text(text=failed)
 
 
 e926_handler = CommandHandler("e926", e926)
@@ -252,7 +253,7 @@ def evaluate(bot, update):
             result = out
 
     logger.info("Processed eval command. Input: " + expr + ", output: " + str(result))
-    bot.sendMessage(chat_id=update.message.chat_id, text=str(result))
+    update.message.reply_text(text=str(result))
 
 
 eval_handler = CommandHandler("eval", evaluate)
@@ -288,7 +289,7 @@ def unknown(bot, update):
 
 @silence(age=False, name=True)
 def unknown_reply(bot, update, command):
-    bot.sendMessage(chat_id=update.message.chat_id, text='Error:\n\nUnknown command: ' + command)
+    update.message.reply_text(text='Error:\n\nUnknown command: ' + command)
 
 
 unknown_handler = RegexHandler(r'/.*', unknown)
