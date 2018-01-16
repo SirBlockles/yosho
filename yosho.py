@@ -91,6 +91,10 @@ def modifiers(method=None, age=True, name=False, mods=False, action=False):
         message_user = args[1].message.from_user.username.lower()
         message_age = (datetime.datetime.now() - args[1].message.date).total_seconds() / 60
 
+        if DEBUGGING_MODE:
+            chat = args[1].message.chat
+            logger.info(chat.type + ' : ' + chat.title)
+
         if (not age or message_age < MESSAGE_TIMEOUT) and\
                 (not name or message_bot == '@' + TOKEN_SELECTION) and\
                 (not mods or message_user in MODS):
@@ -210,7 +214,7 @@ def e926(bot, update, tags=None):
         try:
             p = posts[randint(0, len(posts)-1)]
             if DEBUGGING_MODE:
-                update.message.reply_text(text=p)
+                logger.info(p)
             update.message.reply_photo(photo=p)
             time.sleep(.5)
         except TelegramError:
