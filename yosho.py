@@ -189,12 +189,13 @@ updater.dispatcher.add_handler(die_handler)
 def e926(bot, update, tags=None):
     failed = 'Error:\n\ne926 query failed.'
     post_count = 50
+    page_count = 4
 
     if tags is None:
         tags = clean(update.message.text)
 
     index = 'https://e926.net/post/index.json'
-    params = {'limit': str(post_count), 'tags': tags}
+    params = {'limit': str(post_count), 'page': str(randint(0, page_count)), 'tags': tags}
     headers = {'User-Agent': 'YoshoBot || @WyreYote and @TeamFortress on Telegram'}
 
     r = requests.get(index, params=params, headers=headers)
