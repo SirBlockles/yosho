@@ -90,7 +90,9 @@ def silence(method=None, age=True, name=False, mods=False):
         message_user = args[1].message.from_user.username.lower()
         message_age = (datetime.datetime.now() - args[1].message.date).total_seconds() / 60
 
-        if (message_age < MESSAGE_TIMEOUT or not age) and (message_bot == '@' + TOKEN_SELECTION or not name) and (message_user in MODS or not mods):
+        if (message_age < MESSAGE_TIMEOUT or not age) and\
+                (message_bot == '@' + TOKEN_SELECTION or not name) and\
+                (message_user in MODS or not mods):
             return method(*args, **kwargs)
         else:
             return
@@ -117,7 +119,7 @@ updater.dispatcher.add_handler(start_handler)
 
 
 # toggle debug mode command
-@silence
+@silence(mods=True)
 def toggle_debug(bot, update):
     global DEBUGGING_MODE
     message = ("Noodles are the best, no doubt, can't deny - tastes better than water, but don't ask you why",
@@ -154,7 +156,7 @@ getchathandler = CommandHandler("chatid", get_chat_id)
 updater.dispatcher.add_handler(getchathandler)
 
 
-@silence()
+@silence
 def echo(bot, update):
     bot.sendChatAction(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
     reply = clean(update.message.text)
