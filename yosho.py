@@ -282,7 +282,7 @@ updater.dispatcher.add_handler(inline_handler)
 def unknown(bot, update):
     command = str.strip(re.sub('@[\w]+\s', '', update.message.text + ' ', 1))
     if command in GLOBAL_MESSAGES.keys():
-        bot.sendMessage(chat_id=update.message.chat_id, text=GLOBAL_MESSAGES[command])
+        update.message.reply_text(text=GLOBAL_MESSAGES[command])
     else:
         unknown_reply(bot, update, command)
 
