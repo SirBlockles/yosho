@@ -274,9 +274,9 @@ def inline_stuff(bot, update):
 inline_handler = InlineQueryHandler(inline_stuff)
 updater.dispatcher.add_handler(inline_handler)
 
+
 @silence
 def unknown(bot, update):
-    print('"'+update.message.text+'"')
     command = str.strip(re.sub('@[\w]+\s', '', update.message.text + ' ', 1))
     if command in GLOBAL_MESSAGES.keys():
         bot.sendMessage(chat_id=update.message.chat_id, text=GLOBAL_MESSAGES[command])
