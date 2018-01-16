@@ -25,7 +25,7 @@ DEBUGGING_MODE = False
 MESSAGE_TIMEOUT = 1
 
 EVAL_TIMEOUT = 1
-EVAL_MAX_DIGITS = 50
+EVAL_MAX_DIGITS = 300
 
 GLOBAL_MESSAGES = {
 '/help':
@@ -248,7 +248,7 @@ def evaluate(bot, update):
         if out is None:
             result += 'Fuck off lol.'
         elif len(str(out)) > EVAL_MAX_DIGITS:
-            result += 'Fuck off lol.'
+            result = out[:EVAL_MAX_DIGITS] + '...'
         else:
             result = out
 
