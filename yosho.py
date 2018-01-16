@@ -16,7 +16,7 @@ from telegram.ext import Updater, CommandHandler, InlineQueryHandler, RegexHandl
 
 # initialize bot and logging for debugging #
 
-TOKEN_SELECTION = 'yosho_bot'
+TOKEN_SELECTION = 'yoshobeta_bot'
 token_dict = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
 TOKEN = token_dict[TOKEN_SELECTION]
 
@@ -81,7 +81,7 @@ logger.info("Loading bot...")
 # message age filter, mod filter and /command@botname filter decorator
 def silence(method=None, age=True, name=False, mods=False):
     if method is None:
-        return functools.partial(silence, age=age, name=name)
+        return functools.partial(silence, age=age, name=name, mods=mods)
 
     @functools.wraps(method)
     def wrap(*args, **kwargs):
