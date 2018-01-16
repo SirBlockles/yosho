@@ -93,7 +93,8 @@ def modifiers(method=None, age=True, name=False, mods=False, action=False):
 
         if DEBUGGING_MODE:
             chat = args[1].message.chat
-            logger.info(method.__name__ + ' method called from: ' + chat.username or (chat.type + ' -> ' + chat.title))
+            logger.info(method.__name__ + ' method called from: ' + (chat.username or (chat.type + ' -> ' + chat.title))
+                        + ', with message text: "' + args[1].message.text + '"')
 
         if (not age or message_age < MESSAGE_TIMEOUT) and\
                 (not name or message_bot == '@' + TOKEN_SELECTION) and\
