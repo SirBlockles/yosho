@@ -1,5 +1,6 @@
 from random import randint
 
+import functools
 import datetime
 import logging
 import re
@@ -15,8 +16,9 @@ from telegram.ext import Updater, CommandHandler, InlineQueryHandler, RegexHandl
 
 # initialize bot and logging for debugging #
 
+TOKEN_SELECTION = 'yosho_bot'
 token_dict = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
-TOKEN = token_dict['production']
+TOKEN = token_dict[TOKEN_SELECTION]
 
 MODS = ('wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'pjberri', 'pawjob')
 DEBUGGING_MODE = False
@@ -76,25 +78,22 @@ logger = logging.getLogger(__name__)
 logger.info("Loading bot...")
 
 
-# message timeout decorator
-def silence(x):
+# message age filter, mod filter and /command@botname filter decorator
+def silence(method=None, age=True, name=False, mods=False):
+    if method is None:
+        return functools.partial(silence, age=age, name=name)
+
+    @functools.wraps(method)
     def wrap(*args, **kwargs):
-        if (datetime.datetime.now() - args[1].message.date).total_seconds() / 60 < MESSAGE_TIMEOUT:
-            return x(*args, **kwargs)
+        n = re.findall('@[\w]+\s', args[1].message.text + ' ')
+        message_bot = (n[0].lower().strip() if len(n) > 0 else None)
+        message_user = args[1].message.from_user.username.lower()
+        message_age = (datetime.datetime.now() - args[1].message.date).total_seconds() / 60
+
+        if (message_age < MESSAGE_TIMEOUT or not age) and (message_bot == '@' + TOKEN_SELECTION or not name) and (message_user in MODS or not mods):
+            return method(*args, **kwargs)
         else:
             return
-
-    return wrap
-
-
-# mod-only commands decorator
-def mods(x):
-    def wrap(*args, **kwargs):
-        if args[1].message.from_user.username.lower() in MODS:
-            return x(*args, **kwargs)
-        else:
-            return
-
     return wrap
 
 
@@ -155,7 +154,7 @@ getchathandler = CommandHandler("chatid", get_chat_id)
 updater.dispatcher.add_handler(getchathandler)
 
 
-@silence
+@silence()
 def echo(bot, update):
     bot.sendChatAction(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
     reply = clean(update.message.text)
@@ -174,8 +173,7 @@ echo_handler = CommandHandler("echo", echo)
 updater.dispatcher.add_handler(echo_handler)
 
 
-@mods
-@silence
+@silence(mods=True)
 def die(bot, update):
     bot.sendMessage(chat_id=update.message.chat_id, text='KMS')
     quit()
@@ -275,11 +273,14 @@ inline_handler = InlineQueryHandler(inline_stuff)
 updater.dispatcher.add_handler(inline_handler)
 
 
-@silence
+@silence(name=True)
 def unknown(bot, update):
+    print('"'+update.message.text+'"')
     command = str.strip(re.sub('@[\w]+\s', '', update.message.text + ' ', 1))
     if command in GLOBAL_MESSAGES.keys():
         bot.sendMessage(chat_id=update.message.chat_id, text=GLOBAL_MESSAGES[command])
+    else:
+        bot.sendMessage(chat_id=update.message.chat_id, text='Error:\n\nUnknown command: ' + command)
 
 
 unknown_handler = RegexHandler(r'/.*', unknown)
