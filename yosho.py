@@ -215,7 +215,6 @@ def e926(bot, update, tags=None):
             time.sleep(.5)
         except TelegramError:
             logger.warning('TelegramError in e926 call, post value: ' + str(p))
-            update.message.reply_text(text=failed)
         except ValueError:
             logger.warning('ValueError in e926 call, probably incorrect tags')
             update.message.reply_text(text=failed)
