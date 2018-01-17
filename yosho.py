@@ -18,7 +18,7 @@ from telegram.ext import Updater, CommandHandler, InlineQueryHandler, RegexHandl
 
 # initialize bot and logging for debugging #
 
-TOKEN_SELECTION = 'yoshobeta_bot'
+TOKEN_SELECTION = 'yosho_bot'
 token_dict = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
 TOKEN = token_dict[TOKEN_SELECTION]
 
@@ -385,7 +385,7 @@ def unknown(bot, update):  # process dict reply commands
         if GLOBAL_COMMANDS[command][1]:  # check if command is code or text
 
             inp = clean(update.message.text)
-            if inp is '':
+            if inp is '' and 'input' in GLOBAL_COMMANDS[command][0]:
                 update.message.reply_text(text='Eval macro error:\n\n~Input tag requires user input.')
                 return
             cmd = GLOBAL_COMMANDS[command][0].replace('~input', 'r"""' + inp + '"""')
