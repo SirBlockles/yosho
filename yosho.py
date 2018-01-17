@@ -1,5 +1,6 @@
 from random import randint
 
+import pickle
 import functools
 import datetime
 import logging
@@ -17,7 +18,7 @@ from telegram.ext import Updater, CommandHandler, InlineQueryHandler, RegexHandl
 
 # initialize bot and logging for debugging #
 
-TOKEN_SELECTION = 'yosho_bot'
+TOKEN_SELECTION = 'yoshobeta_bot'
 token_dict = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
 TOKEN = token_dict[TOKEN_SELECTION]
 
@@ -28,9 +29,10 @@ MESSAGE_TIMEOUT = 1
 EVAL_TIMEOUT = 1
 EVAL_MAX_CHARS = 200
 
-GLOBAL_MESSAGES = {
-'/help':
-    r"""Available commands:
+
+GLOBAL_COMMANDS = {
+    '/help':
+        (r"""Available commands:
 /echo <text> - echoes text
 /roll <int> - rolls a number between 1 and x
 /eval <expression> - does math
@@ -39,23 +41,29 @@ GLOBAL_MESSAGES = {
 
 Inline subcommands:
 shrug - sends an ascii shrug.
-badtime - fucken love undertale""",
+badtime - fucken love undertale""", False),
 
 '/badtime':
-    r"""…………/´¯/)…………….(\¯`.…………..
+    (r"""…………/´¯/)…………….(\¯`.…………..
 ………../…//……….i…….\….…………..
 ………./…//…fuken luv….\….………….
 …../´¯/…./´¯..undertale./¯` .…\¯`.…….
 .././…/…./…./.|_.have._|..….……..…..
 (.(b.(..a.(..d./..)..)……(..(.\ti.)..m.)..e.).)….
 ..……………\/…/………\/……………./….
-……………….. /……….……………..""",
+……………….. /……….……………..""", False),
 
 '/effective.':
-    "Power لُلُصّ؜بُلُلصّبُررًً ॣ h؜ ॣ؜ ॣ ॣ",
+    ("Power لُلُصّ؜بُلُلصّبُررًً ॣ h؜ ॣ؜ ॣ ॣ", False),
 
 '/ointments':
-    "Ointments."}
+    ("Ointments.", False),
+
+'/emojify':
+    (r"~preceding.replace('b', '🅱️')", True),
+
+'/mock':
+    (r"''.join([((~preceding).lower()[i] if random.random() > .5 else (~preceding).upper()[i]) for i, c in enumerate(~preceding)])", True)}
 
 GLOBAL_INLINE = {
 'badtime':
@@ -80,34 +88,41 @@ logger.info("Loading bot...")
 
 
 # message modifiers decorator.
-def modifiers(method=None, age=True, name=False, mods=False, action=False):
+# name checks if correct bot @name is present if value is True, also passes unnamed commands if value is ALLOW_UNNAMED
+def modifiers(method=None, age=True, name=False, mods=False, action=None):
     if method is None:  # if method is None optional arguments have been passed, return usable decorator
         return functools.partial(modifiers, age=age, name=name, mods=mods, action=action)
 
     @functools.wraps(method)
     def wrap(*args, **kwargs):  # otherwise wrap function and continue
-        n = re.findall('@[\w]+\s', args[1].message.text + ' ')
-        message_bot = (n[0].lower().strip() if len(n) > 0 else None)  # name of bot @name used in command if present
-        message_user = args[1].message.from_user.username  # name of OP/user of command
-        message_age = (datetime.datetime.now() - args[1].message.date).total_seconds() / 60  # age of message in minutes
+        message = args[1].message
+        n = re.findall('@[\w]+\s', message.text + ' ')
+        message_bot = (n[0].lower().strip() if len(n) > 0 else None)  # bot @name used in command if present
+        message_user = message.from_user.username  # name of OP/user of command
+        message_age = (datetime.datetime.now() - message.date).total_seconds() / 60  # age of message in minutes
 
         if DEBUGGING_MODE:  # log the method and various other data if in debug mode
-            chat = args[1].message.chat
+            chat = message.chat
             title = chat.type + ' -> ' + (chat.title if chat.username is None else '@' + chat.username)
-            logger.info(method.__name__ + ' method called from ' + title
-                        + ', user: @' + message_user + ', with message text: "' + args[1].message.text + '"')
+            logger.info(method.__name__ + ' command called from ' + title
+                        + ', user: @' + message_user + ', with message text: "' + message.text + '"')
 
-        # check incoming message attributes, return function or None depending on conditionals
+        # check incoming message attributes
         if (not age or message_age < MESSAGE_TIMEOUT) and\
-                (not name or message_bot == '@' + TOKEN_SELECTION) and\
-                (not mods or message_user.lower() in MODS):
+                (not name or message_bot == '@' + TOKEN_SELECTION or (message_bot is None and name == 'ALLOW_UNNAMED'))\
+                and (not mods or message_user.lower() in MODS):
             if action:
-                args[0].sendChatAction(chat_id=args[1].message.chat_id, action=action)
-            return method(*args, **kwargs)
+                args[0].sendChatAction(chat_id=message.chat_id, action=action)
+
+            start = time.time()
+            method(*args, **kwargs)
+            end = time.time()
+
+            if DEBUGGING_MODE:  # log the time elapsed if in debug mode
+                logger.info('time elapsed (seconds): ' + str(end - start))
         else:
             if DEBUGGING_MODE:
                 logger.info('Message canceled by decorator.')
-            return
     return wrap
 
 
@@ -248,15 +263,16 @@ why_handler = CommandHandler("why", why)
 updater.dispatcher.add_handler(why_handler)
 
 
-@modifiers(action=Ca.TYPING)
-def evaluate(bot, update):
+@modifiers(name='ALLOW_UNNAMED', action=Ca.TYPING)
+def evaluate(bot, update, cmd=None):
     result = 'Invalid input:\n\n'
-    expr = clean(update.message.text)
+
+    expr = cmd if cmd else clean(update.message.text)
 
     # replace instances of '~preceding' in input with quoted comment if present
-    repl = update.message.reply_to_message
-    if '~preceding' in expr and repl is not None:
-        expr = expr.replace('~preceding', 'r"'+repl.text.replace('"', "'")+'"')
+    preceding = update.message.reply_to_message
+    if '~preceding' in expr and preceding is not None:
+        expr = expr.replace('~preceding', 'r"""'+preceding.text.replace('"', "'")+'"""')
 
     # execute command with timeout
     with stopit.ThreadingTimeout(EVAL_TIMEOUT) as ctx:
@@ -272,8 +288,6 @@ def evaluate(bot, update):
             result = str(out)[:EVAL_MAX_CHARS] + '...'
         else:
             result = out
-    if DEBUGGING_MODE:
-        logger.info("Processed eval command. Input: " + expr + ", output: " + str(result))
     update.message.reply_text(text=str(result))
 
 
@@ -303,17 +317,22 @@ updater.dispatcher.add_handler(inline_handler)
 
 @modifiers
 def unknown(bot, update):  # process dict reply commands
+    @modifiers(age=False, name=True, action=Ca.TYPING)
+    def invalid(bot, update, text):
+        update.message.reply_text(text=text)
+
+    @modifiers(age=False, name='ALLOW_UNNAMED', action=Ca.TYPING)
+    def known(bot, update, text):
+        update.message.reply_text(text=text)
+
     command = str.strip(re.sub('@[\w]+\s', '', update.message.text + ' ', 1))
-    if command in GLOBAL_MESSAGES.keys():
-        bot.sendChatAction(chat_id=update.message.chat_id, action=Ca.TYPING)
-        update.message.reply_text(text=GLOBAL_MESSAGES[command])
+    if command in GLOBAL_COMMANDS.keys():
+        if GLOBAL_COMMANDS[command][1]:  # check if command is code or text
+            evaluate(bot, update, cmd=GLOBAL_COMMANDS[command][0])
+        else:
+            known(bot, update, GLOBAL_COMMANDS[command][0])
     else:
-        unknown_reply(bot, update, 'Error:\n\nUnknown command: ' + command)
-
-
-@modifiers(age=False, name=True, action=Ca.TYPING)
-def unknown_reply(bot, update, text):
-    update.message.reply_text(text=text)
+        invalid(bot, update, 'Error:\n\nUnknown command: ' + command)
 
 
 unknown_handler = RegexHandler(r'/.*', unknown)
