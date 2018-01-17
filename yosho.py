@@ -25,7 +25,7 @@ MODS = ('wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'pjberri', 'pawjob')
 LOGGING_MODE = True
 LOGGING_VERBOSITY = 2
 MESSAGE_TIMEOUT = 60
-FLOOD_DETECT = 60
+FLOOD_TIMEOUT = 60
 EVAL_TIMEOUT = 60
 EVAL_MAX_CHARS = 128
 GLOBAL_COMMANDS = pickle.load(open('COMMANDS.pkl', 'rb'))
@@ -75,11 +75,12 @@ def modifiers(method=None, age=True, name=False, mods=False, action=None):
             # flood detector
             start = time.time()
             if message_user in last_commands.keys() and not message_user.lower() in MODS and not chat.type == 'private':
-                if start-last_commands[message_user] < FLOOD_DETECT:
+                if start-last_commands[message_user] < FLOOD_TIMEOUT:
                     admins = [x.user.username for x in bot.getChatAdministrators(chat_id=message.chat_id,
                                                                                  message_id=message.message_id)]
                     if bot.username in admins:
                         bot.deleteMessage(chat_id=message.chat_id, message_id=message.message_id)
+                    elif LOGGING_MODE:
                         report(2, "flood detector couldn't delete command")
 
                     last_commands[message_user] = time.time()
