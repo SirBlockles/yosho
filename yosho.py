@@ -335,7 +335,7 @@ def macro(bot, update):
     elif mode == 'contents':
         if name in keys:
             macro_type = GLOBAL_COMMANDS[name][1]*'evaluated' + (not GLOBAL_COMMANDS[name][1])*'text'
-            update.message.reply_text('Contents of ' + macro_type + 'macro ' + name +
+            update.message.reply_text('Contents of ' + macro_type + ' macro ' + name +
                                       ':\n\n'+GLOBAL_COMMANDS[name][0])
         else:
             update.message.reply_text(text=err + 'No macro with name ' + name + '.')
