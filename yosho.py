@@ -23,7 +23,7 @@ token_dict = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
 TOKEN = token_dict['yosho_bot']
 MODS = ('wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'pjberri', 'pawjob')
 LOGGING_MODE = True
-LOGGING_VERBOSITY = 2
+LOGGING_LEVEL = logging.DEBUG
 MESSAGE_TIMEOUT = 60
 FLOOD_TIMEOUT = 60
 EVAL_TIMEOUT = 60
@@ -34,15 +34,11 @@ bot = telegram.Bot(token=TOKEN)
 updater = Updater(token=TOKEN)
 logging.basicConfig(format='%(asctime)s - [%(levelname)s] - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
-
+logger.level = LOGGING_LEVEL
 logger.info("Loading bot...")
 
 last_commands = {}
 
-
-def report(level, message):
-    if level <= LOGGING_VERBOSITY and LOGGING_MODE:
-        logger.info(message)
 
 # message modifiers decorator.
 # name checks if correct bot @name is present if value is True, also passes unnamed commands if value is ALLOW_UNNAMED
@@ -62,7 +58,7 @@ def modifiers(method=None, age=True, name=False, mods=False, action=None):
         chat = message.chat
 
         title = chat.type + ' -> ' + (chat.title if chat.username is None else '@' + chat.username)
-        report(1, method.__name__ + ' command called from ' +
+        logger.info(method.__name__ + ' command called from ' +
                title + ', user: @' + message_user + ', with message text: "' + message.text + '"')
 
         # check incoming message attributes
@@ -80,12 +76,12 @@ def modifiers(method=None, age=True, name=False, mods=False, action=None):
                                                                                  message_id=message.message_id)]
                     if bot.username in admins:
                         bot.deleteMessage(chat_id=message.chat_id, message_id=message.message_id)
-                    else:
-                        report(2, "flood detector couldn't delete command")
+                    elif LOGGING_MODE:
+                        logger.debug("flood detector couldn't delete command")
 
                     last_commands[message_user] = time.time()
 
-                    report(1, 'message canceled by flood detection')
+                    logger.info('message canceled by flood detection')
                     return
             elif not chat.type == 'private':
                 last_commands[message_user] = time.time()
@@ -93,9 +89,9 @@ def modifiers(method=None, age=True, name=False, mods=False, action=None):
             method(*args, **kwargs)
             end = time.time()
 
-            report(2, 'time elapsed (seconds): ' + str(end - start))
+            logger.debug('time elapsed (seconds): ' + str(end - start))
         else:
-            report(1, 'Message canceled by decorator.')
+            logger.info('Message canceled by decorator.')
     return wrap
 
 
@@ -169,7 +165,7 @@ def echo(bot, update):
     else:
         bot.sendMessage(chat_id=update.message.chat_id, text=reply)
 
-    logger.info("Processed echo command. Input: " + reply)
+    logger.debug("Processed echo command. Input: " + reply)
 
 
 echo_handler = CommandHandler("echo", echo)
@@ -208,14 +204,14 @@ def e926(bot, update, tags=None):
         p = None
         try:
             p = posts[randint(0, len(posts)-1)]
-            report(3, p)
+            logger.debug(p)
             update.message.reply_photo(photo=p)
             time.sleep(.5)  # rate limit, can be lowered to .25 if needed.
 
         except TelegramError:
-            report(1, 'TelegramError in e926 call, post value: ' + str(p))
+            logger.debug('TelegramError in e926 call, post value: ' + str(p))
         except ValueError:
-            report(2, 'ValueError in e926 call, probably incorrect tags')
+            logger.info('ValueError in e926 call, probably incorrect tags')
             update.message.reply_text(text=failed)
     else:
         update.message.reply_text(text=failed)
@@ -277,7 +273,7 @@ def macro(bot, update):
     err = 'Macro editor error:\n\n'
     expr = clean(update.message.text)
 
-    report(1, 'Macro editor called with args "' + expr + '"')
+    logger.info('Macro editor called with args "' + expr + '"')
 
     if expr == '':
         update.message.reply_text(text='Macro modes:\n\neval (create eval macro)\n'
@@ -401,7 +397,7 @@ def inline_stuff(bot, update):
 
     if query in GLOBAL_COMMANDS.keys():
         if GLOBAL_COMMANDS[query][1] == 'INLINE':
-            report(2, 'Inline query called: ' + query)
+            logger.info('Inline query called: ' + query)
             results.append(
                 InlineQueryResultArticle(id=query, title=query,
                                          input_message_content=InputTextMessageContent(GLOBAL_COMMANDS[query][0])))
