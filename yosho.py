@@ -334,7 +334,13 @@ def macro(bot, update):
             update.message.reply_text(text=err+'No macro with name ' + name + '.')
 
     elif mode == 'list':
-        update.message.reply_text('Existing macros:\n' + '\n'.join([(bot.name + ' ')*(GLOBAL_COMMANDS[k][1] == 'INLINE')
+        if user in MODS and not name == 'visible':
+            update.message.reply_text('Existing macros:\n'
+                                      + '\n'.join([(bot.name + ' ') * (GLOBAL_COMMANDS[k][1] == 'INLINE')
+                                                   + k for k in keys if not k == 'protected']))
+        else:
+            update.message.reply_text('Existing macros:\n'
+                                      + '\n'.join([(bot.name + ' ')*(GLOBAL_COMMANDS[k][1] == 'INLINE')
                                                                     + k for k in keys if not GLOBAL_COMMANDS[k][2]]))
 
     elif mode == 'contents':
