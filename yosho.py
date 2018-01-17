@@ -282,8 +282,10 @@ def macro(bot, update):
         update.message.reply_text(text=err+'Missing macro name.')
         return
 
+    protected = GLOBAL_COMMANDS['protected'][0].split(' ')
+
     user = update.message.from_user.username.lower()
-    if name in GLOBAL_COMMANDS['/protected'][0].split(' ') and user not in MODS and mode not in ('contents', 'list'):
+    if name in protected and user not in MODS and mode not in ('contents', 'list'):
         update.message.reply_text(text=err+'Macro ' + name + ' is write protected.')
         return
 
@@ -337,8 +339,11 @@ def macro(bot, update):
 
     elif mode == 'contents':
         if name in keys:
-            update.message.reply_text('Contents of ' + GLOBAL_COMMANDS[name][1].lower() + ' macro ' + name +
-                                      ':\n\n'+GLOBAL_COMMANDS[name][0])
+            if not GLOBAL_COMMANDS[name][2] or user in MODS:
+                update.message.reply_text('Contents of ' + GLOBAL_COMMANDS[name][1].lower() + ' macro ' + name +
+                                          ':\n\n'+GLOBAL_COMMANDS[name][0])
+            else:
+                update.message.reply_text(text=err + 'Macro ' + name + ' contents hidden.')
         else:
             update.message.reply_text(text=err + 'No macro with name ' + name + '.')
 
@@ -346,7 +351,7 @@ def macro(bot, update):
         if name in keys:
             if user in MODS:
                 GLOBAL_COMMANDS[name][2] ^= True
-                update.message.reply_text(text=err + 'Hide macro ' + name + ' set to ' + str(GLOBAL_COMMANDS[name][2]))
+                update.message.reply_text(text=err + 'Hide macro ' + name + ': ' + str(GLOBAL_COMMANDS[name][2]))
             else:
                 update.message.reply_text(text=err + 'Only mods can hide or show macros.')
         else:
