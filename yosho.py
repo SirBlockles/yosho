@@ -23,7 +23,7 @@ token_dict = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
 TOKEN = token_dict[TOKEN_SELECTION]
 
 MODS = ('wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'pjberri', 'pawjob')
-DEBUGGING_MODE = False
+DEBUGGING_MODE = True
 MESSAGE_TIMEOUT = 60
 
 FLOOD_DETECT = 60
@@ -53,13 +53,14 @@ def modifiers(method=None, age=True, name=False, mods=False, action=None):
     def wrap(*args, **kwargs):  # otherwise wrap function and continue
         global last_commands
         message = args[1].message
+
         n = re.findall('(?<=[\w])@[\w]+\s', message.text + ' ')
         message_bot = (n[0].lower().strip() if len(n) > 0 else None)  # bot @name used in command if present
         message_user = message.from_user.username  # name of OP/user of command
         message_age = (datetime.datetime.now() - message.date).total_seconds()  # age of message in minutes
+        chat = message.chat
 
         if DEBUGGING_MODE:  # log the method and various other data if in debug mode
-            chat = message.chat
             title = chat.type + ' -> ' + (chat.title if chat.username is None else '@' + chat.username)
             logger.info(method.__name__ + ' command called from ' + title
                         + ', user: @' + message_user + ', with message text: "' + message.text + '"')
@@ -73,16 +74,28 @@ def modifiers(method=None, age=True, name=False, mods=False, action=None):
 
             # flood detector
             start = time.time()
-            if message_user in last_commands.keys() and not message_user.lower() in MODS:
+            if message_user in last_commands.keys() and not message_user.lower() in MODS and not chat.type == 'private':
                 if start-last_commands[message_user] < FLOOD_DETECT:
-                    logger.info('Message canceled by flood detection.')
+                    admins = [x.user.username for x in bot.getChatAdministrators(chat_id=message.chat_id,
+                                                                                 message_id=message.message_id)]
+                    if bot.username in admins:
+                        bot.deleteMessage(chat_id=message.chat_id, message_id=message.message_id)
+                    elif DEBUGGING_MODE:
+                        logger.info("flood detector couldn't delete command")
+
+                    last_commands[message_user] = time.time()
+
+                    if DEBUGGING_MODE:
+                        logger.info('message canceled by flood detection')
                     return
+            elif not chat.type == 'private':
+                last_commands[message_user] = time.time()
 
             method(*args, **kwargs)
-            last_commands[message_user] = time.time()
+            end = time.time()
 
             if DEBUGGING_MODE:  # log the time elapsed if in debug mode
-                logger.info('time elapsed (seconds): ' + str(last_commands[message_user] - start))
+                logger.info('time elapsed (seconds): ' + str(end - start))
         else:
             if DEBUGGING_MODE:
                 logger.info('Message canceled by decorator.')
