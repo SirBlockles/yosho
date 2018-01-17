@@ -26,9 +26,11 @@ LOGGING_MODE = True
 LOGGING_LEVEL = logging.DEBUG
 MESSAGE_TIMEOUT = 60
 FLOOD_TIMEOUT = 20
+EVAL_MEMORY = True
 EVAL_TIMEOUT = 1
 EVAL_MAX_CHARS = 128
-GLOBAL_COMMANDS = pickle.load(open('COMMANDS.pkl', 'rb'))
+COMMANDS = pickle.load(open('COMMANDS.pkl', 'rb'))
+INTERPRETERS = pickle.load(open('INTERPRETERS.pkl', 'rb'))
 
 bot = telegram.Bot(token=TOKEN)
 updater = Updater(token=TOKEN)
@@ -36,7 +38,6 @@ logging.basicConfig(format='%(asctime)s - [%(levelname)s] - %(message)s', level=
 logger = logging.getLogger(__name__)
 logger.level = LOGGING_LEVEL + ((not LOGGING_MODE)*100)
 logger.info("Loading bot...")
-
 last_commands = {}
 
 
@@ -228,8 +229,29 @@ why_handler = CommandHandler("why", why)
 updater.dispatcher.add_handler(why_handler)
 
 
+@modifiers(mods=True)
+def interpreters(bot, update):
+    global INTERPRETERS
+    global EVAL_MEMORY
+    msg = clean(update.message.text)
+    if msg == 'clear':
+        INTERPRETERS = {}
+        pickle.dump(COMMANDS, open('INTERPRETERS.pkl', 'wb+'))
+        update.message.reply_text(text='Cleared interpreters.')
+    elif msg == 'toggle':
+        EVAL_MEMORY ^= True
+        update.message.reply_text(text='Eval interpreter memory: ' + str(EVAL_MEMORY))
+    else:
+        update.message.reply_text(text='Invalid input:\n\nUnknown command: ' + msg)
+
+
+interpreters_handler = CommandHandler("interp", interpreters)
+updater.dispatcher.add_handler(interpreters_handler)
+
+
 @modifiers(name='ALLOW_UNNAMED', action=Ca.TYPING)
 def evaluate(bot, update, cmd=None):
+    global INTERPRETERS
     result = 'Invalid input:\n\n'
 
     expr = cmd if cmd else clean(update.message.text)
@@ -245,9 +267,19 @@ def evaluate(bot, update, cmd=None):
             return
 
     # execute command with timeout
+    name = update.message.from_user.username
     with stopit.ThreadingTimeout(EVAL_TIMEOUT) as ctx:
-        a = Interpreter()
-        out = a(expr)
+        interp = Interpreter()
+        if EVAL_MEMORY:
+            if name in INTERPRETERS.keys():
+                interp = INTERPRETERS[name]
+            else:
+                INTERPRETERS[name] = interp
+
+        out = interp(expr)
+
+        if EVAL_MEMORY:
+            pickle.dump(COMMANDS, open('INTERPRETERS.pkl', 'wb+'))
 
     if ctx.state == ctx.TIMED_OUT:
         result += 'Timed out.'
@@ -268,7 +300,7 @@ updater.dispatcher.add_handler(eval_handler)
 # creates and modifies macro commands
 @modifiers(action=Ca.TYPING)
 def macro(bot, update):
-    global GLOBAL_COMMANDS
+    global COMMANDS
     err = 'Macro editor error:\n\n'
     expr = clean(update.message.text)
 
@@ -295,7 +327,7 @@ def macro(bot, update):
         update.message.reply_text(text=err+'Missing macro name.')
         return
 
-    protected = GLOBAL_COMMANDS['protected'][0].split(' ')
+    protected = COMMANDS['protected'][0].split(' ')
 
     user = update.message.from_user.username.lower()
     if name in protected and user not in MODS and mode not in ('contents', 'list'):
@@ -307,32 +339,32 @@ def macro(bot, update):
     else:
         expr = None
 
-    keys = GLOBAL_COMMANDS.keys()
+    keys = COMMANDS.keys()
     if mode == 'eval' and name not in keys:
         if expr is not None:
-            GLOBAL_COMMANDS[name] = [expr, 'EVAL', False]
+            COMMANDS[name] = [expr, 'EVAL', False]
             update.message.reply_text(text='Eval macro "' + name + '" created.')
         else:
-            print(GLOBAL_COMMANDS)
+            print(COMMANDS)
             update.message.reply_text(text=err+'Missing macro code.')
 
     elif mode == 'text' and name not in keys:
         if expr is not None:
-            GLOBAL_COMMANDS[name] = [expr, 'TEXT', False]
+            COMMANDS[name] = [expr, 'TEXT', False]
             update.message.reply_text(text='Text macro "' + name + '" created.')
         else:
             update.message.reply_text(text=err+'Missing macro text.')
 
     elif mode == 'inline' and name not in keys:
         if expr is not None:
-            GLOBAL_COMMANDS[name] = [expr, 'INLINE', False]
+            COMMANDS[name] = [expr, 'INLINE', False]
             update.message.reply_text(text='Inline macro "' + name + '" created.')
         else:
             update.message.reply_text(text=err+'Missing macro text.')
 
     elif mode == 'modify':
         if name in keys and expr is not None:
-            GLOBAL_COMMANDS[name][0] = expr
+            COMMANDS[name][0] = expr
             update.message.reply_text(text='Macro "' + name + '" modified.')
         elif expr is None:
             update.message.reply_text(text=err + 'Missing macro text/code.')
@@ -341,7 +373,7 @@ def macro(bot, update):
 
     elif mode == 'remove':
         if name in keys:
-            del GLOBAL_COMMANDS[name]
+            del COMMANDS[name]
             update.message.reply_text(text='Macro "' + name + '" removed.')
         else:
             update.message.reply_text(text=err+'No macro with name ' + name + '.')
@@ -349,18 +381,18 @@ def macro(bot, update):
     elif mode == 'list':
         if user in MODS and not name == 'visible':
             update.message.reply_text('Existing macros:\n'
-                                      + '\n'.join([(bot.name + ' ') * (GLOBAL_COMMANDS[k][1] == 'INLINE')
+                                      + '\n'.join([(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE')
                                                    + k for k in keys if not k == 'protected']))
         else:
             update.message.reply_text('Existing macros:\n'
-                                      + '\n'.join([(bot.name + ' ')*(GLOBAL_COMMANDS[k][1] == 'INLINE')
-                                                                    + k for k in keys if not GLOBAL_COMMANDS[k][2]]))
+                                      + '\n'.join([(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE')
+                                                   + k for k in keys if not COMMANDS[k][2]]))
 
     elif mode == 'contents':
         if name in keys:
-            if not GLOBAL_COMMANDS[name][2] or user in MODS:
-                update.message.reply_text('Contents of ' + GLOBAL_COMMANDS[name][1].lower() + ' macro ' + name +
-                                          ':\n\n'+GLOBAL_COMMANDS[name][0])
+            if not COMMANDS[name][2] or user in MODS:
+                update.message.reply_text('Contents of ' + COMMANDS[name][1].lower() + ' macro ' + name +
+                                          ':\n\n' + COMMANDS[name][0])
             else:
                 update.message.reply_text(text=err + 'Macro ' + name + ' contents hidden.')
         else:
@@ -369,18 +401,18 @@ def macro(bot, update):
     elif mode == 'hide':
         if name in keys:
             if user in MODS:
-                GLOBAL_COMMANDS[name][2] ^= True
-                update.message.reply_text('Hide macro ' + name + ': ' + str(GLOBAL_COMMANDS[name][2]))
+                COMMANDS[name][2] ^= True
+                update.message.reply_text('Hide macro ' + name + ': ' + str(COMMANDS[name][2]))
             else:
                 update.message.reply_text(text=err + 'Only mods can hide or show macros.')
         else:
             update.message.reply_text(text=err + 'No macro with name ' + name + '.')
 
-    elif name in GLOBAL_COMMANDS:
+    elif name in COMMANDS:
         update.message.reply_text(text=err + 'Macro already exists.')
 
-    GLOBAL_COMMANDS = {k: GLOBAL_COMMANDS[k] for k in sorted(GLOBAL_COMMANDS.keys())}
-    pickle.dump(GLOBAL_COMMANDS, open('COMMANDS.pkl', 'wb+'))
+    COMMANDS = {k: COMMANDS[k] for k in sorted(COMMANDS.keys())}
+    pickle.dump(COMMANDS, open('COMMANDS.pkl', 'wb+'))
 
 
 macro_handler = CommandHandler("macro", macro)
@@ -392,12 +424,12 @@ def inline_stuff(bot, update):
     results = list()
     query = update.inline_query.query
 
-    if query in GLOBAL_COMMANDS.keys():
-        if GLOBAL_COMMANDS[query][1] == 'INLINE':
+    if query in COMMANDS.keys():
+        if COMMANDS[query][1] == 'INLINE':
             logger.info('Inline query called: ' + query)
             results.append(
                 InlineQueryResultArticle(id=query, title=query,
-                                         input_message_content=InputTextMessageContent(GLOBAL_COMMANDS[query][0])))
+                                         input_message_content=InputTextMessageContent(COMMANDS[query][0])))
         else:
             return
 
@@ -419,18 +451,18 @@ def unknown(bot, update):  # process dict reply commands
         update.message.reply_text(text=text)
 
     command = str.strip(re.sub('@[\w]+\s', '', update.message.text + ' ', 1)).split(' ')[0]
-    if command in GLOBAL_COMMANDS.keys():
-        if GLOBAL_COMMANDS[command][1] == 'EVAL':  # check if command is code or text
+    if command in COMMANDS.keys():
+        if COMMANDS[command][1] == 'EVAL':  # check if command is code or text
 
             inp = clean(update.message.text)
-            if inp is '' and 'input' in GLOBAL_COMMANDS[command][0]:
+            if inp is '' and 'input' in COMMANDS[command][0]:
                 update.message.reply_text(text='Eval macro error:\n\n~Input tag requires user input.')
                 return
-            cmd = GLOBAL_COMMANDS[command][0].replace('~input', 'r"""' + inp + '"""')
+            cmd = COMMANDS[command][0].replace('~input', 'r"""' + inp + '"""')
             evaluate(bot, update, cmd=cmd)
 
-        elif GLOBAL_COMMANDS[command][1] == 'TEXT':
-            known(bot, update, GLOBAL_COMMANDS[command][0])
+        elif COMMANDS[command][1] == 'TEXT':
+            known(bot, update, COMMANDS[command][0])
         else:
             update.message.reply_text(text="Macro error:\n\n~That's an inline macro! Try @yosho_bot " + command)
     else:
