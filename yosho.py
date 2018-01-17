@@ -26,7 +26,7 @@ LOGGING_MODE = True
 LOGGING_LEVEL = logging.DEBUG
 MESSAGE_TIMEOUT = 60
 FLOOD_TIMEOUT = 60
-EVAL_TIMEOUT = 60
+EVAL_TIMEOUT = 1
 EVAL_MAX_CHARS = 128
 GLOBAL_COMMANDS = pickle.load(open('COMMANDS.pkl', 'rb'))
 
@@ -246,7 +246,7 @@ def evaluate(bot, update, cmd=None):
             return
 
     # execute command with timeout
-    with stopit.ThreadingTimeout(EVAL_TIMEOUT/60) as ctx:
+    with stopit.ThreadingTimeout(EVAL_TIMEOUT) as ctx:
         a = Interpreter()
         out = a(expr)
 
