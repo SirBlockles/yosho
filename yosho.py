@@ -1,15 +1,15 @@
-from random import randint
-
-import pickle
-import functools
+import csv
 import datetime
+import functools
 import logging
+import pickle
 import re
+import time
 import requests
 import stopit
 import telegram
-import time
-import csv
+
+from random import randint
 from asteval import Interpreter
 from telegram import ChatAction as Ca
 from telegram import InlineQueryResultArticle, InputTextMessageContent
@@ -18,7 +18,7 @@ from telegram.ext import Updater, CommandHandler, InlineQueryHandler, RegexHandl
 
 # initialize bot and logging for debugging #
 
-TOKEN_SELECTION = 'yoshobeta_bot'
+TOKEN_SELECTION = 'yosho_bot'
 token_dict = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
 TOKEN = token_dict[TOKEN_SELECTION]
 
@@ -278,11 +278,11 @@ def macro(bot, update):
     if len(args) > 1:
         name = args[1]
     elif not mode == 'list':
-        update.message.reply_text(text=err+'Missing command name.')
+        update.message.reply_text(text=err+'Missing macro name.')
         return
 
     if not name.isalpha() and not mode == 'list':
-        update.message.reply_text(text=err+'Command name must only contain letters.')
+        update.message.reply_text(text=err+'Macro name must only contain letters.')
         return
 
     name = '/'+name
@@ -301,45 +301,47 @@ def macro(bot, update):
     if mode == 'eval' and name not in keys:
         if expr is not None:
             GLOBAL_COMMANDS[name] = (expr, True)
-            update.message.reply_text(text='Command "' + name + '" created.')
+            update.message.reply_text(text='Macro "' + name + '" created.')
         else:
             print(GLOBAL_COMMANDS)
-            update.message.reply_text(text=err+'Missing command code.')
+            update.message.reply_text(text=err+'Missing macro code.')
 
     elif mode == 'text' and name not in keys:
         if expr is not None:
             GLOBAL_COMMANDS[name] = (expr, False)
-            update.message.reply_text(text='Command "' + name + '" created.')
+            update.message.reply_text(text='Macro "' + name + '" created.')
         else:
-            update.message.reply_text(text=err+'Missing command text.')
+            update.message.reply_text(text=err+'Missing macro text.')
 
     elif mode == 'modify':
         if name in keys and expr is not None:
             GLOBAL_COMMANDS[name] = (expr, GLOBAL_COMMANDS[name][1])
-            update.message.reply_text(text='Command "' + name + '" modified.')
+            update.message.reply_text(text='Macro "' + name + '" modified.')
         elif expr is  None:
-            update.message.reply_text(text=err + 'Missing command text/code.')
+            update.message.reply_text(text=err + 'Missing macro text/code.')
         else:
-            update.message.reply_text(text=err+'No command with name ' + name + '.')
+            update.message.reply_text(text=err+'No macro with name ' + name + '.')
 
     elif mode == 'remove':
         if name in keys:
             del GLOBAL_COMMANDS[name]
-            update.message.reply_text(text='Command "' + name + '" removed.')
+            update.message.reply_text(text='Macro "' + name + '" removed.')
         else:
-            update.message.reply_text(text=err+'No command with name ' + name + '.')
+            update.message.reply_text(text=err+'No macro with name ' + name + '.')
 
     elif mode == 'list':
         update.message.reply_text('Existing macros:\n' + '\n'.join([k for k in keys if not k == '/protected']))
 
     elif mode == 'contents':
         if name in keys:
-            update.message.reply_text('Contents of command ' + name + ':\n\n'+GLOBAL_COMMANDS[name][0])
+            macro_type = GLOBAL_COMMANDS[name][1]*'evaluated' + (not GLOBAL_COMMANDS[name][1])*'text'
+            update.message.reply_text('Contents of ' + macro_type + 'macro ' + name +
+                                      ':\n\n'+GLOBAL_COMMANDS[name][0])
         else:
-            update.message.reply_text(text=err + 'No command with name ' + name + '.')
+            update.message.reply_text(text=err + 'No macro with name ' + name + '.')
 
     elif name in GLOBAL_COMMANDS:
-        update.message.reply_text(text=err + 'Command already exists.')
+        update.message.reply_text(text=err + 'Macro already exists.')
 
     pickle.dump(GLOBAL_COMMANDS, open('COMMANDS.pkl', 'wb+'))
 
