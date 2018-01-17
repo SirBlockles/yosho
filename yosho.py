@@ -29,55 +29,8 @@ MESSAGE_TIMEOUT = 1
 EVAL_TIMEOUT = 1
 EVAL_MAX_CHARS = 200
 
-
-GLOBAL_COMMANDS = {
-    '/help':
-        (r"""Available commands:
-/echo <text> - echoes text
-/roll <int> - rolls a number between 1 and x
-/eval <expression> - does math
-/e926 <tags> - search e926
-/why - post random cursed image
-
-Inline subcommands:
-shrug - sends an ascii shrug.
-badtime - fucken love undertale""", False),
-
-'/badtime':
-    (r"""…………/´¯/)…………….(\¯`.…………..
-………../…//……….i…….\….…………..
-………./…//…fuken luv….\….………….
-…../´¯/…./´¯..undertale./¯` .…\¯`.…….
-.././…/…./…./.|_.have._|..….……..…..
-(.(b.(..a.(..d./..)..)……(..(.\ti.)..m.)..e.).)….
-..……………\/…/………\/……………./….
-……………….. /……….……………..""", False),
-
-'/effective.':
-    ("Power لُلُصّ؜بُلُلصّبُررًً ॣ h؜ ॣ؜ ॣ ॣ", False),
-
-'/ointments':
-    ("Ointments.", False),
-
-'/emojify':
-    (r"~preceding.replace('b', '🅱️')", True),
-
-'/mock':
-    (r"''.join([((~preceding).lower()[i] if random.random() > .5 else (~preceding).upper()[i]) for i, c in enumerate(~preceding)])", True)}
-
-GLOBAL_INLINE = {
-'badtime':
-    r"""…………/´¯/)…………….(\¯`.…………..
-………../…//……….i…….\….…………..
-………./…//…fuken luv….\….………….
-…../´¯/…./´¯..undertale./¯` .…\¯`.…….
-.././…/…./…./.|_.have._|..….……..…..
-(.(b.(..a.(..d./..)..)……(..(.\ti.)..m.)..e.).)….
-..……………\/…/………\/……………./….
-……………….. /……….……………..""",
-
-'shrug':
-    r"¯\_(ツ)_/¯"}
+GLOBAL_COMMANDS = pickle.load(open('COMMANDS.pkl', 'rb'))
+GLOBAL_INLINES = pickle.load(open('INLINES.pkl', 'rb'))
 
 bot = telegram.Bot(token=TOKEN)
 updater = Updater(token=TOKEN)
@@ -301,11 +254,11 @@ def inline_stuff(bot, update):
     query = update.inline_query.query
 
     if query:
-        if query in GLOBAL_INLINE.keys():
+        if query in GLOBAL_INLINES.keys():
             if DEBUGGING_MODE:
                 logger.info('Inline query called: ' + query)
-            results.append(InlineQueryResultArticle(id=query, title=GLOBAL_INLINE[query],
-                                                    input_message_content=InputTextMessageContent(GLOBAL_INLINE[query])))
+            results.append(InlineQueryResultArticle(id=query, title=GLOBAL_INLINES[query],
+                                                    input_message_content=InputTextMessageContent(GLOBAL_INLINES[query])))
     else:
         return
     update.inline_query.answer(results)
