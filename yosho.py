@@ -24,9 +24,11 @@ TOKEN = token_dict[TOKEN_SELECTION]
 
 MODS = ('wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'pjberri', 'pawjob')
 DEBUGGING_MODE = False
-MESSAGE_TIMEOUT = 1
+MESSAGE_TIMEOUT = 60
 
-EVAL_TIMEOUT = 1
+FLOOD_DETECT = 60
+
+EVAL_TIMEOUT = 60
 EVAL_MAX_CHARS = 128
 
 GLOBAL_COMMANDS = pickle.load(open('COMMANDS.pkl', 'rb'))
@@ -38,6 +40,8 @@ logger = logging.getLogger(__name__)
 
 logger.info("Loading bot...")
 
+last_commands = {}
+
 
 # message modifiers decorator.
 # name checks if correct bot @name is present if value is True, also passes unnamed commands if value is ALLOW_UNNAMED
@@ -47,11 +51,12 @@ def modifiers(method=None, age=True, name=False, mods=False, action=None):
 
     @functools.wraps(method)
     def wrap(*args, **kwargs):  # otherwise wrap function and continue
+        global last_commands
         message = args[1].message
         n = re.findall('(?<=[\w])@[\w]+\s', message.text + ' ')
         message_bot = (n[0].lower().strip() if len(n) > 0 else None)  # bot @name used in command if present
         message_user = message.from_user.username  # name of OP/user of command
-        message_age = (datetime.datetime.now() - message.date).total_seconds() / 60  # age of message in minutes
+        message_age = (datetime.datetime.now() - message.date).total_seconds()  # age of message in minutes
 
         if DEBUGGING_MODE:  # log the method and various other data if in debug mode
             chat = message.chat
@@ -66,12 +71,18 @@ def modifiers(method=None, age=True, name=False, mods=False, action=None):
             if action:
                 args[0].sendChatAction(chat_id=message.chat_id, action=action)
 
+            # flood detector
             start = time.time()
+            if message_user in last_commands.keys() and not message_user.lower() in MODS:
+                if start-last_commands[message_user] < FLOOD_DETECT:
+                    logger.info('Message canceled by flood detection.')
+                    return
+
             method(*args, **kwargs)
-            end = time.time()
+            last_commands[message_user] = time.time()
 
             if DEBUGGING_MODE:  # log the time elapsed if in debug mode
-                logger.info('time elapsed (seconds): ' + str(end - start))
+                logger.info('time elapsed (seconds): ' + str(last_commands[message_user] - start))
         else:
             if DEBUGGING_MODE:
                 logger.info('Message canceled by decorator.')
@@ -232,7 +243,7 @@ def evaluate(bot, update, cmd=None):
             return
 
     # execute command with timeout
-    with stopit.ThreadingTimeout(EVAL_TIMEOUT) as ctx:
+    with stopit.ThreadingTimeout(EVAL_TIMEOUT/60) as ctx:
         a = Interpreter()
         out = a(expr)
 
