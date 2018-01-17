@@ -80,7 +80,7 @@ def modifiers(method=None, age=True, name=False, mods=False, action=None):
                                                                                  message_id=message.message_id)]
                     if bot.username in admins:
                         bot.deleteMessage(chat_id=message.chat_id, message_id=message.message_id)
-                    elif LOGGING_MODE:
+                    else:
                         report(2, "flood detector couldn't delete command")
 
                     last_commands[message_user] = time.time()
