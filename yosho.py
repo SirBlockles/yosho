@@ -18,7 +18,7 @@ from telegram.ext import Updater, CommandHandler, InlineQueryHandler, RegexHandl
 
 # initialize bot and logging for debugging #
 
-TOKEN_SELECTION = 'yosho_bot'
+TOKEN_SELECTION = 'yoshobeta_bot'
 token_dict = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
 TOKEN = token_dict[TOKEN_SELECTION]
 
@@ -50,7 +50,7 @@ def modifiers(method=None, age=True, name=False, mods=False, action=None):
     @functools.wraps(method)
     def wrap(*args, **kwargs):  # otherwise wrap function and continue
         message = args[1].message
-        n = re.findall('@[\w]+\s', message.text + ' ')
+        n = re.findall('(?<=[\w])@[\w]+\s', message.text + ' ')
         message_bot = (n[0].lower().strip() if len(n) > 0 else None)  # bot @name used in command if present
         message_user = message.from_user.username  # name of OP/user of command
         message_age = (datetime.datetime.now() - message.date).total_seconds() / 60  # age of message in minutes
