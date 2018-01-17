@@ -18,7 +18,7 @@ from telegram.ext import Updater, CommandHandler, InlineQueryHandler, RegexHandl
 
 # initialize bot and logging for debugging #
 
-TOKEN_SELECTION = 'yosho_bot'
+TOKEN_SELECTION = 'yoshobeta_bot'
 token_dict = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
 TOKEN = token_dict[TOKEN_SELECTION]
 
@@ -27,7 +27,7 @@ DEBUGGING_MODE = False
 MESSAGE_TIMEOUT = 1
 
 EVAL_TIMEOUT = 1
-EVAL_MAX_CHARS = 200
+EVAL_MAX_CHARS = 128
 
 GLOBAL_COMMANDS = pickle.load(open('COMMANDS.pkl', 'rb'))
 GLOBAL_INLINES = pickle.load(open('INLINES.pkl', 'rb'))
@@ -380,10 +380,17 @@ def unknown(bot, update):  # process dict reply commands
     def known(bot, update, text):
         update.message.reply_text(text=text)
 
-    command = str.strip(re.sub('@[\w]+\s', '', update.message.text + ' ', 1))
+    command = str.strip(re.sub('@[\w]+\s', '', update.message.text + ' ', 1)).split(' ')[0]
     if command in GLOBAL_COMMANDS.keys():
         if GLOBAL_COMMANDS[command][1]:  # check if command is code or text
-            evaluate(bot, update, cmd=GLOBAL_COMMANDS[command][0])
+
+            inp = clean(update.message.text)
+            if inp is '':
+                update.message.reply_text(text='Eval macro error:\n\n~Input tag requires user input.')
+                return
+            cmd = GLOBAL_COMMANDS[command][0].replace('~input', 'r"""' + inp + '"""')
+            evaluate(bot, update, cmd=cmd)
+
         else:
             known(bot, update, GLOBAL_COMMANDS[command][0])
     else:
