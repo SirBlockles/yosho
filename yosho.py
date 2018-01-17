@@ -70,9 +70,9 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, action=
 
             # flood detector
             start = time.time()
-            if flood:
+            if flood and not chat.type == 'private':
                 if message_user in last_commands.keys() and not message_user.lower() \
-                                                                in MODS and not chat.type == 'private':
+                                                                in MODS:
                     if start-last_commands[message_user] < FLOOD_TIMEOUT:
                         admins = [x.user.username for x in bot.getChatAdministrators(chat_id=message.chat_id,
                                                                                      message_id=message.message_id)]
@@ -80,13 +80,9 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, action=
                             bot.deleteMessage(chat_id=message.chat_id, message_id=message.message_id)
                         elif LOGGING_MODE:
                             logger.debug("flood detector couldn't delete command")
-
-                        last_commands[message_user] = time.time()
-
                         logger.info('message canceled by flood detection')
                         return
-                elif not chat.type == 'private':
-                    last_commands[message_user] = time.time()
+                last_commands[message_user] = time.time()
 
             method(*args, **kwargs)
             end = time.time()
