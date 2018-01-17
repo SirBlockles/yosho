@@ -22,7 +22,8 @@ token_dict = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
 
 TOKEN = token_dict['yosho_bot']
 MODS = ('wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'pjberri', 'pawjob')
-DEBUGGING_MODE = True
+LOGGING_MODE = True
+LOGGING_VERBOSITY = 2
 MESSAGE_TIMEOUT = 60
 FLOOD_DETECT = 60
 EVAL_TIMEOUT = 60
@@ -38,6 +39,10 @@ logger.info("Loading bot...")
 
 last_commands = {}
 
+
+def report(level, message):
+    if level <= LOGGING_VERBOSITY and LOGGING_MODE:
+        logger.info(message)
 
 # message modifiers decorator.
 # name checks if correct bot @name is present if value is True, also passes unnamed commands if value is ALLOW_UNNAMED
@@ -56,10 +61,9 @@ def modifiers(method=None, age=True, name=False, mods=False, action=None):
         message_age = (datetime.datetime.now() - message.date).total_seconds()  # age of message in minutes
         chat = message.chat
 
-        if DEBUGGING_MODE:  # log the method and various other data if in debug mode
-            title = chat.type + ' -> ' + (chat.title if chat.username is None else '@' + chat.username)
-            logger.info(method.__name__ + ' command called from ' + title
-                        + ', user: @' + message_user + ', with message text: "' + message.text + '"')
+        title = chat.type + ' -> ' + (chat.title if chat.username is None else '@' + chat.username)
+        report(1, method.__name__ + ' command called from ' +
+               title + ', user: @' + message_user + ', with message text: "' + message.text + '"')
 
         # check incoming message attributes
         if (not age or message_age < MESSAGE_TIMEOUT) and\
@@ -76,13 +80,11 @@ def modifiers(method=None, age=True, name=False, mods=False, action=None):
                                                                                  message_id=message.message_id)]
                     if bot.username in admins:
                         bot.deleteMessage(chat_id=message.chat_id, message_id=message.message_id)
-                    elif DEBUGGING_MODE:
-                        logger.info("flood detector couldn't delete command")
+                        report(2, "flood detector couldn't delete command")
 
                     last_commands[message_user] = time.time()
 
-                    if DEBUGGING_MODE:
-                        logger.info('message canceled by flood detection')
+                    report(1, 'message canceled by flood detection')
                     return
             elif not chat.type == 'private':
                 last_commands[message_user] = time.time()
@@ -90,11 +92,9 @@ def modifiers(method=None, age=True, name=False, mods=False, action=None):
             method(*args, **kwargs)
             end = time.time()
 
-            if DEBUGGING_MODE:  # log the time elapsed if in debug mode
-                logger.info('time elapsed (seconds): ' + str(end - start))
+            report(2, 'time elapsed (seconds): ' + str(end - start))
         else:
-            if DEBUGGING_MODE:
-                logger.info('Message canceled by decorator.')
+            report(1, 'Message canceled by decorator.')
     return wrap
 
 
@@ -121,12 +121,12 @@ updater.dispatcher.add_handler(start_handler)
 # toggle debug mode command
 @modifiers(mods=True, action=Ca.TYPING)
 def toggle_debug(bot, update):
-    global DEBUGGING_MODE
+    global LOGGING_MODE
     message = ("Noodles are the best, no doubt, can't deny - tastes better than water, but don't ask you why",
                "But then again, many things can be tasty - cornbread, potatoes, rice, and even pastries")
-    update.message.reply_text(text=message[DEBUGGING_MODE])
-    DEBUGGING_MODE ^= True
-    logger.info('Debugging mode set to ' + str(DEBUGGING_MODE).lower())
+    update.message.reply_text(text=message[LOGGING_MODE])
+    LOGGING_MODE ^= True
+    logger.info('Debugging mode set to ' + str(LOGGING_MODE).lower())
 
 
 debug_handler = CommandHandler("NoodlesAreTheBestNoDoubtCantDeny", toggle_debug)
@@ -207,17 +207,14 @@ def e926(bot, update, tags=None):
         p = None
         try:
             p = posts[randint(0, len(posts)-1)]
-            if DEBUGGING_MODE:
-                logger.info(p)
+            report(3, p)
             update.message.reply_photo(photo=p)
             time.sleep(.5)  # rate limit, can be lowered to .25 if needed.
 
         except TelegramError:
-            if DEBUGGING_MODE:
-                logger.warning('TelegramError in e926 call, post value: ' + str(p))
+            report(1, 'TelegramError in e926 call, post value: ' + str(p))
         except ValueError:
-            if DEBUGGING_MODE:
-                logger.warning('ValueError in e926 call, probably incorrect tags')
+            report(2, 'ValueError in e926 call, probably incorrect tags')
             update.message.reply_text(text=failed)
     else:
         update.message.reply_text(text=failed)
@@ -278,6 +275,8 @@ def macro(bot, update):
     global GLOBAL_COMMANDS
     err = 'Macro editor error:\n\n'
     expr = clean(update.message.text)
+
+    report(1, 'Macro editor called with args "' + expr + '"')
 
     if expr == '':
         update.message.reply_text(text='Macro modes:\n\neval (create eval macro)\n'
@@ -401,8 +400,7 @@ def inline_stuff(bot, update):
 
     if query in GLOBAL_COMMANDS.keys():
         if GLOBAL_COMMANDS[query][1] == 'INLINE':
-            if DEBUGGING_MODE:
-                logger.info('Inline query called: ' + query)
+            report(2, 'Inline query called: ' + query)
             results.append(
                 InlineQueryResultArticle(id=query, title=query,
                                          input_message_content=InputTextMessageContent(GLOBAL_COMMANDS[query][0])))
