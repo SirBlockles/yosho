@@ -18,7 +18,7 @@ from telegram.ext import Updater, CommandHandler, InlineQueryHandler, RegexHandl
 
 # initialize bot and logging for debugging #
 
-TOKEN_SELECTION = 'yosho_bot'
+TOKEN_SELECTION = 'yoshobeta_bot'
 token_dict = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
 TOKEN = token_dict[TOKEN_SELECTION]
 
@@ -31,6 +31,7 @@ EVAL_MAX_CHARS = 200
 
 GLOBAL_COMMANDS = pickle.load(open('COMMANDS.pkl', 'rb'))
 GLOBAL_INLINES = pickle.load(open('INLINES.pkl', 'rb'))
+
 
 bot = telegram.Bot(token=TOKEN)
 updater = Updater(token=TOKEN)
@@ -224,8 +225,13 @@ def evaluate(bot, update, cmd=None):
 
     # replace instances of '~preceding' in input with quoted comment if present
     preceding = update.message.reply_to_message
-    if '~preceding' in expr and preceding is not None:
-        expr = expr.replace('~preceding', 'r"""'+preceding.text.replace('"', "'")+'"""')
+    if '~preceding' in expr:
+        if preceding is not None:
+            expr = expr.replace('~preceding', 'r"""'+preceding.text.replace('"', "'")+'"""')
+        else:
+            update.message.reply_text(text='Eval error:\n\n/eval command must quote'
+                                           ' another message to use ~preceding tag')
+            return
 
     # execute command with timeout
     with stopit.ThreadingTimeout(EVAL_TIMEOUT) as ctx:
@@ -249,7 +255,7 @@ updater.dispatcher.add_handler(eval_handler)
 
 
 # creates and modifies macro commands
-@modifiers(mods=True, action=Ca.TYPING)
+@modifiers(action=Ca.TYPING)
 def macro(bot, update):
     err = 'Macro editor error:\n\n'
     expr = clean(update.message.text)
@@ -281,27 +287,38 @@ def macro(bot, update):
 
     name = '/'+name
 
-    keys = GLOBAL_COMMANDS.keys()
+    user = update.message.from_user.username.lower()
+    if name in GLOBAL_COMMANDS['/protected'][0].split(' ') and user not in MODS and mode not in ('contents', 'list'):
+        update.message.reply_text(text=err+'Macro ' + name + ' is write protected.')
+        return
 
+    if len(args) > 2:
+        expr = expr.replace(' '.join(args[:2]), '').strip()
+    else:
+        expr = None
+
+    keys = GLOBAL_COMMANDS.keys()
     if mode == 'eval' and name not in keys:
-        if len(args) > 2:
-            GLOBAL_COMMANDS[name] = (' '.join(args[2:]), True)
+        if expr is not None:
+            GLOBAL_COMMANDS[name] = (expr, True)
             update.message.reply_text(text='Command "' + name + '" created.')
         else:
             print(GLOBAL_COMMANDS)
             update.message.reply_text(text=err+'Missing command code.')
 
     elif mode == 'text' and name not in keys:
-        if len(args) > 2:
-            GLOBAL_COMMANDS[name] = (' '.join(args[2:]), False)
+        if expr is not None:
+            GLOBAL_COMMANDS[name] = (expr, False)
             update.message.reply_text(text='Command "' + name + '" created.')
         else:
             update.message.reply_text(text=err+'Missing command text.')
 
     elif mode == 'modify':
-        if name in keys:
-            GLOBAL_COMMANDS[name] = (' '.join(args[2:]), GLOBAL_COMMANDS[name][1])
+        if name in keys and expr is not None:
+            GLOBAL_COMMANDS[name] = (expr, GLOBAL_COMMANDS[name][1])
             update.message.reply_text(text='Command "' + name + '" modified.')
+        elif expr is  None:
+            update.message.reply_text(text=err + 'Missing command text/code.')
         else:
             update.message.reply_text(text=err+'No command with name ' + name + '.')
 
@@ -313,7 +330,7 @@ def macro(bot, update):
             update.message.reply_text(text=err+'No command with name ' + name + '.')
 
     elif mode == 'list':
-        update.message.reply_text('Existing macros:\n' + '\n'.join(keys))
+        update.message.reply_text('Existing macros:\n' + '\n'.join([k for k in keys if not k == '/protected']))
 
     elif mode == 'contents':
         if name in keys:
