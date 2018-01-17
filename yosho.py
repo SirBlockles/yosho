@@ -21,11 +21,11 @@ from telegram.ext import Updater, CommandHandler, InlineQueryHandler, RegexHandl
 token_dict = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
 
 TOKEN = token_dict['yosho_bot']
-MODS = ('wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'pjberri', 'pawjob')
+MODS = ('wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'radookal', 'pawjob')
 LOGGING_MODE = True
-LOGGING_LEVEL = logging.INFO
+LOGGING_LEVEL = logging.DEBUG
 MESSAGE_TIMEOUT = 60
-FLOOD_TIMEOUT = 60
+FLOOD_TIMEOUT = 5
 EVAL_TIMEOUT = 1
 EVAL_MAX_CHARS = 128
 GLOBAL_COMMANDS = pickle.load(open('COMMANDS.pkl', 'rb'))
@@ -42,7 +42,7 @@ last_commands = {}
 
 # message modifiers decorator.
 # name checks if correct bot @name is present if value is True, also passes unnamed commands if value is ALLOW_UNNAMED
-def modifiers(method=None, age=True, name=False, mods=False, action=None):
+def modifiers(method=None, age=True, name=False, mods=False, flood=True, action=None):
     if method is None:  # if method is None optional arguments have been passed, return usable decorator
         return functools.partial(modifiers, age=age, name=name, mods=mods, action=action)
 
@@ -70,21 +70,23 @@ def modifiers(method=None, age=True, name=False, mods=False, action=None):
 
             # flood detector
             start = time.time()
-            if message_user in last_commands.keys() and not message_user.lower() in MODS and not chat.type == 'private':
-                if start-last_commands[message_user] < FLOOD_TIMEOUT:
-                    admins = [x.user.username for x in bot.getChatAdministrators(chat_id=message.chat_id,
-                                                                                 message_id=message.message_id)]
-                    if bot.username in admins:
-                        bot.deleteMessage(chat_id=message.chat_id, message_id=message.message_id)
-                    elif LOGGING_MODE:
-                        logger.debug("flood detector couldn't delete command")
+            if flood:
+                if message_user in last_commands.keys() and not message_user.lower() \
+                                                                in MODS and not chat.type == 'private':
+                    if start-last_commands[message_user] < FLOOD_TIMEOUT:
+                        admins = [x.user.username for x in bot.getChatAdministrators(chat_id=message.chat_id,
+                                                                                     message_id=message.message_id)]
+                        if bot.username in admins:
+                            bot.deleteMessage(chat_id=message.chat_id, message_id=message.message_id)
+                        elif LOGGING_MODE:
+                            logger.debug("flood detector couldn't delete command")
 
+                        last_commands[message_user] = time.time()
+
+                        logger.info('message canceled by flood detection')
+                        return
+                elif not chat.type == 'private':
                     last_commands[message_user] = time.time()
-
-                    logger.info('message canceled by flood detection')
-                    return
-            elif not chat.type == 'private':
-                last_commands[message_user] = time.time()
 
             method(*args, **kwargs)
             end = time.time()
@@ -410,7 +412,7 @@ inline_handler = InlineQueryHandler(inline_stuff)
 updater.dispatcher.add_handler(inline_handler)
 
 
-@modifiers
+@modifiers(flood=False)
 def unknown(bot, update):  # process dict reply commands
     @modifiers(age=False, name=True, action=Ca.TYPING)
     def invalid(bot, update, text):
