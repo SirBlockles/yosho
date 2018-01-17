@@ -23,7 +23,7 @@ token_dict = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
 TOKEN = token_dict['yosho_bot']
 MODS = ('wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'pjberri', 'pawjob')
 LOGGING_MODE = True
-LOGGING_LEVEL = logging.DEBUG
+LOGGING_LEVEL = logging.INFO
 MESSAGE_TIMEOUT = 60
 FLOOD_TIMEOUT = 60
 EVAL_TIMEOUT = 1
@@ -272,8 +272,6 @@ def macro(bot, update):
     global GLOBAL_COMMANDS
     err = 'Macro editor error:\n\n'
     expr = clean(update.message.text)
-
-    logger.info('Macro editor called with args "' + expr + '"')
 
     if expr == '':
         update.message.reply_text(text='Macro modes:\n\neval (create eval macro)\n'
