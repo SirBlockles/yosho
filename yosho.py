@@ -18,19 +18,15 @@ from telegram.ext import Updater, CommandHandler, InlineQueryHandler, RegexHandl
 
 # initialize bot and logging for debugging #
 
-TOKEN_SELECTION = 'yosho_bot'
 token_dict = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
-TOKEN = token_dict[TOKEN_SELECTION]
 
+TOKEN = token_dict['yosho_bot']
 MODS = ('wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'pjberri', 'pawjob')
 DEBUGGING_MODE = True
 MESSAGE_TIMEOUT = 60
-
 FLOOD_DETECT = 60
-
 EVAL_TIMEOUT = 60
 EVAL_MAX_CHARS = 128
-
 GLOBAL_COMMANDS = pickle.load(open('COMMANDS.pkl', 'rb'))
 
 bot = telegram.Bot(token=TOKEN)
