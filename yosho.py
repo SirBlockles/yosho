@@ -21,7 +21,7 @@ from telegram.ext import Updater, CommandHandler, InlineQueryHandler, RegexHandl
 token_dict = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
 
 TOKEN = token_dict['yosho_bot']
-MODS = ('wyreyot', 'teamfortress', 'plusreed', 'pixxo', 'radookal', 'pawjob')
+MODS = ('wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'radookal', 'pawjob')
 LOGGING_MODE = True
 LOGGING_LEVEL = logging.DEBUG
 MESSAGE_TIMEOUT = 60
