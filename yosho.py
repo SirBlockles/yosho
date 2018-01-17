@@ -248,6 +248,78 @@ eval_handler = CommandHandler("eval", evaluate)
 updater.dispatcher.add_handler(eval_handler)
 
 
+# creates and modifies macro commands
+@modifiers(mods=True, action=Ca.TYPING)
+def macro(bot, update):
+    err = 'Macro editor error:\n\n'
+    expr = clean(update.message.text)
+    if expr is None:
+        update.message.reply_text(text=err+'Invalid input.')
+        return
+
+    args = expr.split(' ')
+    mode = args[0]
+    name = ''
+
+    if len(args) > 1:
+        name = args[1]
+    elif not mode == 'list':
+        update.message.reply_text(text=err+'Missing command name.')
+        return
+
+    if not name.isalpha() and not mode == 'list':
+        update.message.reply_text(text=err+'Command name must only contain letters.')
+        return
+
+    name = '/'+name
+
+    keys = GLOBAL_COMMANDS.keys()
+
+    if mode == 'eval' and name not in keys:
+        if len(args) > 2:
+            GLOBAL_COMMANDS[name] = (''.join(args[2:]), True)
+            update.message.reply_text(text='Command "' + name + '" created.')
+        else:
+            print(GLOBAL_COMMANDS)
+            update.message.reply_text(text=err+'Missing command code.')
+
+    elif mode == 'text' and name not in keys:
+        if len(args) > 2:
+            GLOBAL_COMMANDS[name] = (''.join(args[2:]), False)
+            update.message.reply_text(text='Command "' + name + '" created.')
+        else:
+            update.message.reply_text(text=err+'Missing command text.')
+
+    elif mode == 'modify':
+        if name in keys:
+            GLOBAL_COMMANDS[name] = (''.join(args[2:]), GLOBAL_COMMANDS[name][1])
+            update.message.reply_text(text='Command "' + name + '" modified.')
+        else:
+            update.message.reply_text(text=err+'No command with name ' + name + '.')
+
+    elif mode == 'remove':
+        if name in keys:
+            del GLOBAL_COMMANDS[name]
+            update.message.reply_text(text='Command "' + name + '" removed.')
+        else:
+            update.message.reply_text(text=err+'No command with name ' + name + '.')
+
+    elif mode == 'list':
+        update.message.reply_text('Existing macros:\n' + '\n'.join(keys))
+
+    elif mode not in ('eval', 'text', 'remove', 'list', 'modify'):
+        update.message.reply_text(text=err+'Unknown mode ' + mode + '.')
+
+    elif name in GLOBAL_COMMANDS:
+        update.message.reply_text(text=err + 'Command already exists.')
+
+        pickle.dump(GLOBAL_COMMANDS, open('COMMANDS.pkl', 'wb+'))
+
+
+macro_handler = CommandHandler("macro", macro)
+updater.dispatcher.add_handler(macro_handler)
+
+
 # inline commands
 def inline_stuff(bot, update):
     results = list()
