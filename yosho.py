@@ -34,7 +34,7 @@ bot = telegram.Bot(token=TOKEN)
 updater = Updater(token=TOKEN)
 logging.basicConfig(format='%(asctime)s - [%(levelname)s] - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
-logger.level = LOGGING_LEVEL
+logger.level = LOGGING_LEVEL*LOGGING_MODE
 logger.info("Loading bot...")
 
 last_commands = {}
@@ -123,6 +123,7 @@ def toggle_debug(bot, update):
                "But then again, many things can be tasty - cornbread, potatoes, rice, and even pastries")
     update.message.reply_text(text=message[LOGGING_MODE])
     LOGGING_MODE ^= True
+    logger.level = LOGGING_LEVEL*LOGGING_MODE
     logger.info('Debugging mode set to ' + str(LOGGING_MODE).lower())
 
 
