@@ -372,7 +372,7 @@ def macro(bot, update):
         if name in keys:
             if user in MODS:
                 GLOBAL_COMMANDS[name][2] ^= True
-                update.message.reply_text(text=err + 'Hide macro ' + name + ': ' + str(GLOBAL_COMMANDS[name][2]))
+                update.message.reply_text('Hide macro ' + name + ': ' + str(GLOBAL_COMMANDS[name][2]))
             else:
                 update.message.reply_text(text=err + 'Only mods can hide or show macros.')
         else:
