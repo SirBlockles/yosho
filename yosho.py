@@ -20,7 +20,7 @@ from telegram.ext import Updater, CommandHandler, InlineQueryHandler, RegexHandl
 
 token_dict = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
 
-TOKEN = token_dict['yoshobeta_bot']
+TOKEN = token_dict['yosho_bot']
 MODS = ('wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'radookal', 'pawjob')
 LOGGING_MODE = True
 LOGGING_LEVEL = logging.DEBUG
@@ -250,21 +250,11 @@ updater.dispatcher.add_handler(interpreters_handler)
 
 
 @modifiers(name='ALLOW_UNNAMED', action=Ca.TYPING)
-def evaluate(bot, update, cmd=None):
+def evaluate(bot, update, cmd=None, symbols=None):
     global INTERPRETERS
     result = 'Invalid input:\n\n'
 
     expr = cmd if cmd else clean(update.message.text)
-
-    # replace instances of '~preceding' in input with quoted comment if present
-    preceding = update.message.reply_to_message
-    if '~preceding' in expr:
-        if preceding is not None:
-            expr = expr.replace('~preceding', 'r"""'+preceding.text.replace('"', "'")+'"""')
-        else:
-            update.message.reply_text(text='Eval error:\n\n/eval command must quote'
-                                           ' another message to use ~preceding tag')
-            return
 
     # execute command with timeout
     name = update.message.from_user.username
@@ -274,11 +264,19 @@ def evaluate(bot, update, cmd=None):
             interp.symtable = {**INTERPRETERS[name], **Interpreter().symtable}
             logger.debug('Loaded interpreter "' + name + '": ' + str(INTERPRETERS[name]))
 
+        preceding = update.message.reply_to_message
+        preceding = '' if preceding is None else update.message.reply_to_message.text
+
+        if not symbols:
+            symbols = {}
+        symbols = {**symbols, **{'MY_NAME': name, 'PRECEDING': preceding}}
+        interp.symtable = {**interp.symtable, **symbols}
+
         out = interp(expr)
 
         if EVAL_MEMORY:
             INTERPRETERS[name] = {k: interp.symtable[k] for k in interp.symtable.keys() if k not in
-                                  Interpreter().symtable.keys()}
+                                  Interpreter().symtable.keys() and k not in symbols.keys()}
             pickle.dump(INTERPRETERS, open('INTERPRETERS.pkl', 'wb+'))
             logger.debug('Saved interpreter "' + name + '": ' + str(INTERPRETERS[name]))
 
@@ -454,14 +452,7 @@ def unknown(bot, update):  # process dict reply commands
     command = str.strip(re.sub('@[\w]+\s', '', update.message.text + ' ', 1)).split(' ')[0]
     if command in COMMANDS.keys():
         if COMMANDS[command][1] == 'EVAL':  # check if command is code or text
-
-            inp = clean(update.message.text)
-            if inp is '' and 'input' in COMMANDS[command][0]:
-                update.message.reply_text(text='Eval macro error:\n\n~Input tag requires user input.')
-                return
-            cmd = COMMANDS[command][0].replace('~input', 'r"""' + inp + '"""')
-            evaluate(bot, update, cmd=cmd)
-
+            evaluate(bot, update, cmd=COMMANDS[command][0], symbols={'INPUT': clean(update.message.text)})
         elif COMMANDS[command][1] == 'TEXT':
             known(bot, update, COMMANDS[command][0])
         else:
