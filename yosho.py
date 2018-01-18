@@ -9,18 +9,22 @@ import requests
 import stopit
 import telegram
 
+import xml.etree.ElementTree as xml
 from random import randint
 from asteval import Interpreter
 from telegram import ChatAction as Ca
 from telegram import InlineQueryResultArticle, InputTextMessageContent
 from telegram.error import TelegramError
-from telegram.ext import Updater, CommandHandler, InlineQueryHandler, RegexHandler
+from telegram.ext import Updater, CommandHandler, InlineQueryHandler, RegexHandler, CallbackQueryHandler
 
 # initialize bot and logging for debugging #
 
 token_dict = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
 
 TOKEN = token_dict['yosho_bot']
+WOLFRAM_APP_ID = token_dict['wolfram']
+WOLFRAM_RESULTS = {}
+WOLFRAM_TIMEOUT = 20
 MODS = ('wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'radookal', 'pawjob')
 LOGGING_MODE = True
 LOGGING_LEVEL = logging.DEBUG
@@ -35,6 +39,7 @@ INTERPRETERS = {}
 
 bot = telegram.Bot(token=TOKEN)
 updater = Updater(token=TOKEN)
+jobs = updater.job_queue
 logging.basicConfig(format='%(asctime)s - [%(levelname)s] - %(message)s')
 logger = logging.getLogger(__name__)
 logger.level = LOGGING_LEVEL + ((not LOGGING_MODE)*100)
@@ -53,8 +58,8 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, action=
         global last_commands
         message = args[1].message
         user = message.from_user
-        n = re.findall('(?<=[\w])@[\w]+\s', message.text + ' ')
-        message_bot = (n[0].lower().strip() if len(n) > 0 else None)  # bot @name used in command if present
+        n = re.findall('(?<=[\w])@[\w]+(?=\s)', message.text + ' ')
+        message_bot = (n[0].lower() if len(n) > 0 else None)  # bot @name used in command if present
         message_user = user.username if user.username is not None else user.name  # name of OP/user of command
         message_age = (datetime.datetime.now() - message.date).total_seconds()  # age of message in minutes
         chat = message.chat
@@ -97,6 +102,15 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, action=
 
 
 clean = lambda s: str.strip(re.sub('/[@\w]+\s', '', s+' ', 1))  # strips command name and bot name from input
+
+
+def build_menu(buttons, n_cols, header_buttons=None, footer_buttons=None):
+    menu = [buttons[i:i + n_cols] for i in range(0, len(buttons), n_cols)]
+    if header_buttons:
+        menu.insert(0, header_buttons)
+    if footer_buttons:
+        menu.append(footer_buttons)
+    return menu
 
 
 def error(bot, update, error):
@@ -456,6 +470,83 @@ def macro(bot, update):
 
 macro_handler = CommandHandler("macro", macro)
 updater.dispatcher.add_handler(macro_handler)
+
+
+@modifiers(action=Ca.TYPING)
+def wolfram(bot, update):
+    global WOLFRAM_RESULTS
+    name = update.message.from_user.name
+    msg = update.message
+
+    err = 'Wolfram|Alpha error:\n\n'
+    failed = err+'Wolfram|Alpha query failed.'
+    expr = clean(update.message.text)
+
+    if name not in WOLFRAM_RESULTS.keys():
+        WOLFRAM_RESULTS[name] = None
+
+    if not expr == '':
+        # construct the request
+        base = 'http://api.wolframalpha.com/v2/query'
+        params = {'appid': WOLFRAM_APP_ID, 'input': expr, 'excludepodid': 'Input', 'width': '1000', 'mag': '2'}
+
+        r = requests.get(base, params=params)
+        tree = xml.XML(r.text)
+        if r.status_code == requests.codes.ok:
+            if (tree.attrib['success'], tree.attrib['error']) == ('true', 'false'):
+                pods = tree.iter(tag='pod')
+
+                buttons = [telegram.InlineKeyboardButton(p.attrib['title'], callback_data='w'+str(i))
+                           for i, p in enumerate(pods)]
+                markup = telegram.InlineKeyboardMarkup(build_menu(buttons, n_cols=2))
+
+                m = update.message.reply_text('Choose result to view:', reply_markup=markup)
+                jobs.run_once(wolfram_timeout, WOLFRAM_TIMEOUT, context=(m.message_id, m.chat.id,
+                                                                         msg.message_id, msg.chat_id))
+
+                pods = tree.iter(tag='pod')
+                WOLFRAM_RESULTS[name] = {i: (p.attrib['title'], p.find('subpod')
+                                             .find('img').attrib['src']) for i, p in enumerate(pods)}
+            else:
+                update.message.reply_text(text=err+"Wolfram|Alpha can't understand your query.")
+        else:
+            update.message.reply_text(text=failed)
+    else:
+        update.message.reply_text(text=err+'Empty query.')
+
+
+wolfram_handler = CommandHandler("wolfram", wolfram)
+updater.dispatcher.add_handler(wolfram_handler)
+
+
+def wolfram_callback(bot, update):
+    query = update.callback_query
+    data = int(query.data.replace('w', ''))
+    name = query.from_user.name
+    message = query.message
+
+    if query.from_user == message.reply_to_message.from_user:
+        url = WOLFRAM_RESULTS[name][data][1]
+        text = WOLFRAM_RESULTS[name][data][0]
+        try:
+            message.reply_to_message.reply_photo(caption=text, photo=url)
+        except TelegramError:
+            message.reply_to_message.reply_text(text='There was an error processing your request.')
+        message.delete()
+        WOLFRAM_RESULTS[name] = None
+
+
+wolfram_callback_handler = CallbackQueryHandler(wolfram_callback, pattern='^w[0-9]+')
+updater.dispatcher.add_handler(wolfram_callback_handler)
+
+
+def wolfram_timeout(bot, job):
+    try:
+        bot.deleteMessage(message_id=job.context[0], chat_id=job.context[1])
+    except TelegramError:
+        return
+    bot.send_message(reply_to_message_id=job.context[2], chat_id=job.context[3], text=
+    'Failed to choose an option within ' + str(WOLFRAM_TIMEOUT) + ' seconds.\nResults timed out.')
 
 
 # inline commands
