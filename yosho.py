@@ -28,7 +28,8 @@ MESSAGE_TIMEOUT = 60
 FLOOD_TIMEOUT = 20
 EVAL_MEMORY = True
 EVAL_TIMEOUT = 1
-EVAL_MAX_CHARS = 128
+EVAL_MAX_OUTPUT = 128
+EVAL_MAX_INPUT = 300
 COMMANDS = pickle.load(open('COMMANDS.pkl', 'rb'))
 INTERPRETERS = pickle.load(open('INTERPRETERS.pkl', 'rb'))
 
@@ -254,7 +255,11 @@ def evaluate(bot, update, cmd=None, symbols=None):
     global INTERPRETERS
     result = 'Invalid input:\n\n'
 
-    expr = cmd if cmd else clean(update.message.text)
+    expr = (cmd if cmd else clean(update.message.text)).replace('#', '\t')
+
+    if len(expr) > EVAL_MAX_INPUT:
+        update.message.reply_text('Fuck off lol.')
+        return
 
     # execute command with timeout
     name = update.message.from_user.username
@@ -266,7 +271,7 @@ def evaluate(bot, update, cmd=None, symbols=None):
 
         quoted = update.message.reply_to_message
         preceding = '' if quoted is None else quoted.text
-        them = '' if quoted is None else quoted.username
+        them = '' if quoted is None else quoted.from_user.username
 
         if not symbols:
             symbols = {}
@@ -286,8 +291,8 @@ def evaluate(bot, update, cmd=None, symbols=None):
     else:
         if out is None:
             result = 'Fuck off lol.'
-        elif len(str(out)) > EVAL_MAX_CHARS:
-            result = str(out)[:EVAL_MAX_CHARS] + '...'
+        elif len(str(out)) > EVAL_MAX_OUTPUT:
+            result = str(out)[:EVAL_MAX_OUTPUT] + '...'
         else:
             result = out
     update.message.reply_text(text=str(result))
