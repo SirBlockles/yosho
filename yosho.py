@@ -20,7 +20,7 @@ from telegram.ext import Updater, CommandHandler, InlineQueryHandler, RegexHandl
 
 token_dict = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
 
-TOKEN = token_dict['yosho_bot']
+TOKEN = token_dict['yoshobeta_bot']
 MODS = ('wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'radookal', 'pawjob')
 LOGGING_MODE = True
 LOGGING_LEVEL = logging.DEBUG
@@ -236,7 +236,7 @@ def interpreters(bot, update):
     msg = clean(update.message.text)
     if msg == 'clear':
         INTERPRETERS = {}
-        pickle.dump(COMMANDS, open('INTERPRETERS.pkl', 'wb+'))
+        pickle.dump(INTERPRETERS, open('INTERPRETERS.pkl', 'wb+'))
         update.message.reply_text(text='Cleared interpreters.')
     elif msg == 'toggle':
         EVAL_MEMORY ^= True
@@ -270,16 +270,17 @@ def evaluate(bot, update, cmd=None):
     name = update.message.from_user.username
     with stopit.ThreadingTimeout(EVAL_TIMEOUT) as ctx:
         interp = Interpreter()
-        if EVAL_MEMORY:
-            if name in INTERPRETERS.keys():
-                interp = INTERPRETERS[name]
-            else:
-                INTERPRETERS[name] = interp
+        if EVAL_MEMORY and name in INTERPRETERS.keys():
+            interp.symtable = {**INTERPRETERS[name], **Interpreter().symtable}
+            logger.debug('Loaded interpreter "' + name + '": ' + str(INTERPRETERS[name]))
 
         out = interp(expr)
 
         if EVAL_MEMORY:
-            pickle.dump(COMMANDS, open('INTERPRETERS.pkl', 'wb+'))
+            INTERPRETERS[name] = {k: interp.symtable[k] for k in interp.symtable.keys() if k not in
+                                  Interpreter().symtable.keys()}
+            pickle.dump(INTERPRETERS, open('INTERPRETERS.pkl', 'wb+'))
+            logger.debug('Saved interpreter "' + name + '": ' + str(INTERPRETERS[name]))
 
     if ctx.state == ctx.TIMED_OUT:
         result += 'Timed out.'
