@@ -283,7 +283,7 @@ def evaluate(bot, update, cmd=None, symbols=None):
 
         out = interp(expr)
 
-        if EVAL_MEMORY:
+        if EVAL_MEMORY and cmd is None:
             INTERPRETERS[name] = {k: interp.symtable[k] for k in interp.symtable.keys() if k not in
                                   Interpreter().symtable.keys() and k not in symbols.keys()}
             logger.debug('Saved interpreter "' + name + '": ' + str(INTERPRETERS[name]))
@@ -299,7 +299,11 @@ def evaluate(bot, update, cmd=None, symbols=None):
             result = out
     if result == '':
         result = err+'Code returned nothing.\nMaybe missing input?'
-    update.message.reply_text(text=str(result))
+
+    if quoted is None:
+        update.message.reply_text(text=result)
+    else:
+        quoted.reply_text(text=result)
 
 
 eval_handler = CommandHandler("eval", evaluate)
@@ -462,18 +466,26 @@ updater.dispatcher.add_handler(inline_handler)
 
 @modifiers(flood=False)
 def unclassified(bot, update):  # process macros and invalid commands.
+    quoted = update.message.reply_to_message
+
     @modifiers(age=False, name=True, action=Ca.TYPING)
     def invalid(bot, update, text):
         update.message.reply_text(text=text)
 
     @modifiers(age=False, name='ALLOW_UNNAMED', action=Ca.TYPING)
     def known(bot, update, text):
-        update.message.reply_text(text=text)
+        if quoted is None:
+            update.message.reply_text(text=text)
+        else:
+            quoted.reply_text(text=text)
 
     @modifiers(age=False, name='ALLOW_UNNAMED', action=Ca.UPLOAD_PHOTO)
     def photo(bot, update, url):
         try:
-            update.message.reply_photo(photo=url)
+            if quoted is None:
+                update.message.reply_photo(photo=url)
+            else:
+                quoted.reply_photo(photo=url)
         except TelegramError:
             logger.debug('TelegramError in photo macro call: ' + str(url))
 
