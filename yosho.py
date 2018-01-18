@@ -31,7 +31,7 @@ EVAL_TIMEOUT = 1
 EVAL_MAX_OUTPUT = 128
 EVAL_MAX_INPUT = 300
 COMMANDS = pickle.load(open('COMMANDS.pkl', 'rb'))
-INTERPRETERS = pickle.load(open('INTERPRETERS.pkl', 'rb'))
+INTERPRETERS = {}
 
 bot = telegram.Bot(token=TOKEN)
 updater = Updater(token=TOKEN)
@@ -237,7 +237,6 @@ def interpreters(bot, update):
     msg = clean(update.message.text)
     if msg == 'clear':
         INTERPRETERS = {}
-        pickle.dump(INTERPRETERS, open('INTERPRETERS.pkl', 'wb+'))
         update.message.reply_text(text='Cleared interpreters.')
     elif msg == 'toggle':
         EVAL_MEMORY ^= True
@@ -255,7 +254,7 @@ def evaluate(bot, update, cmd=None, symbols=None):
     global INTERPRETERS
     result = 'Invalid input:\n\n'
 
-    expr = (cmd if cmd else clean(update.message.text))
+    expr = (cmd if cmd else clean(update.message.text)).replace('#', '\t')
 
     if len(expr) > EVAL_MAX_INPUT:
         update.message.reply_text('Fuck off lol.')
@@ -285,10 +284,7 @@ def evaluate(bot, update, cmd=None, symbols=None):
         if EVAL_MEMORY:
             INTERPRETERS[name] = {k: interp.symtable[k] for k in interp.symtable.keys() if k not in
                                   Interpreter().symtable.keys() and k not in symbols.keys()}
-
-            pickle.dump(INTERPRETERS, open('INTERPRETERS.pkl', 'wb+'))
             logger.debug('Saved interpreter "' + name + '": ' + str(INTERPRETERS[name]))
-
 
     if ctx.state == ctx.TIMED_OUT:
         result += 'Timed out.'
