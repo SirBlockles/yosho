@@ -348,20 +348,21 @@ def macro(bot, update):
                                        'list: list macros\n'
                                        'modify <name> <contents>: modify macro\n'
                                        'contents <name>: list contents of a macro)\n'
-                                       'hide <name>: toggles hiding macro from macro list')
+                                       'hide <name>: toggles hiding macro from macro list\n'
+                                       'clean: remove unprotected macros')
         return
 
     args = expr.split(' ')
     mode = args[0]
     name = ''
 
-    if mode not in ('eval', 'text', 'remove', 'list', 'modify', 'contents', 'hide', 'inline', 'photo'):
+    if mode not in ('eval', 'text', 'remove', 'list', 'modify', 'contents', 'hide', 'inline', 'photo', 'clean'):
         update.message.reply_text(text=err + 'Unknown mode ' + mode + '.')
         return
 
     if len(args) > 1:
-        name = args[1]
-    elif not mode == 'list':
+        name = args[1].split('\n')[0]
+    elif mode not in ('list', 'clean'):
         update.message.reply_text(text=err+'Missing macro name.')
         return
 
@@ -374,6 +375,8 @@ def macro(bot, update):
 
     if len(args) > 2:
         expr = expr.replace(' '.join(args[:2]), '').strip()
+        if len(args[1].split('\n')) == 2:
+            expr = args[1].split('\n')[1] + expr
     else:
         expr = None
 
@@ -399,6 +402,13 @@ def macro(bot, update):
             update.message.reply_text(text=err + 'Missing macro text/code.')
         else:
             update.message.reply_text(text=err+'No macro with name ' + name + '.')
+
+    elif mode == 'clean':
+        if user in MODS:
+            COMMANDS = {k: COMMANDS[k] for k in sorted(COMMANDS.keys()) if k in protected}
+            update.message.reply_text('Cleaned up macros.')
+        else:
+            update.message.reply_text(text=err + 'Only bot mods can do that.')
 
     elif mode == 'remove':
         if name in keys:
@@ -433,7 +443,7 @@ def macro(bot, update):
                 COMMANDS[name][2] ^= True
                 update.message.reply_text('Hide macro ' + name + ': ' + str(COMMANDS[name][2]))
             else:
-                update.message.reply_text(text=err + 'Only mods can hide or show macros.')
+                update.message.reply_text(text=err + 'Only bot mods can hide or show macros.')
         else:
             update.message.reply_text(text=err + 'No macro with name ' + name + '.')
 
