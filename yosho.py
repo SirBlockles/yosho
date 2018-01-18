@@ -35,7 +35,7 @@ INTERPRETERS = {}
 
 bot = telegram.Bot(token=TOKEN)
 updater = Updater(token=TOKEN)
-logging.basicConfig(format='%(asctime)s - [%(levelname)s] - %(message)s', level=logging.INFO)
+logging.basicConfig(format='%(asctime)s - [%(levelname)s] - %(message)s')
 logger = logging.getLogger(__name__)
 logger.level = LOGGING_LEVEL + ((not LOGGING_MODE)*100)
 logger.info("Loading bot...")
