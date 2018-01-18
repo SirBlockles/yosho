@@ -264,12 +264,13 @@ def evaluate(bot, update, cmd=None, symbols=None):
             interp.symtable = {**INTERPRETERS[name], **Interpreter().symtable}
             logger.debug('Loaded interpreter "' + name + '": ' + str(INTERPRETERS[name]))
 
-        preceding = update.message.reply_to_message
-        preceding = '' if preceding is None else update.message.reply_to_message.text
+        quoted = update.message.reply_to_message
+        preceding = '' if quoted is None else quoted.text
+        them = '' if quoted is None else quoted.username
 
         if not symbols:
             symbols = {}
-        symbols = {**symbols, **{'MY_NAME': name, 'PRECEDING': preceding}}
+        symbols = {**symbols, **{'MY_NAME': name, 'THEIR_NAME': them, 'PRECEDING': preceding}}
         interp.symtable = {**interp.symtable, **symbols}
 
         out = interp(expr)
