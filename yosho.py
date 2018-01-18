@@ -52,10 +52,10 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, action=
     def wrap(*args, **kwargs):  # otherwise wrap function and continue
         global last_commands
         message = args[1].message
-
+        user = message.from_user
         n = re.findall('(?<=[\w])@[\w]+\s', message.text + ' ')
         message_bot = (n[0].lower().strip() if len(n) > 0 else None)  # bot @name used in command if present
-        message_user = message.from_user.username  # name of OP/user of command
+        message_user = user.username if user.username is not None else user.name  # name of OP/user of command
         message_age = (datetime.datetime.now() - message.date).total_seconds()  # age of message in minutes
         chat = message.chat
 
@@ -67,8 +67,6 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, action=
         if (not age or message_age < MESSAGE_TIMEOUT) and\
                 (not name or message_bot == bot.name.lower() or (message_bot is None and name == 'ALLOW_UNNAMED'))\
                 and (not mods or message_user.lower() in MODS):
-            if action:
-                args[0].sendChatAction(chat_id=message.chat_id, action=action)
 
             # flood detector
             start = time.time()
@@ -85,6 +83,9 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, action=
                         logger.info('message canceled by flood detection: ' + str(elapsed))
                         return
                 last_commands[message_user] = time.time()
+
+            if action:
+                args[0].sendChatAction(chat_id=message.chat_id, action=action)
 
             method(*args, **kwargs)
             end = time.time()
@@ -262,7 +263,7 @@ def evaluate(bot, update, cmd=None, symbols=None):
         return
 
     # execute command with timeout
-    name = update.message.from_user.username
+    name = update.message.from_user.name
     with stopit.ThreadingTimeout(EVAL_TIMEOUT) as ctx:
         interp = Interpreter()
         temp = Interpreter()
@@ -273,7 +274,7 @@ def evaluate(bot, update, cmd=None, symbols=None):
 
         quoted = update.message.reply_to_message
         preceding = '' if quoted is None else quoted.text
-        them = '' if quoted is None else quoted.from_user.username
+        them = '' if quoted is None else quoted.from_user.name
 
         if not symbols:
             symbols = {}
@@ -449,7 +450,7 @@ updater.dispatcher.add_handler(inline_handler)
 
 
 @modifiers(flood=False)
-def unknown(bot, update):  # process dict reply commands
+def unclassified(bot, update):  # process macros and invalid commands.
     @modifiers(age=False, name=True, action=Ca.TYPING)
     def invalid(bot, update, text):
         update.message.reply_text(text=text)
@@ -470,8 +471,8 @@ def unknown(bot, update):  # process dict reply commands
         invalid(bot, update, 'Error:\n\nUnknown command: ' + command)
 
 
-unknown_handler = RegexHandler(r'/.*', unknown)
-updater.dispatcher.add_handler(unknown_handler)
+unclassified_handler = RegexHandler(r'/.*', unclassified)
+updater.dispatcher.add_handler(unclassified_handler)
 
 logger.info("Bot loaded.")
 updater.start_polling()
