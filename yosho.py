@@ -203,15 +203,15 @@ def e926(bot, update, tags=None):
     if r.status_code == requests.codes.ok:
         data = r.json()
         posts = [p['file_url'] for p in data if p['file_ext'] in ('jpg', 'png')]  # find image urls in json response
-        p = None
+        url = None
         try:
-            p = posts[randint(0, len(posts)-1)]
-            logger.debug(p)
-            update.message.reply_photo(photo=p)
+            url = posts[randint(0, len(posts)-1)]
+            logger.debug(url)
+            update.message.reply_photo(photo=url)
             time.sleep(.5)  # rate limit, can be lowered to .25 if needed.
 
         except TelegramError:
-            logger.debug('TelegramError in e926 call, post value: ' + str(p))
+            logger.debug('TelegramError in e926 call, post value: ' + str(url))
         except ValueError:
             logger.info('ValueError in e926 call, probably incorrect tags')
             update.message.reply_text(text=failed)
@@ -314,10 +314,14 @@ def macro(bot, update):
     expr = clean(update.message.text)
 
     if expr == '':
-        update.message.reply_text(text='Macro modes:\n\neval (create eval macro)\n'
+        update.message.reply_text(text='Macro modes:\n\n'
+                                       'photo (create photo macro)\n'
+                                       'eval (create eval macro)\n'
                                        'inline (create inline macro)\n'
-                                       'text (create text macro)\nremove (remove macro)\n'
-                                       'list (list macros)\nmodify (modify macro)\n'
+                                       'text (create text macro)\n'
+                                       'remove (remove macro)\n'
+                                       'list (list macros)\n'
+                                       'modify (modify macro)\n'
                                        'contents (list contents of a macro)\n'
                                        'hide (toggles hiding macro from macro list)')
         return
@@ -326,7 +330,7 @@ def macro(bot, update):
     mode = args[0]
     name = ''
 
-    if mode not in ('eval', 'text', 'remove', 'list', 'modify', 'contents', 'hide', 'inline'):
+    if mode not in ('eval', 'text', 'remove', 'list', 'modify', 'contents', 'hide', 'inline', 'photo'):
         update.message.reply_text(text=err + 'Unknown mode ' + mode + '.')
         return
 
@@ -349,27 +353,27 @@ def macro(bot, update):
         expr = None
 
     keys = COMMANDS.keys()
-    if mode == 'eval' and name not in keys:
+    if mode in ('eval', 'text', 'inline', 'photo') and name not in keys:
         if expr is not None:
-            COMMANDS[name] = [expr, 'EVAL', False]
-            update.message.reply_text(text='Eval macro "' + name + '" created.')
-        else:
-            print(COMMANDS)
-            update.message.reply_text(text=err+'Missing macro code.')
+            if mode == 'photo':
+                try:
+                    r = requests.head(expr)
+                    MIME_type = r.headers.get('content-type')
+                except requests.exceptions.MissingSchema:
+                    update.message.reply_text(text=err + 'URL is invalid, maybe missing http://?')
+                    return
+                if r.status_code == requests.codes.ok:
+                    if MIME_type not in ('image/png', 'image/jpeg'):
+                        update.message.reply_text(text=err + 'URL is not image.')
+                        return
+                else:
+                    update.message.reply_text(text=err + 'Invalid url or connection error.')
+                    return
 
-    elif mode == 'text' and name not in keys:
-        if expr is not None:
-            COMMANDS[name] = [expr, 'TEXT', False]
-            update.message.reply_text(text='Text macro "' + name + '" created.')
+            COMMANDS[name] = [expr, mode.upper(), False]
+            update.message.reply_text(text=mode + ' macro "' + name + '" created.')
         else:
-            update.message.reply_text(text=err+'Missing macro text.')
-
-    elif mode == 'inline' and name not in keys:
-        if expr is not None:
-            COMMANDS[name] = [expr, 'INLINE', False]
-            update.message.reply_text(text='Inline macro "' + name + '" created.')
-        else:
-            update.message.reply_text(text=err+'Missing macro text.')
+            update.message.reply_text(text=err+'Missing macro contents.')
 
     elif mode == 'modify':
         if name in keys and expr is not None:
@@ -459,12 +463,21 @@ def unclassified(bot, update):  # process macros and invalid commands.
     def known(bot, update, text):
         update.message.reply_text(text=text)
 
+    @modifiers(age=False, name='ALLOW_UNNAMED', action=Ca.UPLOAD_PHOTO)
+    def photo(bot, update, url):
+        try:
+            update.message.reply_photo(photo=url)
+        except TelegramError:
+            logger.debug('TelegramError in photo macro call: ' + str(url))
+
     command = str.strip(re.sub('@[\w]+\s', '', update.message.text + ' ', 1)).split(' ')[0]
     if command in COMMANDS.keys():
         if COMMANDS[command][1] == 'EVAL':  # check if command is code or text
             evaluate(bot, update, cmd=COMMANDS[command][0], symbols={'INPUT': clean(update.message.text)})
         elif COMMANDS[command][1] == 'TEXT':
             known(bot, update, COMMANDS[command][0])
+        elif COMMANDS[command][1] == 'PHOTO':
+            photo(bot, update, COMMANDS[command][0])
         else:
             update.message.reply_text(text="Macro error:\n\n~That's an inline macro! Try @yosho_bot " + command)
     else:
