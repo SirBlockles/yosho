@@ -252,7 +252,8 @@ updater.dispatcher.add_handler(interpreters_handler)
 @modifiers(name='ALLOW_UNNAMED', action=Ca.TYPING)
 def evaluate(bot, update, cmd=None, symbols=None):
     global INTERPRETERS
-    result = 'Invalid input:\n\n'
+    err = 'Invalid input:\n\n'
+    result = err
 
     expr = (cmd if cmd else clean(update.message.text)).replace('#', '\t')
 
@@ -290,11 +291,13 @@ def evaluate(bot, update, cmd=None, symbols=None):
         result += 'Timed out.'
     else:
         if out is None:
-            result = 'Fuck off lol.'
+            result = 'Code returned nothing.'
         elif len(str(out)) > EVAL_MAX_OUTPUT:
             result = str(out)[:EVAL_MAX_OUTPUT] + '...'
         else:
             result = out
+    if result == '':
+        result = err+'Code returned nothing.\nMaybe missing input?'
     update.message.reply_text(text=str(result))
 
 
