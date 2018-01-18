@@ -29,7 +29,7 @@ FLOOD_TIMEOUT = 20
 EVAL_MEMORY = True
 EVAL_TIMEOUT = 1
 EVAL_MAX_OUTPUT = 128
-EVAL_MAX_INPUT = 300
+EVAL_MAX_INPUT = 1000
 COMMANDS = pickle.load(open('COMMANDS.pkl', 'rb'))
 INTERPRETERS = {}
 
@@ -259,7 +259,7 @@ def evaluate(bot, update, cmd=None, symbols=None):
     expr = (cmd if cmd else clean(update.message.text)).replace('#', '\t')
 
     if len(expr) > EVAL_MAX_INPUT:
-        update.message.reply_text('Fuck off lol.')
+        update.message.reply_text(err+'Maximum input length exceeded.')
         return
 
     # execute command with timeout
