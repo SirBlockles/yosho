@@ -255,7 +255,7 @@ def evaluate(bot, update, cmd=None, symbols=None):
     global INTERPRETERS
     result = 'Invalid input:\n\n'
 
-    expr = (cmd if cmd else clean(update.message.text)).replace('#', '\t')
+    expr = (cmd if cmd else clean(update.message.text))
 
     if len(expr) > EVAL_MAX_INPUT:
         update.message.reply_text('Fuck off lol.')
@@ -265,8 +265,10 @@ def evaluate(bot, update, cmd=None, symbols=None):
     name = update.message.from_user.username
     with stopit.ThreadingTimeout(EVAL_TIMEOUT) as ctx:
         interp = Interpreter()
+        temp = Interpreter()
         if EVAL_MEMORY and name in INTERPRETERS.keys():
             interp.symtable = {**INTERPRETERS[name], **Interpreter().symtable}
+            temp.symtable = {**INTERPRETERS[name], **Interpreter().symtable}
             logger.debug('Loaded interpreter "' + name + '": ' + str(INTERPRETERS[name]))
 
         quoted = update.message.reply_to_message
@@ -283,8 +285,10 @@ def evaluate(bot, update, cmd=None, symbols=None):
         if EVAL_MEMORY:
             INTERPRETERS[name] = {k: interp.symtable[k] for k in interp.symtable.keys() if k not in
                                   Interpreter().symtable.keys() and k not in symbols.keys()}
+
             pickle.dump(INTERPRETERS, open('INTERPRETERS.pkl', 'wb+'))
             logger.debug('Saved interpreter "' + name + '": ' + str(INTERPRETERS[name]))
+
 
     if ctx.state == ctx.TIMED_OUT:
         result += 'Timed out.'
