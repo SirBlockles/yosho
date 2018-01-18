@@ -278,9 +278,12 @@ def evaluate(bot, update, cmd=None, symbols=None):
 
         if not symbols:
             symbols = {}
+        chat = update.message.chat
+
         symbols = {**symbols, **{'MY_NAME': name,
                                  'THEIR_NAME': them,
-                                 'PRECEDING': preceding}}
+                                 'PRECEDING': preceding,
+                                 'GROUP': (chat.title if chat.username is None else '@' + chat.username)}}
         interp.symtable = {**interp.symtable, **symbols}
 
         out = interp(expr)
@@ -496,7 +499,7 @@ def unclassified(bot, update):  # process macros and invalid commands.
         if COMMANDS[command][1] == 'EVAL':  # check if command is code or text
             symbols = {'INPUT': clean(update.message.text),
                        'HIDDEN': COMMANDS[command][2],
-                       'PROTECTED': command in COMMANDS['protected'][0]}
+                       'PROTECTED': command in COMMANDS['protected'][0].split(' ')}
             evaluate(bot, update, cmd=COMMANDS[command][0], symbols=symbols)
         elif COMMANDS[command][1] == 'TEXT':
             known(bot, update, COMMANDS[command][0])
