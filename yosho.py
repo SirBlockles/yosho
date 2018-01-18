@@ -309,21 +309,37 @@ updater.dispatcher.add_handler(eval_handler)
 # creates and modifies macro commands
 @modifiers(action=Ca.TYPING)
 def macro(bot, update):
+    def check_image_url(url):
+        try:
+            r = requests.head(url)
+            mime_type = r.headers.get('content-type')
+        except Exception as e:
+            update.message.reply_text(text=err + 'URL is invalid:\n'+e.__class__.__name__)
+            return
+        if r.status_code == requests.codes.ok:
+            if mime_type not in ('image/png', 'image/jpeg'):
+                update.message.reply_text(text=err + 'URL is not image.')
+                return
+        else:
+            update.message.reply_text(text=err + 'Invalid url or connection error.')
+            return
+        return True
+
     global COMMANDS
     err = 'Macro editor error:\n\n'
     expr = clean(update.message.text)
 
     if expr == '':
         update.message.reply_text(text='Macro modes:\n\n'
-                                       'photo (create photo macro)\n'
-                                       'eval (create eval macro)\n'
-                                       'inline (create inline macro)\n'
-                                       'text (create text macro)\n'
-                                       'remove (remove macro)\n'
-                                       'list (list macros)\n'
-                                       'modify (modify macro)\n'
-                                       'contents (list contents of a macro)\n'
-                                       'hide (toggles hiding macro from macro list)')
+                                       'photo <url> <name>: create photo macro\n'
+                                       'eval <code> <name>: create eval macro\n'
+                                       'inline <text> <name>: create inline macro\n'
+                                       'text <text> <name>: create text macro\n'
+                                       'remove <name>: remove macro\n'
+                                       'list: list macros\n'
+                                       'modify <name> <contents>: modify macro\n'
+                                       'contents <name>: list contents of a macro)\n'
+                                       'hide <name>: toggles hiding macro from macro list')
         return
 
     args = expr.split(' ')
@@ -356,20 +372,8 @@ def macro(bot, update):
     if mode in ('eval', 'text', 'inline', 'photo') and name not in keys:
         if expr is not None:
             if mode == 'photo':
-                try:
-                    r = requests.head(expr)
-                    MIME_type = r.headers.get('content-type')
-                except requests.exceptions.MissingSchema:
-                    update.message.reply_text(text=err + 'URL is invalid, maybe missing http://?')
+                if not check_image_url(expr):
                     return
-                if r.status_code == requests.codes.ok:
-                    if MIME_type not in ('image/png', 'image/jpeg'):
-                        update.message.reply_text(text=err + 'URL is not image.')
-                        return
-                else:
-                    update.message.reply_text(text=err + 'Invalid url or connection error.')
-                    return
-
             COMMANDS[name] = [expr, mode.upper(), False]
             update.message.reply_text(text=mode + ' macro "' + name + '" created.')
         else:
@@ -377,6 +381,9 @@ def macro(bot, update):
 
     elif mode == 'modify':
         if name in keys and expr is not None:
+            if COMMANDS[name][1] == 'PHOTO':
+                if not check_image_url(expr):
+                    return
             COMMANDS[name][0] = expr
             update.message.reply_text(text='Macro "' + name + '" modified.')
         elif expr is None:
