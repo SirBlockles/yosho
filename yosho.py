@@ -331,10 +331,10 @@ def macro(bot, update):
 
     if expr == '':
         update.message.reply_text(text='Macro modes:\n\n'
-                                       'photo <url> <name>: create photo macro\n'
-                                       'eval <code> <name>: create eval macro\n'
-                                       'inline <text> <name>: create inline macro\n'
-                                       'text <text> <name>: create text macro\n'
+                                       'photo <name> <url>: create photo macro\n'
+                                       'eval <name> <code>: create eval macro\n'
+                                       'inline <name> <text>: create inline macro\n'
+                                       'text <name> <text>: create text macro\n'
                                        'remove <name>: remove macro\n'
                                        'list: list macros\n'
                                        'modify <name> <contents>: modify macro\n'
