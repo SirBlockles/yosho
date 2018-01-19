@@ -36,6 +36,7 @@ EVAL_MAX_OUTPUT = 256
 EVAL_MAX_INPUT = 1000
 COMMANDS = pickle.load(open('COMMANDS.pkl', 'rb'))
 INTERPRETERS = {}
+INTERPRETER_TIMEOUT = 60 * 60
 
 bot = telegram.Bot(token=TOKEN)
 updater = Updater(token=TOKEN)
@@ -642,6 +643,16 @@ def unclassified(bot, update):  # process macros and invalid commands.
 
 unclassified_handler = RegexHandler(r'/.*', unclassified)
 updater.dispatcher.add_handler(unclassified_handler)
+
+
+def clear(bot, job):
+    global WOLFRAM_RESULTS
+    global INTERPRETERS
+    INTERPRETERS = {}
+    WOLFRAM_RESULTS = {}
+
+
+jobs.run_repeating(clear, interval=INTERPRETER_TIMEOUT)
 
 logger.info("Bot loaded.")
 updater.start_polling()
