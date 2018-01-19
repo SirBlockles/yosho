@@ -529,12 +529,11 @@ def wolfram_callback(bot, update):
 
     bot.sendChatAction(chat_id=message.chat.id, action=Ca.TYPING)
 
-    text = WOLFRAM_RESULTS[name][data][0]
-    url = WOLFRAM_RESULTS[name][data][1]
-    title = WOLFRAM_RESULTS[name][data][2]
-
     if message.chat.type == 'private':
         try:
+            text = WOLFRAM_RESULTS[name][data][0]
+            url = WOLFRAM_RESULTS[name][data][1]
+            title = WOLFRAM_RESULTS[name][data][2]
             bot.send_photo(caption=text + '\n' + title, photo=url,
                            chat_id=message.chat.id, message_id=message.message_id)
         except TelegramError:
@@ -543,6 +542,9 @@ def wolfram_callback(bot, update):
         message.delete()
     elif id == message.reply_to_message.from_user.id:
         try:
+            text = WOLFRAM_RESULTS[name][data][0]
+            url = WOLFRAM_RESULTS[name][data][1]
+            title = WOLFRAM_RESULTS[name][data][2]
             message.reply_to_message.reply_photo(caption=text + '\n' + title, photo=url)
         except TelegramError:
             message.reply_to_message.reply_text(text='There was an error processing your request.')
