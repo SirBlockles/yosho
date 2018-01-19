@@ -488,7 +488,7 @@ def wolfram(bot, update):
     if not expr == '':
         # construct the request
         base = 'http://api.wolframalpha.com/v2/query'
-        params = {'appid': WOLFRAM_APP_ID, 'input': expr, 'excludepodid': 'Input', 'width': '1000', 'mag': '2'}
+        params = {'appid': WOLFRAM_APP_ID, 'input': expr, 'width': '1000', 'mag': '2'}
 
         r = requests.get(base, params=params)
         tree = xml.XML(r.text)
@@ -497,7 +497,7 @@ def wolfram(bot, update):
                 pods = tree.iter(tag='pod')
 
                 buttons = [telegram.InlineKeyboardButton(p.attrib['title'], callback_data='w'+str(i))
-                           for i, p in enumerate(pods)]
+                           for i, p in enumerate(pods) if not p.attrib['id'] == 'Input']
                 markup = telegram.InlineKeyboardMarkup(build_menu(buttons, n_cols=2))
 
                 m = update.message.reply_text('Choose result to view:', reply_markup=markup)
@@ -507,7 +507,9 @@ def wolfram(bot, update):
                 pods = tree.iter(tag='pod')
                 WOLFRAM_RESULTS[name] = {i: (p.attrib['title'], p.find('subpod')
                                              .find('img').attrib['src'],
-                                             p.find('subpod').attrib['title']) for i, p in enumerate(pods)}
+                                             p.find('subpod').attrib['title'], p.find('subpod')
+                                             .find('plaintext').text) for i, p in enumerate(pods)}
+
             else:
                 update.message.reply_text(text=err+"Wolfram|Alpha can't understand your query.")
         else:
@@ -534,7 +536,8 @@ def wolfram_callback(bot, update):
             text = WOLFRAM_RESULTS[name][data][0]
             url = WOLFRAM_RESULTS[name][data][1]
             title = WOLFRAM_RESULTS[name][data][2]
-            bot.send_photo(caption=text + '\n' + title, photo=url,
+            inter = WOLFRAM_RESULTS[name][0][3]
+            bot.send_photo(caption=text + '\n' + title + '\n' + 'Input interpretation: ' + inter, photo=url,
                            chat_id=message.chat.id, message_id=message.message_id)
         except TelegramError:
             bot.send_text(text='There was an error processing your request.',
@@ -545,7 +548,9 @@ def wolfram_callback(bot, update):
             text = WOLFRAM_RESULTS[name][data][0]
             url = WOLFRAM_RESULTS[name][data][1]
             title = WOLFRAM_RESULTS[name][data][2]
-            message.reply_to_message.reply_photo(caption=text + '\n' + title, photo=url)
+            inter = WOLFRAM_RESULTS[name][0][3]
+            message.reply_to_message.reply_photo(caption=text + '\n' + title + '\n'
+                                                         + 'Input interpretation: ' + inter, photo=url)
         except TelegramError:
             message.reply_to_message.reply_text(text='There was an error processing your request.')
 
