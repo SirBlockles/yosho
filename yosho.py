@@ -544,8 +544,8 @@ def wolfram_callback(bot, update):
             bot.send_photo(caption=text + '\n' + title + '\n' + 'Input interpretation: ' + inter, photo=url,
                            chat_id=message.chat.id, message_id=message.message_id)
         except TelegramError:
-            bot.send_text(text='There was an error processing your request.',
-                          chat_id=message.chat.id, message_id=message.message_id)
+            return
+
         message.delete()
     elif id == message.reply_to_message.from_user.id:
         try:
@@ -556,7 +556,7 @@ def wolfram_callback(bot, update):
             message.reply_to_message.reply_photo(caption=text + '\n' + title + '\n'
                                                          + 'Input interpretation: ' + inter, photo=url)
         except TelegramError:
-            message.reply_to_message.reply_text(text='There was an error processing your request.')
+            return
 
         message.delete()
         WOLFRAM_RESULTS[name] = None
