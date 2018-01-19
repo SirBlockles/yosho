@@ -32,7 +32,7 @@ MESSAGE_TIMEOUT = 60
 FLOOD_TIMEOUT = 20
 EVAL_MEMORY = True
 EVAL_TIMEOUT = 1
-EVAL_MAX_OUTPUT = 128
+EVAL_MAX_OUTPUT = 256
 EVAL_MAX_INPUT = 1000
 COMMANDS = pickle.load(open('COMMANDS.pkl', 'rb'))
 INTERPRETERS = {}
@@ -506,7 +506,8 @@ def wolfram(bot, update):
 
                 pods = tree.iter(tag='pod')
                 WOLFRAM_RESULTS[name] = {i: (p.attrib['title'], p.find('subpod')
-                                             .find('img').attrib['src']) for i, p in enumerate(pods)}
+                                             .find('img').attrib['src'],
+                                             p.find('subpod').attrib['title']) for i, p in enumerate(pods)}
             else:
                 update.message.reply_text(text=err+"Wolfram|Alpha can't understand your query.")
         else:
@@ -524,14 +525,28 @@ def wolfram_callback(bot, update):
     data = int(query.data.replace('w', ''))
     name = query.from_user.name
     message = query.message
+    id = query.from_user.id
 
-    if query.from_user == message.reply_to_message.from_user:
-        url = WOLFRAM_RESULTS[name][data][1]
-        text = WOLFRAM_RESULTS[name][data][0]
+    bot.sendChatAction(chat_id=message.chat.id, action=Ca.TYPING)
+
+    text = WOLFRAM_RESULTS[name][data][0]
+    url = WOLFRAM_RESULTS[name][data][1]
+    title = WOLFRAM_RESULTS[name][data][2]
+
+    if message.chat.type == 'private':
         try:
-            message.reply_to_message.reply_photo(caption=text, photo=url)
+            bot.send_photo(caption=text + '\n' + title, photo=url,
+                           chat_id=message.chat.id, message_id=message.message_id)
+        except TelegramError:
+            bot.send_text(text='There was an error processing your request.',
+                          chat_id=message.chat.id, message_id=message.message_id)
+        message.delete()
+    elif id == message.reply_to_message.from_user.id:
+        try:
+            message.reply_to_message.reply_photo(caption=text + '\n' + title, photo=url)
         except TelegramError:
             message.reply_to_message.reply_text(text='There was an error processing your request.')
+
         message.delete()
         WOLFRAM_RESULTS[name] = None
 
