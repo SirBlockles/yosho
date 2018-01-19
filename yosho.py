@@ -31,7 +31,7 @@ LOGGING_LEVEL = logging.DEBUG
 MESSAGE_TIMEOUT = 60
 FLOOD_TIMEOUT = 20
 EVAL_MEMORY = True
-EVAL_TIMEOUT = 1
+EVAL_TIMEOUT = 5
 EVAL_MAX_OUTPUT = 256
 EVAL_MAX_INPUT = 1000
 COMMANDS = pickle.load(open('COMMANDS.pkl', 'rb'))
@@ -544,6 +544,7 @@ def wolfram_callback(bot, update):
             bot.send_photo(caption=text + '\n' + title + '\n' + 'Input interpretation: ' + inter, photo=url,
                            chat_id=message.chat.id, message_id=message.message_id)
         except TelegramError:
+            message.delete()
             return
 
         message.delete()
@@ -556,6 +557,7 @@ def wolfram_callback(bot, update):
             message.reply_to_message.reply_photo(caption=text + '\n' + title + '\n'
                                                          + 'Input interpretation: ' + inter, photo=url)
         except TelegramError:
+            message.delete()
             return
 
         message.delete()
