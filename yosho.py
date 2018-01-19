@@ -5,12 +5,12 @@ import logging
 import pickle
 import re
 import time
+import xml.etree.ElementTree as xml
+from random import randint
+
 import requests
 import stopit
 import telegram
-
-import xml.etree.ElementTree as xml
-from random import randint
 from asteval import Interpreter
 from telegram import ChatAction as Ca
 from telegram import InlineQueryResultArticle, InputTextMessageContent
@@ -24,19 +24,19 @@ token_dict = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
 TOKEN = token_dict['yosho_bot']
 WOLFRAM_APP_ID = token_dict['wolfram']
 WOLFRAM_RESULTS = {}
-WOLFRAM_TIMEOUT = 20
+WOLFRAM_TIMEOUT = 20  # seconds
 MODS = ('wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'radookal', 'pawjob')
 LOGGING_MODE = True
 LOGGING_LEVEL = logging.DEBUG
-MESSAGE_TIMEOUT = 60
-FLOOD_TIMEOUT = 20
+MESSAGE_TIMEOUT = 60  # seconds
+FLOOD_TIMEOUT = 20  # seconds
 EVAL_MEMORY = True
-EVAL_TIMEOUT = 5
+EVAL_TIMEOUT = 5  # seconds
 EVAL_MAX_OUTPUT = 256
 EVAL_MAX_INPUT = 1000
 COMMANDS = pickle.load(open('COMMANDS.pkl', 'rb'))
 INTERPRETERS = {}
-INTERPRETER_TIMEOUT = 60 * 60
+INTERPRETER_TIMEOUT = 60 * 60  # seconds
 
 bot = telegram.Bot(token=TOKEN)
 updater = Updater(token=TOKEN)
@@ -367,7 +367,7 @@ def macro(bot, update):
                                        'clean: remove unprotected macros')
         return
 
-    args = expr.split(' ')
+    args = re.split(" +", expr)
     mode = args[0]
     name = ''
 
@@ -501,16 +501,18 @@ def wolfram(bot, update):
                            for i, p in enumerate(pods) if not p.attrib['id'] == 'Input']
                 markup = telegram.InlineKeyboardMarkup(build_menu(buttons, n_cols=2))
 
-                m = update.message.reply_text('Choose result to view:', reply_markup=markup)
-                jobs.run_once(wolfram_timeout, WOLFRAM_TIMEOUT, context=(m.message_id, m.chat.id,
-                                                                         msg.message_id, msg.chat_id))
-
                 pods = tree.iter(tag='pod')
                 WOLFRAM_RESULTS[name] = {i: (p.attrib['title'], p.find('subpod')
                                              .find('img').attrib['src'],
                                              p.find('subpod').attrib['title'], p.find('subpod')
                                              .find('plaintext').text) for i, p in enumerate(pods)}
 
+                if len(WOLFRAM_RESULTS[name]) > 1:
+                    m = update.message.reply_text('Choose result to view:', reply_markup=markup)
+                    jobs.run_once(wolfram_timeout, WOLFRAM_TIMEOUT, context=(m.message_id, m.chat.id,
+                                                                             msg.message_id, msg.chat_id))
+                else:
+                    update.message.reply_text(text=failed)
             else:
                 update.message.reply_text(text=err+"Wolfram|Alpha can't understand your query.")
         else:
