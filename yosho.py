@@ -529,6 +529,10 @@ def wolfram_callback(bot, update):
     message = query.message
     id = query.from_user.id
 
+    if name not in WOLFRAM_RESULTS.keys():
+        WOLFRAM_RESULTS[name] = None
+        return
+
     bot.sendChatAction(chat_id=message.chat.id, action=Ca.TYPING)
 
     if message.chat.type == 'private':
