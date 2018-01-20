@@ -12,8 +12,8 @@ import dropbox
 import requests
 import stopit
 import telegram
-from dropbox.files import WriteMode
 from asteval import Interpreter
+from dropbox.files import WriteMode
 from telegram import ChatAction as Ca
 from telegram import InlineQueryResultArticle, InputTextMessageContent
 from telegram.error import TelegramError
@@ -26,28 +26,6 @@ TELEGRAM_TOKEN = TOKEN_DICT['yosho_bot']
 DROPBOX_TOKEN = TOKEN_DICT['dropbox']
 WOLFRAM_TOKEN = TOKEN_DICT['wolfram']
 
-WOLFRAM_RESULTS = {}
-WOLFRAM_TIMEOUT = 20  # seconds
-
-MODS = ('wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'radookal', 'pawjob')
-
-LOGGING_MODE = True
-LOGGING_LEVEL = logging.DEBUG
-
-MESSAGE_TIMEOUT = 60  # seconds
-FLOOD_TIMEOUT = 1  # seconds
-
-EVAL_MEMORY = True
-EVAL_TIMEOUT = 5  # seconds
-EVAL_MAX_OUTPUT = 256
-EVAL_MAX_INPUT = 1000
-
-COMMANDS_PATH = 'COMMANDS.pkl'
-COMMANDS = pickle.load(open(COMMANDS_PATH, 'rb'))
-
-INTERPRETERS = {}
-INTERPRETER_TIMEOUT = 60 * 60  # seconds
-
 db = dropbox.Dropbox(DROPBOX_TOKEN)
 
 
@@ -59,15 +37,50 @@ def db_push(name):
     db.files_upload(open(name, 'rb').read(), '/' + name, mode=WriteMode('overwrite'))
 
 
+GLOBALS_PATH = 'GLOBALS.pkl'
+db_load(GLOBALS_PATH)
+GLOBALS = pickle.load(open(GLOBALS_PATH, 'rb'))
+
+COMMANDS_PATH = 'COMMANDS.pkl'
 db_load(COMMANDS_PATH)
-COMMANDS = pickle.load(open('COMMANDS.pkl', 'rb'))
+COMMANDS = pickle.load(open(COMMANDS_PATH, 'rb'))
+
+
+WOLFRAM_TIMEOUT = int(GLOBALS['wolfram timeout'])
+LOGGING_LEVEL = int(GLOBALS['logging level'])
+MESSAGE_TIMEOUT = int(GLOBALS['message timeout'])
+FLOOD_TIMEOUT = int(GLOBALS['flood timeout'])
+EVAL_MEMORY = int(GLOBALS['eval memory'])
+EVAL_TIMEOUT = int(GLOBALS['eval timeout'])
+EVAL_MAX_OUTPUT = int(GLOBALS['eval output'])
+EVAL_MAX_INPUT = int(GLOBALS['eval input'])
+INTERPRETER_TIMEOUT = int(GLOBALS['interp timeout'])
+
+WOLFRAM_RESULTS = {}
+INTERPRETERS = {}
+
+
+def reload_globals():
+    global WOLFRAM_TIMEOUT; WOLFRAM_TIMEOUT = int(GLOBALS['wolfram timeout'])
+    global LOGGING_LEVEL; LOGGING_LEVEL = int(GLOBALS['logging level'])
+    global MESSAGE_TIMEOUT; MESSAGE_TIMEOUT = int(GLOBALS['message timeout'])
+    global FLOOD_TIMEOUT; FLOOD_TIMEOUT = int(GLOBALS['flood timeout'])
+    global EVAL_MEMORY; EVAL_MEMORY = int(GLOBALS['eval memory'])
+    global EVAL_TIMEOUT; EVAL_TIMEOUT = int(GLOBALS['eval timeout'])
+    global EVAL_MAX_OUTPUT; EVAL_MAX_OUTPUT = int(GLOBALS['eval output'])
+    global EVAL_MAX_INPUT; EVAL_MAX_INPUT = int(GLOBALS['eval input'])
+    global INTERPRETER_TIMEOUT; INTERPRETER_TIMEOUT = int(GLOBALS['interp timeout'])
+
+
+MODS = ('wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'radookal', 'pawjob')
+
 
 bot = telegram.Bot(token=TELEGRAM_TOKEN)
 updater = Updater(token=TELEGRAM_TOKEN)
 jobs = updater.job_queue
 logging.basicConfig(format='%(asctime)s - [%(levelname)s] - %(message)s')
 logger = logging.getLogger(__name__)
-logger.level = LOGGING_LEVEL + ((not LOGGING_MODE)*100)
+logger.level = LOGGING_LEVEL
 logger.info("Loading bot...")
 last_commands = {}
 
@@ -102,17 +115,16 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, action=
             start = time.time()
             if flood and not chat.type == 'private':
                 if message_user in last_commands.keys() and not message_user.lower() in MODS:
-                    elapsed = start-last_commands[chat]
+                    elapsed = start-last_commands[message_user]
                     if elapsed < FLOOD_TIMEOUT:
                         admins = [x.user.username for x in bot.getChatAdministrators(chat_id=message.chat_id,
                                                                                      message_id=message.message_id)]
                         if bot.username in admins:
                             bot.deleteMessage(chat_id=message.chat_id, message_id=message.message_id)
-                        elif LOGGING_MODE:
-                            logger.debug("flood detector couldn't delete command")
+                        logger.debug("flood detector couldn't delete command")
                         logger.info('message canceled by flood detection: ' + str(elapsed))
                         return
-                last_commands[chat] = time.time()
+                last_commands[message_user] = time.time()
 
             if action:
                 args[0].sendChatAction(chat_id=message.chat_id, action=action)
@@ -153,22 +165,6 @@ def start(bot, update):
 
 start_handler = CommandHandler("start", start)
 updater.dispatcher.add_handler(start_handler)
-
-
-# toggle debug mode command
-@modifiers(mods=True, action=Ca.TYPING)
-def toggle_debug(bot, update):
-    global LOGGING_MODE
-    message = ("Noodles are the best, no doubt, can't deny - tastes better than water, but don't ask you why",
-               "But then again, many things can be tasty - cornbread, potatoes, rice, and even pastries")
-    update.message.reply_text(text=message[LOGGING_MODE])
-    LOGGING_MODE ^= True
-    logger.level = LOGGING_LEVEL + ((not LOGGING_MODE)*100)
-    logger.info('Debugging mode set to ' + str(LOGGING_MODE).lower())
-
-
-debug_handler = CommandHandler("NoodlesAreTheBestNoDoubtCantDeny", toggle_debug)
-updater.dispatcher.add_handler(debug_handler)
 
 
 @modifiers(action=Ca.TYPING)
@@ -287,6 +283,32 @@ def interpreters(bot, update):
 
 interpreters_handler = CommandHandler("interp", interpreters)
 updater.dispatcher.add_handler(interpreters_handler)
+
+
+@modifiers(mods=True)
+def set_global(bot, update):
+    args = clean(update.message.text).split('=')
+
+    if len(args) > 1:
+        if args[0].lower() in GLOBALS.keys():
+            if args[1].isnumeric():
+                GLOBALS[args[0].lower()] = int(args[1])
+                reload_globals()
+                pickle.dump(GLOBALS, open(GLOBALS_PATH, 'wb+'))
+                db_push(GLOBALS_PATH)
+                update.message.reply_text(text='Global ' + args[0] + ' updated.')
+            else:
+                update.message.reply_text(text='Globals type error\n\nValue must be int.\nUse 1 or 0 for booleans.')
+        else:
+            update.message.reply_text(text='Globals key error\n\nThat global does not exist.')
+    elif args[0] == '':
+        update.message.reply_text(text='Globals:\n\n'+'\n'.join([k + ': ' + str(v) for k, v in GLOBALS.items()]))
+    else:
+        update.message.reply_text(text='Globals syntax error\n\nProper usage is /global <global>=<value>')
+
+
+globals_handler = CommandHandler("global", set_global)
+updater.dispatcher.add_handler(globals_handler)
 
 
 @modifiers(name='ALLOW_UNNAMED', action=Ca.TYPING)
