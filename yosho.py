@@ -532,7 +532,7 @@ def wolfram(bot, update):
     if not expr == '':
         # construct the request
         base = 'http://api.wolframalpha.com/v2/query'
-        params = {'appid': WOLFRAM_TOKEN, 'input': expr, 'width': '1000', 'mag': '2'}
+        params = {'appid': WOLFRAM_TOKEN, 'input': expr, 'width': 800}
 
         r = requests.get(base, params=params)
         tree = Xml.XML(r.text)
@@ -596,7 +596,8 @@ def wolfram_callback(bot, update):
 
         elif query.from_user.id == message.reply_to_message.from_user.id:
             images = album(WOLFRAM_RESULTS[name][idx])
-            bot.send_media_group(media=images, chat_id=message.chat.id, reply_to_message_id=message.message_id)
+            bot.send_media_group(media=images, chat_id=message.chat.id,
+                                 reply_to_message_id=message.reply_to_message.message_id)
 
     except TelegramError:
         logger.debug('TelegramError in W|A callback.')
