@@ -45,32 +45,29 @@ db_pull(COMMANDS_PATH)
 COMMANDS = pickle.load(open(COMMANDS_PATH, 'rb'))
 
 
-WOLFRAM_TIMEOUT = int(GLOBALS['wolfram timeout'])
-LOGGING_LEVEL = int(GLOBALS['logging level'])
-MESSAGE_TIMEOUT = int(GLOBALS['message timeout'])
-FLOOD_TIMEOUT = int(GLOBALS['flood timeout'])
-EVAL_MEMORY = int(GLOBALS['eval memory'])
-EVAL_TIMEOUT = int(GLOBALS['eval timeout'])
-EVAL_MAX_OUTPUT = int(GLOBALS['eval output'])
-EVAL_MAX_INPUT = int(GLOBALS['eval input'])
-INTERPRETER_TIMEOUT = int(GLOBALS['interp timeout'])
+WOLFRAM_TIMEOUT = 0
+LOGGING_LEVEL = 0
+MESSAGE_TIMEOUT = 0
+FLOOD_TIMEOUT = 0
+EVAL_MEMORY = 0
+EVAL_TIMEOUT = 0
+EVAL_MAX_OUTPUT = 0
+EVAL_MAX_INPUT = 0
+INTERPRETER_TIMEOUT = 0
 
 
 WOLFRAM_RESULTS = {}
 INTERPRETERS = {}
 
 
-def reload_globals():
-    global WOLFRAM_TIMEOUT; WOLFRAM_TIMEOUT = int(GLOBALS['wolfram timeout'])
-    global LOGGING_LEVEL; LOGGING_LEVEL = int(GLOBALS['logging level'])
-    global MESSAGE_TIMEOUT; MESSAGE_TIMEOUT = int(GLOBALS['message timeout'])
-    global FLOOD_TIMEOUT; FLOOD_TIMEOUT = int(GLOBALS['flood timeout'])
-    global EVAL_MEMORY; EVAL_MEMORY = int(GLOBALS['eval memory'])
-    global EVAL_TIMEOUT; EVAL_TIMEOUT = int(GLOBALS['eval timeout'])
-    global EVAL_MAX_OUTPUT; EVAL_MAX_OUTPUT = int(GLOBALS['eval output'])
-    global EVAL_MAX_INPUT; EVAL_MAX_INPUT = int(GLOBALS['eval input'])
-    global INTERPRETER_TIMEOUT; INTERPRETER_TIMEOUT = int(GLOBALS['interp timeout'])
+def load_globals():
+    for k, g in globals().items():
+        if type(g) in (int, bool):
+            if k in GLOBALS:
+                globals()[k] = GLOBALS[k]
 
+
+load_globals()
 
 bot = telegram.Bot(token=TELEGRAM_TOKEN)
 updater = Updater(token=TELEGRAM_TOKEN)
@@ -281,13 +278,13 @@ updater.dispatcher.add_handler(interpreters_handler)
 
 @modifiers(mods=True)
 def set_global(bot, update):
-    args = clean(update.message.text).split('=')
-
+    args = [a.strip() for a in clean(update.message.text).split('=')]
+    names = [k for k, v in globals().items() if type(v) in (int, bool)]
     if len(args) > 1:
-        if args[0].lower() in GLOBALS.keys():
+        if args[0] in names:
             if args[1].isnumeric():
-                GLOBALS[args[0].lower()] = int(args[1])
-                reload_globals()
+                GLOBALS[args[0]] = int(args[1])
+                load_globals()
                 pickle.dump(GLOBALS, open(GLOBALS_PATH, 'wb+'))
                 db_push(GLOBALS_PATH)
                 update.message.reply_text(text='Global {} updated.'.format(args[0]))
@@ -296,7 +293,7 @@ def set_global(bot, update):
         else:
             update.message.reply_text(text='Globals key error.\n\nThat global does not exist.')
     elif args[0] == '':
-        update.message.reply_text(text='Globals:\n\n'+'\n'.join([k + ': ' + str(v) for k, v in GLOBALS.items()]))
+        update.message.reply_text(text='Globals:\n\n'+'\n'.join(names))
     else:
         update.message.reply_text(text='Globals syntax error.\n\nProper usage is /global <global>=<value>')
 
