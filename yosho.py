@@ -160,45 +160,12 @@ updater.dispatcher.add_handler(start_handler)
 
 
 @modifiers(action=Ca.TYPING)
-def dice_roll(bot, update, args):
-    if not args:
-        output = randint(1, 6)
-    elif str.isnumeric(args[0]):
-        output = randint(1, int(args[0]))
-    else:
-        output = "Invalid input.\n\nProper syntax is /roll <integer>."
-    update.message.reply_text(text=str(output))
-
-
-dice_handler = CommandHandler("roll", dice_roll, pass_args=True)
-updater.dispatcher.add_handler(dice_handler)
-
-
-@modifiers(action=Ca.TYPING)
 def get_chat_id(bot, update):
     update.message.reply_text(text=update.message.chat_id)
 
 
 getchathandler = CommandHandler("chatid", get_chat_id)
 updater.dispatcher.add_handler(getchathandler)
-
-
-@modifiers(action=Ca.TYPING)
-def echo(bot, update):
-    reply = clean(update.message.text)
-
-    if reply in ('', '@Yosho_bot'):
-        update.message.reply_text(text="Gimmie some text to echo!")
-    elif reply == "Gimmie some text to echo!":
-        update.message.reply_text(text="That's my line.")
-    else:
-        bot.sendMessage(chat_id=update.message.chat_id, text=reply)
-
-    logger.debug("Processed echo command. Input: " + reply)
-
-
-echo_handler = CommandHandler("echo", echo)
-updater.dispatcher.add_handler(echo_handler)
 
 
 @modifiers(mods=True, action=Ca.TYPING)
@@ -280,7 +247,8 @@ updater.dispatcher.add_handler(interpreters_handler)
 @modifiers(mods=True)
 def set_global(bot, update):
     args = [a.strip() for a in clean(update.message.text).split('=')]
-    names = [k for k, v in globals().items() if type(v) in (int, bool)]
+    names = (k for k, v in globals().items() if type(v) in (int, bool))
+    listed = ('{0} = {1}'.format(k, v) for k, v in globals().items() if type(v) in (int, bool))
     if len(args) > 1:
         if args[0] in names:
             if args[1].isnumeric():
@@ -294,7 +262,7 @@ def set_global(bot, update):
         else:
             update.message.reply_text(text='Globals key error.\n\nThat global does not exist.')
     elif args[0] == '':
-        update.message.reply_text(text='Globals:\n\n'+'\n'.join(names))
+        update.message.reply_text(text='Globals:\n\n'+'\n'.join(listed))
     else:
         update.message.reply_text(text='Globals syntax error.\n\nProper usage is /global <global>=<value>')
 
@@ -424,7 +392,7 @@ def macro(bot, update):
     protected = COMMANDS['protected'][0].split(' ')
 
     user = message.from_user.username.lower()
-    if name in protected and is_mod(user) and mode not in ('contents', 'list'):
+    if name in protected and not is_mod(user) and mode not in ('contents', 'list'):
         message.reply_text(text=err + 'Macro {} is write protected.'.format(name))
         return
 
