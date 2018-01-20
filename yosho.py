@@ -8,9 +8,11 @@ import time
 import xml.etree.ElementTree as xml
 from random import randint
 
+import dropbox
 import requests
 import stopit
 import telegram
+from dropbox.files import WriteMode
 from asteval import Interpreter
 from telegram import ChatAction as Ca
 from telegram import InlineQueryResultArticle, InputTextMessageContent
@@ -19,27 +21,50 @@ from telegram.ext import Updater, CommandHandler, InlineQueryHandler, RegexHandl
 
 # initialize bot and logging for debugging #
 
-token_dict = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
+TOKEN_DICT = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
+TELEGRAM_TOKEN = TOKEN_DICT['yosho_bot']
+DROPBOX_TOKEN = TOKEN_DICT['dropbox']
+WOLFRAM_TOKEN = TOKEN_DICT['wolfram']
 
-TOKEN = token_dict['yosho_bot']
-WOLFRAM_APP_ID = token_dict['wolfram']
 WOLFRAM_RESULTS = {}
 WOLFRAM_TIMEOUT = 20  # seconds
+
 MODS = ('wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'radookal', 'pawjob')
+
 LOGGING_MODE = True
-LOGGING_LEVEL = logging.INFO
+LOGGING_LEVEL = logging.DEBUG
+
 MESSAGE_TIMEOUT = 60  # seconds
-FLOOD_TIMEOUT = 20  # seconds
+FLOOD_TIMEOUT = 1  # seconds
+
 EVAL_MEMORY = True
 EVAL_TIMEOUT = 5  # seconds
 EVAL_MAX_OUTPUT = 256
 EVAL_MAX_INPUT = 1000
-COMMANDS = pickle.load(open('COMMANDS.pkl', 'rb'))
+
+COMMANDS_PATH = 'COMMANDS.pkl'
+COMMANDS = pickle.load(open(COMMANDS_PATH, 'rb'))
+
 INTERPRETERS = {}
 INTERPRETER_TIMEOUT = 60 * 60  # seconds
 
-bot = telegram.Bot(token=TOKEN)
-updater = Updater(token=TOKEN)
+db = dropbox.Dropbox(DROPBOX_TOKEN)
+
+
+def db_load(name):
+    db.files_download_to_file(name, '/' + name)
+
+
+def db_push(name):
+    db.files_upload(open(name, 'rb').read(), '/' + name, mode=WriteMode('add'))
+
+
+db_push(COMMANDS_PATH)
+db_load(COMMANDS_PATH)
+COMMANDS = pickle.load(open('COMMANDS.pkl', 'rb'))
+
+bot = telegram.Bot(token=TELEGRAM_TOKEN)
+updater = Updater(token=TELEGRAM_TOKEN)
 jobs = updater.job_queue
 logging.basicConfig(format='%(asctime)s - [%(levelname)s] - %(message)s')
 logger = logging.getLogger(__name__)
@@ -78,7 +103,7 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, action=
             start = time.time()
             if flood and not chat.type == 'private':
                 if message_user in last_commands.keys() and not message_user.lower() in MODS:
-                    elapsed = start-last_commands[message_user]
+                    elapsed = start-last_commands[chat]
                     if elapsed < FLOOD_TIMEOUT:
                         admins = [x.user.username for x in bot.getChatAdministrators(chat_id=message.chat_id,
                                                                                      message_id=message.message_id)]
@@ -88,7 +113,7 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, action=
                             logger.debug("flood detector couldn't delete command")
                         logger.info('message canceled by flood detection: ' + str(elapsed))
                         return
-                last_commands[message_user] = time.time()
+                last_commands[chat] = time.time()
 
             if action:
                 args[0].sendChatAction(chat_id=message.chat_id, action=action)
@@ -466,7 +491,8 @@ def macro(bot, update):
         update.message.reply_text(text=err + 'Macro already exists.')
 
     COMMANDS = {k: COMMANDS[k] for k in sorted(COMMANDS.keys())}
-    pickle.dump(COMMANDS, open('COMMANDS.pkl', 'wb+'))
+    pickle.dump(COMMANDS, open(COMMANDS_PATH, 'wb+'))
+    db_push(COMMANDS_PATH)
 
 
 macro_handler = CommandHandler("macro", macro)
@@ -489,7 +515,7 @@ def wolfram(bot, update):
     if not expr == '':
         # construct the request
         base = 'http://api.wolframalpha.com/v2/query'
-        params = {'appid': WOLFRAM_APP_ID, 'input': expr, 'width': '1000', 'mag': '2'}
+        params = {'appid': WOLFRAM_TOKEN, 'input': expr, 'width': '1000', 'mag': '2'}
 
         r = requests.get(base, params=params)
         tree = xml.XML(r.text)
