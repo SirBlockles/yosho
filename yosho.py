@@ -56,10 +56,9 @@ def db_load(name):
 
 
 def db_push(name):
-    db.files_upload(open(name, 'rb').read(), '/' + name, mode=WriteMode('add'))
+    db.files_upload(open(name, 'rb').read(), '/' + name, mode=WriteMode('overwrite'))
 
 
-db_push(COMMANDS_PATH)
 db_load(COMMANDS_PATH)
 COMMANDS = pickle.load(open('COMMANDS.pkl', 'rb'))
 
