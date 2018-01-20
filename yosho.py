@@ -60,23 +60,24 @@ WOLFRAM_RESULTS = {}
 INTERPRETERS = {}
 
 
-def load_globals():
-    for k, g in globals().items():
-        if type(g) in (int, bool):
-            if k in GLOBALS:
-                globals()[k] = GLOBALS[k]
-
-
-load_globals()
-
 bot = telegram.Bot(token=TELEGRAM_TOKEN)
 updater = Updater(token=TELEGRAM_TOKEN)
 jobs = updater.job_queue
 logging.basicConfig(format='%(asctime)s - [%(levelname)s] - %(message)s')
 logger = logging.getLogger(__name__)
-logger.level = LOGGING_LEVEL
 logger.info("Loading bot...")
 last_commands = {}
+
+
+def load_globals():
+    for k, g in globals().items():
+        if type(g) in (int, bool):
+            if k in GLOBALS:
+                globals()[k] = GLOBALS[k]
+    logger.level = LOGGING_LEVEL
+
+
+load_globals()
 
 
 # message modifiers decorator.
