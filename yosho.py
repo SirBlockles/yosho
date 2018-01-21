@@ -336,7 +336,7 @@ def evaluate(bot, update, cmd=None, symbols=None):
         else:
             quoted.reply_text(text=result)
     else:
-        update.message.send_text(text=result)
+        bot.send_message(text=result, chat_id=update.message.chat.id)
 
 
 eval_handler = CommandHandler("eval", evaluate)
