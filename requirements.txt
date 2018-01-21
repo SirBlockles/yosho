@@ -1,0 +1,5 @@
+python-telegram-bot
+requests
+asteval
+stopit
+dropbox

@@ -285,6 +285,7 @@ def evaluate(bot, update, cmd=None, symbols=None):
 
     # execute command with timeout
     name = update.message.from_user.name
+    reply = True
     with stopit.ThreadingTimeout(EVAL_TIMEOUT) as ctx:
         interp = Interpreter()
         temp = Interpreter()
@@ -304,17 +305,20 @@ def evaluate(bot, update, cmd=None, symbols=None):
         symbols = {**symbols, **{'MY_NAME': name,
                                  'THEIR_NAME': them,
                                  'PRECEDING': preceding,
-                                 'GROUP': (chat.title if chat.username is None else '@' + chat.username)}}
+                                 'GROUP': (chat.title if chat.username is None else '@' + chat.username),
+                                 'REPLY': True}}
         interp.symtable = {**interp.symtable, **symbols}
 
         out = interp(expr)
+
+        reply = interp.symtable['REPLY']
 
         if EVAL_MEMORY and cmd is None:
             INTERPRETERS[name] = {k: interp.symtable[k] for k in interp.symtable.keys() if k not in
                                   Interpreter().symtable.keys() and k not in symbols.keys()}
             logger.debug('Saved interpreter "{0}": {1}'.format(name, INTERPRETERS[name]))
 
-    if ctx.state == ctx.TIMED_OUT:
+    if ctx.state == ctx.TIMED_OUT:s
         result += 'Timed out.'
     else:
         if out is None:
@@ -326,10 +330,13 @@ def evaluate(bot, update, cmd=None, symbols=None):
     if result == '':
         result = err+'Code returned nothing.\nMaybe missing input?'
 
-    if quoted is None:
-        update.message.reply_text(text=result)
+    if reply:
+        if quoted is None:
+            update.message.reply_text(text=result)
+        else:
+            quoted.reply_text(text=result)
     else:
-        quoted.reply_text(text=result)
+        update.message.send_text(text=result)
 
 
 eval_handler = CommandHandler("eval", evaluate)
