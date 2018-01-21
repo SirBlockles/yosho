@@ -309,7 +309,7 @@ def evaluate(bot, update, cmd=None, symbols=None):
                                  'REPLY': True}}
         interp.symtable = {**interp.symtable, **symbols}
 
-        out = interp(expr)
+        out = str(interp(expr))
 
         reply = interp.symtable['REPLY']
 
