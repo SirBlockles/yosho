@@ -318,7 +318,7 @@ def evaluate(bot, update, cmd=None, symbols=None):
                                   Interpreter().symtable.keys() and k not in symbols.keys()}
             logger.debug('Saved interpreter "{0}": {1}'.format(name, INTERPRETERS[name]))
 
-    if ctx.state == ctx.TIMED_OUT:s
+    if ctx.state == ctx.TIMED_OUT:
         result += 'Timed out.'
     else:
         if out is None:
