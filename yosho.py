@@ -21,7 +21,6 @@ from telegram import InlineQueryResultArticle, InputTextMessageContent, InputMed
 from telegram.error import TelegramError
 from telegram.ext import Updater, CommandHandler, InlineQueryHandler, RegexHandler, CallbackQueryHandler
 
-# initialize bot and logging for debugging #
 
 TOKEN_DICT = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
 TELEGRAM_TOKEN = TOKEN_DICT['yosho_bot']
@@ -32,6 +31,7 @@ db = dropbox.Dropbox(DROPBOX_TOKEN)
 
 MODS = ('wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'radookal', 'pawjob')
 
+# not PEP-8 compliant but idc
 is_mod = lambda name: name.lower() in MODS
 clean = lambda s: re.sub('/[@\w]+\s+', '', s + ' ', 1)  # strips command name and bot name from input
 db_pull = lambda name: db.files_download_to_file(name, '/' + name)
@@ -91,7 +91,7 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, action=
         global last_commands
         message = args[1].message
         user = message.from_user
-        n = re.match('/\w+(@\w+)\s', message.text + ' ')
+        n = re.match('/\w+(@\w+)\s', message.text + ' ')  # matches "/command@bot"
         message_bot = (n.group(1).lower() if n else None)  # bot @name used in command if present
         message_user = user.username if user.username is not None else user.name  # name of OP/user of command
         message_age = (datetime.datetime.now() - message.date).total_seconds()  # age of message in minutes
@@ -145,8 +145,22 @@ def build_menu(buttons, n_cols, header_buttons=None, footer_buttons=None):
     return menu
 
 
+def bad_image_url(url):
+    try:
+        r = requests.head(url)
+        mime_type = r.headers.get('content-type')
+    except Exception as e:
+        return 'URL is invalid:\n' + e.__class__.__name__
+    if r.status_code == requests.codes.ok:
+        if mime_type not in ('image/png', 'image/jpeg'):
+            return 'URL is not image.'
+    else:
+        return 'Invalid url or connection error.'
+    return None
+
+
 def error(bot, update, error):
-    logger.warning('Update "%s" caused error "%s"' % (update, error))
+    logger.warning('Update "{0}" caused error "{1}"'.format(update, error))
 
 
 updater.dispatcher.add_error_handler(error)
@@ -155,20 +169,12 @@ updater.dispatcher.add_error_handler(error)
 # start text
 @modifiers(age=False, action=Ca.TYPING)
 def start(bot, update):
-    bot.sendMessage(chat_id=update.message.chat_id, text="Hi. I do a bunch of misc shit. Add me to a group I guess")
+    update.message.text = '/start_info' + bot.name.lower()
+    call_macro(bot, update)
 
 
 start_handler = CommandHandler("start", start)
 updater.dispatcher.add_handler(start_handler)
-
-
-@modifiers(action=Ca.TYPING)
-def get_chat_id(bot, update):
-    update.message.reply_text(text=update.message.chat_id)
-
-
-getchathandler = CommandHandler("chatid", get_chat_id)
-updater.dispatcher.add_handler(getchathandler)
 
 
 @modifiers(mods=True, action=Ca.TYPING)
@@ -221,26 +227,8 @@ updater.dispatcher.add_handler(e926_handler)
 
 
 @modifiers(mods=True)
-def interpreters(bot, update):
-    global INTERPRETERS
-    global EVAL_MEMORY
-    msg = clean(update.message.text)
-    if msg == 'clear':
-        INTERPRETERS = {}
-        update.message.reply_text(text='Cleared interpreters.')
-    elif msg == 'toggle':
-        EVAL_MEMORY ^= True
-        update.message.reply_text(text='Eval interpreter memory: ' + str(EVAL_MEMORY))
-    else:
-        update.message.reply_text(text='Invalid input:\n\nUnknown command: ' + msg)
-
-
-interpreters_handler = CommandHandler("interp", interpreters)
-updater.dispatcher.add_handler(interpreters_handler)
-
-
-@modifiers(mods=True)
 def set_global(bot, update):
+    global GLOBALS
     args = [a.strip() for a in clean(update.message.text).split('=')]
     names = (k for k, v in globals().items() if type(v) in (int, bool))
     listed = ('{0} = {1}'.format(k, v) for k, v in globals().items() if type(v) in (int, bool))
@@ -300,6 +288,7 @@ def evaluate(bot, update, cmd=None, symbols=None):
                                  'PRECEDING': preceding,
                                  'GROUP': (chat.title if chat.username is None else '@' + chat.username),
                                  'REPLY': True}}
+
         interp.symtable = {**interp.symtable, **symbols}
 
         out = str(interp(expr))
@@ -341,22 +330,6 @@ updater.dispatcher.add_handler(eval_handler)
 def macro(bot, update):
     message = update.message
 
-    def check_image_url(url):
-        try:
-            r = requests.head(url)
-            mime_type = r.headers.get('content-type')
-        except Exception as e:
-            message.reply_text(text=err + 'URL is invalid:\n' + e.__class__.__name__)
-            return
-        if r.status_code == requests.codes.ok:
-            if mime_type not in ('image/png', 'image/jpeg'):
-                message.reply_text(text=err + 'URL is not image.')
-                return
-        else:
-            message.reply_text(text=err + 'Invalid url or connection error.')
-            return
-        return True
-
     modes = {'eval': 'macro',
              'text': 'macro',
              'inline': 'macro',
@@ -368,6 +341,7 @@ def macro(bot, update):
              'protect': 'write',
              'clean': 'write',
              'modify': 'write',
+             'rename': 'write',
              'contents': 'read',
              'list': 'read'}
 
@@ -411,8 +385,11 @@ def macro(bot, update):
     if modes[mode] == 'macro' and name not in keys:
         if expr is not None:
             if mode == 'photo':
-                if not check_image_url(expr):
+                bad = bad_image_url(expr)
+                if bad:
+                    message.reply_text(text=err + bad)
                     return
+
             COMMANDS[name] = [expr, mode.upper(), False, is_mod(user)]
             message.reply_text(text='{0} macro "{1}" created.'.format(mode, name))
         else:
@@ -421,8 +398,11 @@ def macro(bot, update):
     elif mode == 'modify':
         if name in keys and expr is not None:
             if COMMANDS[name][1] == 'PHOTO':
-                if not check_image_url(expr):
+                bad = bad_image_url(expr)
+                if bad:
+                    message.reply_text(text=err + bad)
                     return
+
             COMMANDS[name][0] = expr
             message.reply_text(text='Macro "{}" modified.'.format(name))
         elif expr is None:
@@ -444,34 +424,37 @@ def macro(bot, update):
         else:
             message.reply_text(text=err + 'No macro with name {}.'.format(name))
 
-    elif mode == 'list':
-        if is_mod(user):
-            if name == 'all':
-                message.reply_text('All macros:\n'
-                                + '\n'.join([(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE') + k for k in keys]))
-            elif name == 'hidden':
-                message.reply_text('Hidden macros:\n'
-                                   + '\n'.join([(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE')
-                                                + k for k in keys if COMMANDS[k][2]]))
-            elif name == 'protected':
-                message.reply_text('Protected macros:\n'
-                                   + '\n'.join([(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE')
-                                                + k for k in keys if COMMANDS[k][3]]))
-            else:
-                message.reply_text('Visible macros:\n'
-                                   + '\n'.join([(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE')
-                                                + k for k in keys if not COMMANDS[k][2]]))
+    elif mode == 'rename':
+        if name in keys:
+            new_name = expr.split(' ')[0]
+            COMMANDS[new_name] = COMMANDS[name]
+            del COMMANDS[name]
+            message.reply_text(text='Macro "{0}" renamed to {1}'.format(name, new_name))
         else:
-            message.reply_text('Existing macros:\n'
-                               + '\n'.join([(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE')
-                                            + k for k in keys if not COMMANDS[k][2]]))
+            message.reply_text(text=err + 'No macro with name {}.'.format(name))
+
+    elif mode == 'list':
+            mod = is_mod(user)
+            if name == 'all' and mod:
+                macro_list = [(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE') + k for k in keys]
+                message.reply_text('All macros:\n' + '\n'.join(macro_list))
+
+            elif name == 'hidden' and mod:
+                macro_list = [(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE') + k for k in keys if COMMANDS[k][2]]
+                message.reply_text('Hidden macros:\n' + '\n'.join(macro_list))
+
+            elif name == 'protected' and mod:
+                macro_list = [(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE') + k for k in keys if COMMANDS[k][3]]
+                message.reply_text('Protected macros:\n' + '\n'.join(macro_list))
+            else:
+                macro_list = [(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE') + k for k in keys if not COMMANDS[k][2]]
+                message.reply_text('Visible macros:\n' + '\n'.join(macro_list))
 
     elif mode == 'contents':
         if name in keys:
             if not COMMANDS[name][2] or is_mod(user):
                 message.reply_text('Contents of {0} macro {1}: {2}'
                                    .format(COMMANDS[name][1].lower(), name, COMMANDS[name][0]))
-
             else:
                 message.reply_text(text=err + 'Macro {} contents hidden.'.format(name))
         else:
@@ -621,7 +604,6 @@ def wolfram_timeout(bot, job):
     'Failed to choose an option within {} seconds.\nResults timed out.'.format(WOLFRAM_TIMEOUT))
 
 
-# inline commands
 def inline_stuff(bot, update):
     results = list()
     query = update.inline_query.query
@@ -677,14 +659,19 @@ def call_macro(bot, update):  # process macros and invalid commands.
                        'HIDDEN': hidden,
                        'PROTECTED': protected}
             evaluate(bot, update, cmd=cmd, symbols=symbols)
+
         elif mode == 'TEXT':
             known(bot, update, cmd)
+
         elif mode == 'PHOTO':
             photo(bot, update, cmd)
+
         elif mode == 'E926':
             e926(bot, update, tags=cmd)
+
         elif mode == 'WOLFRAM':
             wolfram(bot, update, query=cmd)
+
         elif mode == 'INLINE':
             message.reply_text(text="Macro error:\n\nThat's an inline macro! Try @yosho_bot " + command)
     else:
@@ -696,13 +683,10 @@ updater.dispatcher.add_handler(macro_handler)
 
 
 def clear(bot, job):
-    global WOLFRAM_RESULTS
     global INTERPRETERS
     INTERPRETERS = {}
-    WOLFRAM_RESULTS = {}
 
 
-jobs.run_repeating(clear, interval=INTERPRETER_TIMEOUT)
-
-logger.info("Bot loaded.")
+logger.info("bot loaded")
 updater.start_polling()
+jobs.run_repeating(clear, interval=INTERPRETER_TIMEOUT)  # clear interpreters regularly to prevent high memory usage
