@@ -449,7 +449,7 @@ def macro(bot, update):
 
             elif name == 'unprotected' and mod:
                 macro_list = [(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE') + k for k in keys if not COMMANDS[k][3]]
-                message.reply_text('Protected macros:\n' + '\n'.join(macro_list))
+                message.reply_text('Unprotected macros:\n' + '\n'.join(macro_list))
 
             else:
                 macro_list = [(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE') + k for k in keys if not COMMANDS[k][2]]
