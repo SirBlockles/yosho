@@ -1,6 +1,7 @@
 import csv
 import datetime
 import functools
+import io
 import logging
 import pickle
 import re
@@ -12,6 +13,7 @@ import dropbox
 import requests
 import stopit
 import telegram
+from PIL import Image, ImageOps
 from asteval import Interpreter
 from dropbox.files import WriteMode
 from telegram import ChatAction as Ca
@@ -545,11 +547,20 @@ updater.dispatcher.add_handler(wolfram_handler)
 def wolfram_callback(bot, update):
     def album(data):
         output = []
-        for subpod in data[1]:
+        for idx, subpod in enumerate(data[1]):
             url = subpod.find('img').attrib['src']
             title = subpod.attrib['title']
-            caption = 'Selection: {0}{1}\nInput: {2}'.format(data[0], '\nSubpod:'*bool(title) + title, data[2])
-            output.append(InputMediaPhoto(caption=caption, media=url))
+            caption = 'Selection: {0}{1}\nInput: {2}'.format(data[0], '\nSubpod: '*bool(title) + title, data[2])
+
+            img_b = io.BytesIO(requests.get(url).content)
+            img = Image.open(img_b)
+            min = 30
+            if img.size[0] < min or img.size[1] < min:  # Hacky way to make sure any image sends.
+                pad = sorted([min-img.size[0], min-img.size[1]])
+                img = ImageOps.expand(img, border=pad[1]//2, fill=255)
+            fn = 'temp{}.png'.format(idx)
+            img.save(fn, format='PNG')
+            output.append(InputMediaPhoto(caption=caption, media=fn))
         return output
 
     query = update.callback_query
@@ -563,18 +574,18 @@ def wolfram_callback(bot, update):
 
     bot.sendChatAction(chat_id=message.chat.id, action=Ca.TYPING)
 
-    try:
-        if message.chat.type == 'private':
-            images = album(WOLFRAM_RESULTS[name][idx])
-            bot.send_media_group(media=images, chat_id=message.chat.id)
+    if message.chat.type == 'private':
+        images = album(WOLFRAM_RESULTS[name][idx])
+        for i in images:
 
-        elif query.from_user.id == message.reply_to_message.from_user.id:
-            images = album(WOLFRAM_RESULTS[name][idx])
-            bot.send_media_group(media=images, chat_id=message.chat.id,
-                                 reply_to_message_id=message.reply_to_message.message_id)
+            bot.send_photo(caption=i.caption, photo=open(i.media, 'rb'), chat_id=message.chat.id)
 
-    except TelegramError:
-        logger.debug('TelegramError in W|A callback.')
+    elif query.from_user.id == message.reply_to_message.from_user.id:
+        images = album(WOLFRAM_RESULTS[name][idx])
+        for i in images:
+
+            bot.send_photo(caption=i.caption, photo=open(i.media, 'rb'), chat_id=message.chat.id,
+                           reply_to_message_id=message.reply_to_message.message_id)
 
     message.delete()
     WOLFRAM_RESULTS[name] = None
