@@ -97,15 +97,16 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, action=
         message_age = (datetime.datetime.now() - message.date).total_seconds()  # age of message in minutes
         chat = message.chat
 
-        title = chat.type + ' -> ' + (chat.title if chat.username is None else '@' + chat.username)
-        logger.info('{0} command called from {1}, user: @{2}, with message: "{3}"'
-                    .format(method.__name__, title, message_user, message.text))
-
         # check incoming message attributes
         time_check = not age or message_age < MESSAGE_TIMEOUT
         name_check = not name or message_bot == bot.name.lower() or (message_bot is None and name == 'ALLOW_UNNAMED')
         mod_check = not mods or is_mod(message_user)
         if time_check and name_check and mod_check:
+
+            title = chat.type + ' -> ' + (chat.title if chat.username is None else '@' + chat.username)
+            logger.info('{0} command called from {1}, user: @{2}, with message: "{3}"'
+                        .format(method.__name__, title, message_user, message.text))
+
             # flood detector
             start = time.time()
             if flood and not chat.type == 'private':
@@ -130,8 +131,6 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, action=
             end = time.time()
 
             logger.debug('time elapsed (seconds): ' + str(end - start))
-        else:
-            logger.info('Message canceled by decorator.')
 
     return wrap
 
