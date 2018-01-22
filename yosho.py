@@ -31,7 +31,7 @@ db = dropbox.Dropbox(DROPBOX_TOKEN)
 MODS = ('wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'radookal', 'pawjob')
 
 is_mod = lambda name: name.lower() in MODS
-clean = lambda s: str.strip(re.sub('/[@\w]+\s', '', s + ' ', 1))  # strips command name and bot name from input
+clean = lambda s: re.sub('/[@\w]+\s+', '', s + ' ', 1)  # strips command name and bot name from input
 db_pull = lambda name: db.files_download_to_file(name, '/' + name)
 db_push = lambda name: db.files_upload(open(name, 'rb').read(), '/' + name, mode=WriteMode('overwrite'))
 
@@ -92,8 +92,8 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, action=
         global last_commands
         message = args[1].message
         user = message.from_user
-        n = re.findall('(?<=[\w])@[\w]+(?=\s)', message.text + ' ')
-        message_bot = (n[0].lower() if len(n) > 0 else None)  # bot @name used in command if present
+        n = re.match('/\w+(@\w+)\s', message.text + ' ')
+        message_bot = (n.group(1).lower() if n else None)  # bot @name used in command if present
         message_user = user.username if user.username is not None else user.name  # name of OP/user of command
         message_age = (datetime.datetime.now() - message.date).total_seconds()  # age of message in minutes
         chat = message.chat
@@ -640,7 +640,7 @@ def unclassified(bot, update):  # process macros and invalid commands.
         except TelegramError:
             logger.debug('TelegramError in photo macro call: ' + str(url))
 
-    command = str.strip(re.sub('@[\w]+\s', '', message.text + ' ', 1)).split(' ')[0]
+    command = re.sub('@[@\w]+', '', re.split('\s+', message.text)[0])
     if command in COMMANDS.keys():
         if COMMANDS[command][1] == 'EVAL':  # check if command is code or text
             symbols = {'INPUT': clean(message.text),
