@@ -37,7 +37,6 @@ clean = lambda s: re.sub('/[@\w]+\s+', '', s + ' ', 1)  # strips command name an
 db_pull = lambda name: db.files_download_to_file(name, '/' + name)
 db_push = lambda name: db.files_upload(open(name, 'rb').read(), '/' + name, mode=WriteMode('overwrite'))
 
-
 GLOBALS_PATH = 'GLOBALS.pkl'
 db_pull(GLOBALS_PATH)
 GLOBALS = pickle.load(open(GLOBALS_PATH, 'rb'))
@@ -45,7 +44,6 @@ GLOBALS = pickle.load(open(GLOBALS_PATH, 'rb'))
 COMMANDS_PATH = 'COMMANDS.pkl'
 db_pull(COMMANDS_PATH)
 COMMANDS = pickle.load(open(COMMANDS_PATH, 'rb'))
-
 
 # defaults
 WOLFRAM_TIMEOUT = 20
@@ -56,12 +54,10 @@ EVAL_MEMORY = True
 EVAL_TIMEOUT = 1
 EVAL_MAX_OUTPUT = 128
 EVAL_MAX_INPUT = 1000
-INTERPRETER_TIMEOUT = 60*60
-
+INTERPRETER_TIMEOUT = 60 * 60
 
 WOLFRAM_RESULTS = {}
 INTERPRETERS = {}
-
 
 bot = telegram.Bot(token=TELEGRAM_TOKEN)
 updater = Updater(token=TELEGRAM_TOKEN)
@@ -105,15 +101,15 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, action=
                     .format(method.__name__, title, message_user, message.text))
 
         # check incoming message attributes
-        if (not age or message_age < MESSAGE_TIMEOUT) and\
-                (not name or message_bot == bot.name.lower() or (message_bot is None and name == 'ALLOW_UNNAMED'))\
+        if (not age or message_age < MESSAGE_TIMEOUT) and \
+                (not name or message_bot == bot.name.lower() or (message_bot is None and name == 'ALLOW_UNNAMED')) \
                 and (not mods or is_mod(message_user)):
 
             # flood detector
             start = time.time()
             if flood and not chat.type == 'private':
                 if message_user in last_commands.keys() and not is_mod(message_user):
-                    elapsed = start-last_commands[message_user]
+                    elapsed = start - last_commands[message_user]
                     if elapsed < FLOOD_TIMEOUT:
                         admins = [x.user.username for x in bot.getChatAdministrators(chat_id=message.chat_id,
                                                                                      message_id=message.message_id)]
@@ -133,6 +129,7 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, action=
             logger.debug('time elapsed (seconds): ' + str(end - start))
         else:
             logger.info('Message canceled by decorator.')
+
     return wrap
 
 
@@ -202,7 +199,7 @@ def e926(bot, update, tags=None):
         posts = [p['file_url'] for p in data if p['file_ext'] in ('jpg', 'png')]  # find image urls in json response
         url = None
         try:
-            url = posts[randint(0, len(posts)-1)]
+            url = posts[randint(0, len(posts) - 1)]
             logger.debug(url)
             update.message.reply_photo(photo=url)
             time.sleep(.5)  # rate limit, can be lowered to .25 if needed.
@@ -218,14 +215,6 @@ def e926(bot, update, tags=None):
 
 e926_handler = CommandHandler("e926", e926)
 updater.dispatcher.add_handler(e926_handler)
-
-
-def why(bot, update):
-    e926(bot, update, tags='~what_has_science_done ~where_is_your_god_now')
-
-
-why_handler = CommandHandler("why", why)
-updater.dispatcher.add_handler(why_handler)
 
 
 @modifiers(mods=True)
@@ -265,7 +254,7 @@ def set_global(bot, update):
         else:
             update.message.reply_text(text='Globals key error.\n\nThat global does not exist.')
     elif args[0] == '':
-        update.message.reply_text(text='Globals:\n\n'+'\n'.join(listed))
+        update.message.reply_text(text='Globals:\n\n' + '\n'.join(listed))
     else:
         update.message.reply_text(text='Globals syntax error.\n\nProper usage is /global <global>=<value>')
 
@@ -283,7 +272,7 @@ def evaluate(bot, update, cmd=None, symbols=None):
     expr = (cmd if cmd else clean(update.message.text)).replace('#', '\t')
 
     if len(expr) > EVAL_MAX_INPUT:
-        update.message.reply_text(err+'Maximum input length exceeded.')
+        update.message.reply_text(err + 'Maximum input length exceeded.')
         return
 
     # execute command with timeout
@@ -291,10 +280,8 @@ def evaluate(bot, update, cmd=None, symbols=None):
     reply = True
     with stopit.ThreadingTimeout(EVAL_TIMEOUT) as ctx:
         interp = Interpreter()
-        temp = Interpreter()
         if EVAL_MEMORY and name in INTERPRETERS.keys():
             interp.symtable = {**INTERPRETERS[name], **Interpreter().symtable}
-            temp.symtable = {**INTERPRETERS[name], **Interpreter().symtable}
             logger.debug('Loaded interpreter "{0}": {1}'.format(name, INTERPRETERS[name]))
 
         quoted = update.message.reply_to_message
@@ -317,7 +304,7 @@ def evaluate(bot, update, cmd=None, symbols=None):
         reply = interp.symtable['REPLY']
 
         if EVAL_MEMORY and cmd is None:
-            INTERPRETERS[name] = {k: interp.symtable[k] for k in interp.symtable.keys() if k not in
+            INTERPRETERS[name] = {k: v for k, v in interp.symtable.items() if k not in
                                   Interpreter().symtable.keys() and k not in symbols.keys()}
             logger.debug('Saved interpreter "{0}": {1}'.format(name, INTERPRETERS[name]))
 
@@ -331,7 +318,7 @@ def evaluate(bot, update, cmd=None, symbols=None):
         else:
             result = out
     if result == '':
-        result = err+'Code returned nothing.\nMaybe missing input?'
+        result = err + 'Code returned nothing.\nMaybe missing input?'
 
     if reply:
         if quoted is None:
@@ -367,42 +354,55 @@ def macro(bot, update):
             return
         return True
 
+    modes = {'eval': 'macro',
+             'text': 'macro',
+             'inline': 'macro',
+             'photo': 'macro',
+             'e926': 'macro',
+             'wolfram': 'macro',
+             'remove': 'write',
+             'hide': 'write',
+             'clean': 'write',
+             'modify': 'write',
+             'contents': 'read',
+             'list': 'read'}
+
     global COMMANDS
     err = 'Macro editor error:\n\n'
     expr = clean(message.text)
 
     if expr == '':
         message.reply_text(text='Macro modes:\n\n'
-                                       'photo <name> <url>: create photo macro\n'
-                                       'eval <name> <code>: create eval macro\n'
-                                       'inline <name> <text>: create inline macro\n'
-                                       'text <name> <text>: create text macro\n'
-                                       'remove <name>: remove macro\n'
-                                       'list: list macros\n'
-                                       'modify <name> <contents>: modify macro\n'
-                                       'contents <name>: list contents of a macro)\n'
-                                       'hide <name>: toggles hiding macro from macro list\n'
-                                       'clean: remove unprotected macros')
+                                'photo <name> <url>: create photo macro\n'
+                                'eval <name> <code>: create eval macro\n'
+                                'inline <name> <text>: create inline macro\n'
+                                'text <name> <text>: create text macro\n'
+                                'remove <name>: remove macro\n'
+                                'list: list macros\n'
+                                'modify <name> <contents>: modify macro\n'
+                                'contents <name>: list contents of a macro)\n'
+                                'hide <name>: toggles hiding macro from macro list\n'
+                                'clean: remove unprotected macros')
         return
 
-    args = re.split(' +', expr)
+    args = re.split('\s+', expr)
     mode = args[0]
     name = ''
 
-    if mode not in ('eval', 'text', 'remove', 'list', 'modify', 'contents', 'hide', 'inline', 'photo', 'clean'):
+    if mode not in modes.keys():
         message.reply_text(text=err + 'Unknown mode {}.'.format(mode))
         return
 
     if len(args) > 1:
         name = args[1].split('\n')[0]
-    elif mode not in ('list', 'clean'):
+    elif not (modes[mode] == 'read' or mode == 'clean'):
         message.reply_text(text=err + 'Missing macro name.')
         return
 
     protected = COMMANDS['protected'][0].split(' ')
 
     user = message.from_user.username.lower()
-    if name in protected and not is_mod(user) and mode not in ('contents', 'list'):
+    if name in protected and not is_mod(user) and not modes[mode] == 'read':
         message.reply_text(text=err + 'Macro {} is write protected.'.format(name))
         return
 
@@ -414,7 +414,7 @@ def macro(bot, update):
         expr = None
 
     keys = COMMANDS.keys()
-    if mode in ('eval', 'text', 'inline', 'photo') and name not in keys:
+    if modes[mode] == 'macro' and name not in keys:
         if expr is not None:
             if mode == 'photo':
                 if not check_image_url(expr):
@@ -451,20 +451,21 @@ def macro(bot, update):
             message.reply_text(text=err + 'No macro with name {}.'.format(name))
 
     elif mode == 'list':
-        if is_mod(user) and not name == 'visible':
+        if is_mod(user) and name == 'all':
             message.reply_text('Existing macros:\n'
                                + '\n'.join([(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE')
-                                                   + k for k in keys if not k == 'protected']))
+                                            + k for k in keys if not k == 'protected']))
         else:
             message.reply_text('Existing macros:\n'
                                + '\n'.join([(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE')
-                                                   + k for k in keys if not COMMANDS[k][2]]))
+                                            + k for k in keys if not COMMANDS[k][2]]))
 
     elif mode == 'contents':
         if name in keys:
             if not COMMANDS[name][2] or is_mod(user):
-                message.reply_text('Contents of ' + COMMANDS[name][1].lower() + ' macro ' + name +
-                                          ':\n\n' + COMMANDS[name][0])
+                message.reply_text('Contents of {0} macro {1}: {2}'
+                                   .format(COMMANDS[name][1].lower(), name, COMMANDS[name][0]))
+
             else:
                 message.reply_text(text=err + 'Macro {} contents hidden.'.format(name))
         else:
@@ -493,29 +494,31 @@ updater.dispatcher.add_handler(macro_handler)
 
 
 @modifiers(action=Ca.TYPING)
-def wolfram(bot, update):
+def wolfram(bot, update, query=None):
     global WOLFRAM_RESULTS
     message = update.message
     name = message.from_user.name
-    
+
     err = 'Wolfram|Alpha error:\n\n'
-    failed = err+'Wolfram|Alpha query failed.'
-    expr = clean(message.text)
+    failed = err + 'Wolfram|Alpha query failed.'
+
+    if query is None:
+        query = clean(update.message.text)
 
     if name not in WOLFRAM_RESULTS.keys():
         WOLFRAM_RESULTS[name] = None
 
-    if not expr == '':
+    if not query == '':
         # construct the request
         base = 'http://api.wolframalpha.com/v2/query'
-        params = {'appid': WOLFRAM_TOKEN, 'input': expr, 'width': 800}
+        params = {'appid': WOLFRAM_TOKEN, 'input': query, 'width': 800}
 
         r = requests.get(base, params=params)
         tree = Xml.XML(r.text)
         if r.status_code == requests.codes.ok:
             if (tree.attrib['success'], tree.attrib['error']) == ('true', 'false'):
                 pods = tree.iterfind('pod')
-                buttons = [telegram.InlineKeyboardButton(p.attrib['title'], callback_data='w'+str(i))
+                buttons = [telegram.InlineKeyboardButton(p.attrib['title'], callback_data='w' + str(i))
                            for i, p in enumerate(pods) if not p.attrib['id'] == 'Input']
                 markup = telegram.InlineKeyboardMarkup(build_menu(buttons, n_cols=2))
 
@@ -550,14 +553,14 @@ def wolfram_callback(bot, update):
         for idx, subpod in enumerate(data[1]):
             url = subpod.find('img').attrib['src']
             title = subpod.attrib['title']
-            caption = 'Selection: {0}{1}\nInput: {2}'.format(data[0], '\nSubpod: '*bool(title) + title, data[2])
+            caption = 'Selection: {0}{1}\nInput: {2}'.format(data[0], '\nSubpod: ' * bool(title) + title, data[2])
 
             img_b = io.BytesIO(requests.get(url).content)
             img = Image.open(img_b)
             min = 30
             if img.size[0] < min or img.size[1] < min:  # Hacky way to make sure any image sends.
-                pad = sorted([min-img.size[0], min-img.size[1]])
-                img = ImageOps.expand(img, border=pad[1]//2, fill=255)
+                pad = sorted([min - img.size[0], min - img.size[1]])
+                img = ImageOps.expand(img, border=pad[1] // 2, fill=255)
             fn = 'temp{}.png'.format(idx)
             img.save(fn, format='PNG')
             output.append(InputMediaPhoto(caption=caption, media=fn))
@@ -577,13 +580,11 @@ def wolfram_callback(bot, update):
     if message.chat.type == 'private':
         images = album(WOLFRAM_RESULTS[name][idx])
         for i in images:
-
             bot.send_photo(caption=i.caption, photo=open(i.media, 'rb'), chat_id=message.chat.id)
 
     elif query.from_user.id == message.reply_to_message.from_user.id:
         images = album(WOLFRAM_RESULTS[name][idx])
         for i in images:
-
             bot.send_photo(caption=i.caption, photo=open(i.media, 'rb'), chat_id=message.chat.id,
                            reply_to_message_id=message.reply_to_message.message_id)
 
@@ -653,17 +654,23 @@ def unclassified(bot, update):  # process macros and invalid commands.
 
     command = re.sub('@[@\w]+', '', re.split('\s+', message.text)[0])
     if command in COMMANDS.keys():
-        if COMMANDS[command][1] == 'EVAL':  # check if command is code or text
+        mode = COMMANDS[command][1]
+        cmd = COMMANDS[command][0]
+        if mode == 'EVAL':  # check if command is code or text
             symbols = {'INPUT': clean(message.text),
                        'HIDDEN': COMMANDS[command][2],
                        'PROTECTED': command in COMMANDS['protected'][0].split(' ')}
-            evaluate(bot, update, cmd=COMMANDS[command][0], symbols=symbols)
-        elif COMMANDS[command][1] == 'TEXT':
-            known(bot, update, COMMANDS[command][0])
-        elif COMMANDS[command][1] == 'PHOTO':
-            photo(bot, update, COMMANDS[command][0])
-        else:
-            message.reply_text(text="Macro error:\n\n~That's an inline macro! Try @yosho_bot " + command)
+            evaluate(bot, update, cmd=cmd, symbols=symbols)
+        elif mode == 'TEXT':
+            known(bot, update, cmd)
+        elif mode == 'PHOTO':
+            photo(bot, update, cmd)
+        elif mode == 'E926':
+            e926(bot, update, tags=cmd)
+        elif mode == 'WOLFRAM':
+            wolfram(bot, update, query=cmd)
+        elif mode == 'INLINE':
+            message.reply_text(text="Macro error:\n\nThat's an inline macro! Try @yosho_bot " + command)
     else:
         invalid(bot, update, 'Error:\n\nUnknown command: ' + command)
 
