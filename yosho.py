@@ -33,7 +33,7 @@ MODS = ('wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'radookal', 'pawjob')
 
 # not PEP-8 compliant but idc
 is_mod = lambda name: name.lower() in MODS
-clean = lambda s: re.sub('/[@\w]+\s+', '', s + ' ', 1)  # strips command name and bot name from input
+clean = lambda s: str.strip(re.sub('/[@\w]+\s+', '', s + ' ', 1))  # strips command name and bot name from input
 db_pull = lambda name: db.files_download_to_file(name, '/' + name)
 db_push = lambda name: db.files_upload(open(name, 'rb').read(), '/' + name, mode=WriteMode('overwrite'))
 
