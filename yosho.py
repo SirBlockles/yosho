@@ -243,7 +243,7 @@ def set_global(bot, update):
     listed = ('{0} = {1}'.format(k, v) for k, v in globals().items() if type(v) in (int, bool))
     if len(args) > 1:
         if args[0] in names:
-            if args[1].isnumeric():
+            if str(args[1]).isnumeric():
                 GLOBALS[args[0]] = int(args[1])
                 load_globals()
                 pickle.dump(GLOBALS, open(GLOBALS_PATH, 'wb+'))
@@ -263,7 +263,7 @@ globals_handler = CommandHandler("global", set_global)
 updater.dispatcher.add_handler(globals_handler)
 
 
-@modifiers(name='ALLOW_UNNAMED', action=Ca.TYPING)
+@modifiers(action=Ca.TYPING)
 def evaluate(bot, update, cmd=None, symbols=None):
     global INTERPRETERS
     err = 'Invalid input:\n\n'
@@ -372,17 +372,7 @@ def macro(bot, update):
     expr = clean(message.text)
 
     if expr == '':
-        message.reply_text(text='Macro modes:\n\n'
-                                'photo <name> <url>: create photo macro\n'
-                                'eval <name> <code>: create eval macro\n'
-                                'inline <name> <text>: create inline macro\n'
-                                'text <name> <text>: create text macro\n'
-                                'remove <name>: remove macro\n'
-                                'list: list macros\n'
-                                'modify <name> <contents>: modify macro\n'
-                                'contents <name>: list contents of a macro)\n'
-                                'hide <name>: toggles hiding macro from macro list\n'
-                                'clean: remove unprotected macros')
+        call_macro(bot, update, call='/macro_help' + bot.name.lower())
         return
 
     args = re.split('\s+', expr)
@@ -420,7 +410,7 @@ def macro(bot, update):
                 if not check_image_url(expr):
                     return
             COMMANDS[name] = [expr, mode.upper(), False]
-            message.reply_text(text=mode + ' macro "{}" created.'.format(name))
+            message.reply_text(text='{0} macro "{1}" created.'.format(mode, name))
         else:
             message.reply_text(text=err + 'Missing macro contents.')
 
@@ -626,8 +616,8 @@ inline_handler = InlineQueryHandler(inline_stuff)
 updater.dispatcher.add_handler(inline_handler)
 
 
-@modifiers(flood=False)
-def unclassified(bot, update):  # process macros and invalid commands.
+@modifiers(name='ALLOW_UNNAMED', flood=False)
+def call_macro(bot, update, call=None):  # process macros and invalid commands.
     message = update.message
     quoted = message.reply_to_message
 
@@ -635,14 +625,14 @@ def unclassified(bot, update):  # process macros and invalid commands.
     def invalid(bot, update, text):
         update.message.reply_text(text=text)
 
-    @modifiers(age=False, name='ALLOW_UNNAMED', action=Ca.TYPING)
+    @modifiers(age=False, action=Ca.TYPING)
     def known(bot, update, text):
         if quoted is None:
             update.message.reply_text(text=text)
         else:
             quoted.reply_text(text=text)
 
-    @modifiers(age=False, name='ALLOW_UNNAMED', action=Ca.UPLOAD_PHOTO)
+    @modifiers(age=False, action=Ca.UPLOAD_PHOTO)
     def photo(bot, update, url):
         try:
             if quoted is None:
@@ -652,12 +642,13 @@ def unclassified(bot, update):  # process macros and invalid commands.
         except TelegramError:
             logger.debug('TelegramError in photo macro call: ' + str(url))
 
-    command = re.sub('@[@\w]+', '', re.split('\s+', message.text)[0])
+    inp = call if call else message.text
+    command = re.sub('@[@\w]+', '', re.split('\s+', inp)[0])
     if command in COMMANDS.keys():
-        mode = COMMANDS[command][1]
-        cmd = COMMANDS[command][0]
+        mode, cmd = COMMANDS[command][:2]
+
         if mode == 'EVAL':  # check if command is code or text
-            symbols = {'INPUT': clean(message.text),
+            symbols = {'INPUT': clean(inp),
                        'HIDDEN': COMMANDS[command][2],
                        'PROTECTED': command in COMMANDS['protected'][0].split(' ')}
             evaluate(bot, update, cmd=cmd, symbols=symbols)
@@ -675,8 +666,8 @@ def unclassified(bot, update):  # process macros and invalid commands.
         invalid(bot, update, 'Error:\n\nUnknown command: ' + command)
 
 
-unclassified_handler = RegexHandler(r'/.*', unclassified)
-updater.dispatcher.add_handler(unclassified_handler)
+macro_handler = RegexHandler(r'/.*', call_macro)
+updater.dispatcher.add_handler(macro_handler)
 
 
 def clear(bot, job):
