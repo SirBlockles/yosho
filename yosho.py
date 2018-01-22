@@ -7,7 +7,7 @@ import pickle
 import re
 import time
 import xml.etree.ElementTree as Xml
-from random import randint
+from random import choice
 
 import dropbox
 import requests
@@ -207,7 +207,7 @@ def e926(bot, update, tags=None):
         posts = [p['file_url'] for p in data if p['file_ext'] in ('jpg', 'png')]  # find image urls in json response
         url = None
         try:
-            url = posts[randint(0, len(posts) - 1)]
+            url = choice(posts)
             logger.debug(url)
             update.message.reply_photo(photo=url)
             time.sleep(.5)  # rate limit, can be lowered to .25 if needed.
