@@ -295,7 +295,7 @@ def evaluate(bot, update, cmd=None, symbols=None):
     interp.symtable = {**interp.symtable, **symbols}
 
     with stopit.ThreadingTimeout(EVAL_TIMEOUT) as ctx:
-        out = str(interp(expr))
+        out = interp(expr)
 
     reply = interp.symtable['REPLY']
 
@@ -312,7 +312,7 @@ def evaluate(bot, update, cmd=None, symbols=None):
         elif len(str(out)) > EVAL_MAX_OUTPUT:
             result = str(out)[:EVAL_MAX_OUTPUT] + '...'
         else:
-            result = out
+            result = str(out)
     if result == '':
         result = err + 'Code returned nothing.\nMaybe missing input?'
 
