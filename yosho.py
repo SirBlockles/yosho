@@ -102,10 +102,10 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, action=
                     .format(method.__name__, title, message_user, message.text))
 
         # check incoming message attributes
-        if (not age or message_age < MESSAGE_TIMEOUT) and \
-                (not name or message_bot == bot.name.lower() or (message_bot is None and name == 'ALLOW_UNNAMED')) \
-                and (not mods or is_mod(message_user)):
-
+        time_check = (not age or message_age < MESSAGE_TIMEOUT)
+        name_check = (not name or message_bot == bot.name.lower() or (message_bot is None and name == 'ALLOW_UNNAMED'))
+        mod_check = (not mods or is_mod(message_user))
+        if time_check and name_check and mod_check:
             # flood detector
             start = time.time()
             if flood and not chat.type == 'private':
@@ -215,8 +215,9 @@ def e926(bot, update, tags=None):
 
         except TelegramError:
             logger.debug('TelegramError in e926 call, post value: ' + str(url))
+
         except ValueError:
-            logger.info('ValueError in e926 call, probably incorrect tags')
+            logger.debug('ValueError in e926 call, probably incorrect tags')
             update.message.reply_text(text=failed)
     else:
         update.message.reply_text(text=failed)
@@ -266,39 +267,37 @@ def evaluate(bot, update, cmd=None, symbols=None):
         update.message.reply_text(err + 'Maximum input length exceeded.')
         return
 
-    # execute command with timeout
     name = update.message.from_user.name
-    reply = True
+    interp = Interpreter()
+    if EVAL_MEMORY and name in INTERPRETERS.keys():
+        interp.symtable = {**INTERPRETERS[name], **Interpreter().symtable}
+        logger.debug('Loaded interpreter "{0}": {1}'.format(name, INTERPRETERS[name]))
+
+    quoted = update.message.reply_to_message
+    preceding = '' if quoted is None else quoted.text
+    them = '' if quoted is None else quoted.from_user.name
+
+    if not symbols:
+        symbols = {}
+    chat = update.message.chat
+
+    symbols = {**symbols, **{'MY_NAME': name,
+                             'THEIR_NAME': them,
+                             'PRECEDING': preceding,
+                             'GROUP': (chat.title if chat.username is None else '@' + chat.username),
+                             'REPLY': True}}
+
+    interp.symtable = {**interp.symtable, **symbols}
+
     with stopit.ThreadingTimeout(EVAL_TIMEOUT) as ctx:
-        interp = Interpreter()
-        if EVAL_MEMORY and name in INTERPRETERS.keys():
-            interp.symtable = {**INTERPRETERS[name], **Interpreter().symtable}
-            logger.debug('Loaded interpreter "{0}": {1}'.format(name, INTERPRETERS[name]))
-
-        quoted = update.message.reply_to_message
-        preceding = '' if quoted is None else quoted.text
-        them = '' if quoted is None else quoted.from_user.name
-
-        if not symbols:
-            symbols = {}
-        chat = update.message.chat
-
-        symbols = {**symbols, **{'MY_NAME': name,
-                                 'THEIR_NAME': them,
-                                 'PRECEDING': preceding,
-                                 'GROUP': (chat.title if chat.username is None else '@' + chat.username),
-                                 'REPLY': True}}
-
-        interp.symtable = {**interp.symtable, **symbols}
-
         out = str(interp(expr))
 
-        reply = interp.symtable['REPLY']
+    reply = interp.symtable['REPLY']
 
-        if EVAL_MEMORY and cmd is None:
-            INTERPRETERS[name] = {k: v for k, v in interp.symtable.items() if k not in
-                                  Interpreter().symtable.keys() and k not in symbols.keys()}
-            logger.debug('Saved interpreter "{0}": {1}'.format(name, INTERPRETERS[name]))
+    if EVAL_MEMORY and cmd is None:
+        INTERPRETERS[name] = {k: v for k, v in interp.symtable.items() if k not in
+                              Interpreter().symtable.keys() and k not in symbols.keys()}
+        logger.debug('Saved interpreter "{0}": {1}'.format(name, INTERPRETERS[name]))
 
     if ctx.state == ctx.TIMED_OUT:
         result += 'Timed out.'
