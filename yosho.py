@@ -415,7 +415,7 @@ def macro(bot, update):
 
     elif mode == 'clean':
         if is_mod(user):
-            COMMANDS = {k: COMMANDS[k] for k in COMMANDS.keys() if not COMMANDS[k][3]}
+            COMMANDS = {k: COMMANDS[k] for k in COMMANDS.keys() if COMMANDS[k][3]}
             message.reply_text('Cleaned up macros.')
         else:
             message.reply_text(text=err + 'Only bot mods can do that.')
