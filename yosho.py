@@ -482,7 +482,7 @@ def macro(bot, update):
         if name in keys:
             if is_mod(user):
                 COMMANDS[name][3] ^= True
-                message.reply_text('Protect macro {0}: {1}'.format(name, COMMANDS[name][2]))
+                message.reply_text('Protect macro {0}: {1}'.format(name, COMMANDS[name][3]))
             else:
                 message.reply_text(text=err + 'Only bot mods can protect macros.')
         else:
