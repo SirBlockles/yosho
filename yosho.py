@@ -102,9 +102,9 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, action=
                     .format(method.__name__, title, message_user, message.text))
 
         # check incoming message attributes
-        time_check = (not age or message_age < MESSAGE_TIMEOUT)
-        name_check = (not name or message_bot == bot.name.lower() or (message_bot is None and name == 'ALLOW_UNNAMED'))
-        mod_check = (not mods or is_mod(message_user))
+        time_check = not age or message_age < MESSAGE_TIMEOUT
+        name_check = not name or message_bot == bot.name.lower() or (message_bot is None and name == 'ALLOW_UNNAMED')
+        mod_check = not mods or is_mod(message_user)
         if time_check and name_check and mod_check:
             # flood detector
             start = time.time()
