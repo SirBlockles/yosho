@@ -263,6 +263,11 @@ def evaluate(bot, update, cmd=None, symbols=None):
 
     expr = (cmd if cmd else clean(update.message.text)).replace('#', '\t')
 
+    if expr == '':
+        update.message.text = '/eval_info' + bot.name.lower()
+        call_macro(bot, update)
+        return
+
     if len(expr) > EVAL_MAX_INPUT:
         update.message.reply_text(err + 'Maximum input length exceeded.')
         return
