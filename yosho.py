@@ -45,6 +45,8 @@ COMMANDS_PATH = 'COMMANDS.pkl'
 db_pull(COMMANDS_PATH)
 COMMANDS = pickle.load(open(COMMANDS_PATH, 'rb'))
 
+print(COMMANDS)
+
 # defaults
 WOLFRAM_TIMEOUT = 20
 LOGGING_LEVEL = logging.DEBUG
@@ -362,6 +364,7 @@ def macro(bot, update):
              'wolfram': 'macro',
              'remove': 'write',
              'hide': 'write',
+             'protect': 'write',
              'clean': 'write',
              'modify': 'write',
              'contents': 'read',
@@ -372,7 +375,8 @@ def macro(bot, update):
     expr = clean(message.text)
 
     if expr == '':
-        call_macro(bot, update, call='/macro_help' + bot.name.lower())
+        update.message.text = '/macro_help' + bot.name.lower()
+        call_macro(bot, update)
         return
 
     args = re.split('\s+', expr)
@@ -389,12 +393,11 @@ def macro(bot, update):
         message.reply_text(text=err + 'Missing macro name.')
         return
 
-    protected = COMMANDS['protected'][0].split(' ')
-
     user = message.from_user.username.lower()
-    if name in protected and not is_mod(user) and not modes[mode] == 'read':
-        message.reply_text(text=err + 'Macro {} is write protected.'.format(name))
-        return
+    if name in COMMANDS.keys():
+        if COMMANDS[name][3] and not is_mod(user) and not modes[mode] == 'read':
+            message.reply_text(text=err + 'Macro {} is write protected.'.format(name))
+            return
 
     if len(args) > 2:
         expr = expr.replace(' '.join(args[:2]), '').strip()
@@ -428,7 +431,7 @@ def macro(bot, update):
 
     elif mode == 'clean':
         if is_mod(user):
-            COMMANDS = {k: COMMANDS[k] for k in sorted(COMMANDS.keys()) if k in protected}
+            COMMANDS = {k: COMMANDS[k] for k in COMMANDS.keys() if not COMMANDS[k][3]}
             message.reply_text('Cleaned up macros.')
         else:
             message.reply_text(text=err + 'Only bot mods can do that.')
@@ -441,10 +444,22 @@ def macro(bot, update):
             message.reply_text(text=err + 'No macro with name {}.'.format(name))
 
     elif mode == 'list':
-        if is_mod(user) and name == 'all':
-            message.reply_text('Existing macros:\n'
-                               + '\n'.join([(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE')
-                                            + k for k in keys if not k == 'protected']))
+        if is_mod(user):
+            if name == 'all':
+                message.reply_text('Existing macros:\n'
+                                + '\n'.join([(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE') + k for k in keys]))
+            elif name == 'hidden':
+                message.reply_text('Existing macros:\n'
+                                   + '\n'.join([(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE')
+                                                + k for k in keys if COMMANDS[k][2]]))
+            elif name == 'protected':
+                message.reply_text('Existing macros:\n'
+                                   + '\n'.join([(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE')
+                                                + k for k in keys if COMMANDS[k][3]]))
+            else:
+                message.reply_text('Existing macros:\n'
+                                   + '\n'.join([(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE')
+                                                + k for k in keys if not COMMANDS[k][2]]))
         else:
             message.reply_text('Existing macros:\n'
                                + '\n'.join([(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE')
@@ -617,7 +632,7 @@ updater.dispatcher.add_handler(inline_handler)
 
 
 @modifiers(name='ALLOW_UNNAMED', flood=False)
-def call_macro(bot, update, call=None):  # process macros and invalid commands.
+def call_macro(bot, update):  # process macros and invalid commands.
     message = update.message
     quoted = message.reply_to_message
 
@@ -642,15 +657,14 @@ def call_macro(bot, update, call=None):  # process macros and invalid commands.
         except TelegramError:
             logger.debug('TelegramError in photo macro call: ' + str(url))
 
-    inp = call if call else message.text
-    command = re.sub('@[@\w]+', '', re.split('\s+', inp)[0])
+    command = re.sub('@[@\w]+', '', re.split('\s+', message.text)[0])
     if command in COMMANDS.keys():
-        mode, cmd = COMMANDS[command][:2]
+        cmd, mode, hidden, protected = COMMANDS[command]
 
         if mode == 'EVAL':  # check if command is code or text
-            symbols = {'INPUT': clean(inp),
-                       'HIDDEN': COMMANDS[command][2],
-                       'PROTECTED': command in COMMANDS['protected'][0].split(' ')}
+            symbols = {'INPUT': clean(message.text),
+                       'HIDDEN': hidden,
+                       'PROTECTED': protected}
             evaluate(bot, update, cmd=cmd, symbols=symbols)
         elif mode == 'TEXT':
             known(bot, update, cmd)
