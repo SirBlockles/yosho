@@ -411,7 +411,7 @@ def macro(bot, update):
             if mode == 'photo':
                 if not check_image_url(expr):
                     return
-            COMMANDS[name] = [expr, mode.upper(), False]
+            COMMANDS[name] = [expr, mode.upper(), False, is_mod(user)]
             message.reply_text(text='{0} macro "{1}" created.'.format(mode, name))
         else:
             message.reply_text(text=err + 'Missing macro contents.')
@@ -482,6 +482,16 @@ def macro(bot, update):
                 message.reply_text('Hide macro {0}: {1}'.format(name, COMMANDS[name][2]))
             else:
                 message.reply_text(text=err + 'Only bot mods can hide or show macros.')
+        else:
+            message.reply_text(text=err + 'No macro with name {}.'.format(name))
+
+    elif mode == 'protect':
+        if name in keys:
+            if is_mod(user):
+                COMMANDS[name][3] ^= True
+                message.reply_text('Protect macro {0}: {1}'.format(name, COMMANDS[name][2]))
+            else:
+                message.reply_text(text=err + 'Only bot mods can protect macros.')
         else:
             message.reply_text(text=err + 'No macro with name {}.'.format(name))
 
