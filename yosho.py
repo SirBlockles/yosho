@@ -45,15 +45,16 @@ db_pull(COMMANDS_PATH)
 COMMANDS = pickle.load(open(COMMANDS_PATH, 'rb'))
 
 
-WOLFRAM_TIMEOUT = 0
-LOGGING_LEVEL = 0
-MESSAGE_TIMEOUT = 0
-FLOOD_TIMEOUT = 0
-EVAL_MEMORY = 0
-EVAL_TIMEOUT = 0
-EVAL_MAX_OUTPUT = 0
-EVAL_MAX_INPUT = 0
-INTERPRETER_TIMEOUT = 0
+# defaults
+WOLFRAM_TIMEOUT = 20
+LOGGING_LEVEL = logging.DEBUG
+MESSAGE_TIMEOUT = 60
+FLOOD_TIMEOUT = 20
+EVAL_MEMORY = True
+EVAL_TIMEOUT = 1
+EVAL_MAX_OUTPUT = 128
+EVAL_MAX_INPUT = 1000
+INTERPRETER_TIMEOUT = 60*60
 
 
 WOLFRAM_RESULTS = {}
@@ -72,7 +73,7 @@ last_commands = {}
 def load_globals():
     for k, g in globals().items():
         if type(g) in (int, bool):
-            if k in GLOBALS:
+            if k in GLOBALS.keys():
                 globals()[k] = GLOBALS[k]
     logger.level = LOGGING_LEVEL
 
