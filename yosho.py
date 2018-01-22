@@ -116,8 +116,10 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, action=
                                                                                      message_id=message.message_id)]
                         if bot.username in admins:
                             bot.deleteMessage(chat_id=message.chat_id, message_id=message.message_id)
-                        logger.debug("flood detector couldn't delete command")
-                        logger.info('message canceled by flood detection: ' + str(elapsed))
+                        else:
+                            logger.debug("flood detector couldn't delete command")
+
+                        logger.info('message canceled by flood detector: ' + str(elapsed))
                         return
                 last_commands[message_user] = time.time()
 
