@@ -45,7 +45,6 @@ COMMANDS_PATH = 'COMMANDS.pkl'
 db_pull(COMMANDS_PATH)
 COMMANDS = pickle.load(open(COMMANDS_PATH, 'rb'))
 
-print(COMMANDS)
 
 # defaults
 WOLFRAM_TIMEOUT = 20
@@ -394,7 +393,8 @@ def macro(bot, update):
         return
 
     user = message.from_user.username.lower()
-    if name in COMMANDS.keys():
+    keys = COMMANDS.keys()
+    if name in keys:
         if COMMANDS[name][3] and not is_mod(user) and not modes[mode] == 'read':
             message.reply_text(text=err + 'Macro {} is write protected.'.format(name))
             return
@@ -406,7 +406,6 @@ def macro(bot, update):
     else:
         expr = None
 
-    keys = COMMANDS.keys()
     if modes[mode] == 'macro' and name not in keys:
         if expr is not None:
             if mode == 'photo':
@@ -446,18 +445,18 @@ def macro(bot, update):
     elif mode == 'list':
         if is_mod(user):
             if name == 'all':
-                message.reply_text('Existing macros:\n'
+                message.reply_text('All macros:\n'
                                 + '\n'.join([(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE') + k for k in keys]))
             elif name == 'hidden':
-                message.reply_text('Existing macros:\n'
+                message.reply_text('Hidden macros:\n'
                                    + '\n'.join([(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE')
                                                 + k for k in keys if COMMANDS[k][2]]))
             elif name == 'protected':
-                message.reply_text('Existing macros:\n'
+                message.reply_text('Protected macros:\n'
                                    + '\n'.join([(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE')
                                                 + k for k in keys if COMMANDS[k][3]]))
             else:
-                message.reply_text('Existing macros:\n'
+                message.reply_text('Visible macros:\n'
                                    + '\n'.join([(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE')
                                                 + k for k in keys if not COMMANDS[k][2]]))
         else:
