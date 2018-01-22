@@ -339,7 +339,6 @@ def macro(bot, update):
              'inline': 'macro',
              'photo': 'macro',
              'e926': 'macro',
-             'wolfram': 'macro',
              'remove': 'write',
              'hide': 'write',
              'protect': 'write',
@@ -502,7 +501,7 @@ updater.dispatcher.add_handler(macro_handler)
 
 
 @modifiers(action=Ca.TYPING)
-def wolfram(bot, update, query=None):
+def wolfram(bot, update):
     global WOLFRAM_RESULTS
     message = update.message
     name = message.from_user.name
@@ -510,8 +509,7 @@ def wolfram(bot, update, query=None):
     err = 'Wolfram|Alpha error:\n\n'
     failed = err + 'Wolfram|Alpha query failed.'
 
-    if query is None:
-        query = clean(update.message.text)
+    query = clean(update.message.text)
 
     if name not in WOLFRAM_RESULTS.keys():
         WOLFRAM_RESULTS[name] = None
@@ -677,9 +675,6 @@ def call_macro(bot, update):  # process macros and invalid commands.
 
         elif mode == 'E926':
             e926(bot, update, tags=cmd)
-
-        elif mode == 'WOLFRAM':
-            wolfram(bot, update, query=cmd)
 
         elif mode == 'INLINE':
             message.reply_text(text="Macro error:\n\nThat's an inline macro! Try @yosho_bot " + command)
