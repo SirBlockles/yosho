@@ -216,6 +216,11 @@ def e926(bot, update, tags=None):
         except ValueError:
             logger.debug('ValueError in e926 call, probably incorrect tags')
             update.message.reply_text(text=failed)
+
+        except IndexError:
+            logger.debug('IndexError in e926 call, probably incorrect tags')
+            update.message.reply_text(text=failed)
+
     else:
         update.message.reply_text(text=failed)
 
