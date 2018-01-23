@@ -561,7 +561,7 @@ def wolfram_callback(bot, update):
 
             img_b = io.BytesIO(requests.get(url).content)
             img = Image.open(img_b)
-            min = 30
+            min = 100
             if img.size[0] < min or img.size[1] < min:  # Hacky way to make sure any image sends.
                 pad = sorted([min - img.size[0], min - img.size[1]])
                 img = ImageOps.expand(img, border=pad[1] // 2, fill=255)
