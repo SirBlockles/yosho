@@ -56,6 +56,7 @@ EVAL_TIMEOUT = 1
 EVAL_MAX_OUTPUT = 128
 EVAL_MAX_INPUT = 1000
 INTERPRETER_TIMEOUT = 60 * 60
+IMAGE_SEND_TIMEOUT = 40
 
 WOLFRAM_RESULTS = {}
 INTERPRETERS = {}
@@ -207,13 +208,9 @@ def e926(bot, update, tags=None):
 
         if posts:
             url = None
-            try:
-                url = choice(posts)
-                logger.debug(url)
-                update.message.reply_photo(photo=url)
-
-            except TelegramError:
-                logger.debug('TelegramError in e926 call, post value: ' + str(url))
+            url = choice(posts)
+            logger.debug(url)
+            update.message.reply_photo(photo=url, timeout=IMAGE_SEND_TIMEOUT)
         else:
             logger.debug('Bad tags entered in e926.')
             update.message.reply_text(text=failed)
@@ -584,13 +581,14 @@ def wolfram_callback(bot, update):
     if message.chat.type == 'private':
         images = album(WOLFRAM_RESULTS[name][idx])
         for i in images:
-            bot.send_photo(caption=i.caption, photo=open(i.media, 'rb'), chat_id=message.chat.id)
+            bot.send_photo(caption=i.caption, photo=open(i.media, 'rb'), chat_id=message.chat.id,
+                           timeout=IMAGE_SEND_TIMEOUT)
 
     elif query.from_user.id == message.reply_to_message.from_user.id:
         images = album(WOLFRAM_RESULTS[name][idx])
         for i in images:
             bot.send_photo(caption=i.caption, photo=open(i.media, 'rb'), chat_id=message.chat.id,
-                           reply_to_message_id=message.reply_to_message.message_id)
+                           reply_to_message_id=message.reply_to_message.message_id, timeout=IMAGE_SEND_TIMEOUT)
 
     message.delete()
     WOLFRAM_RESULTS[name] = None
@@ -649,7 +647,7 @@ def call_macro(bot, update):  # process macros and invalid commands.
     def photo(bot, update, url):
         try:
             if quoted is None:
-                update.message.reply_photo(photo=url)
+                update.message.reply_photo(photo=url, timeout=IMAGE_SEND_TIMEOUT)
             else:
                 quoted.reply_photo(photo=url)
         except TelegramError:
