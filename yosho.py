@@ -207,10 +207,13 @@ def e926(bot, update, tags=None):
         posts = [p['file_url'] for p in data if p['file_ext'] in ('jpg', 'png')]  # find image urls in json response
 
         if posts:
-            url = None
             url = choice(posts)
             logger.debug(url)
-            update.message.reply_photo(photo=url, timeout=IMAGE_SEND_TIMEOUT)
+            try:
+                update.message.reply_photo(photo=url, timeout=IMAGE_SEND_TIMEOUT)
+            except TelegramError:
+                logger.debug('TelegramError in e926.')
+                update.message.reply_text(text=failed)
         else:
             logger.debug('Bad tags entered in e926.')
             update.message.reply_text(text=failed)
