@@ -204,23 +204,19 @@ def e926(bot, update, tags=None):
     if r.status_code == requests.codes.ok:
         data = r.json()
         posts = [p['file_url'] for p in data if p['file_ext'] in ('jpg', 'png')]  # find image urls in json response
-        url = None
-        try:
-            url = choice(posts)
-            logger.debug(url)
-            update.message.reply_photo(photo=url)
 
-        except TelegramError:
-            logger.debug('TelegramError in e926 call, post value: ' + str(url))
+        if posts:
+            url = None
+            try:
+                url = choice(posts)
+                logger.debug(url)
+                update.message.reply_photo(photo=url)
 
-        except ValueError:
-            logger.debug('ValueError in e926 call, probably incorrect tags')
+            except TelegramError:
+                logger.debug('TelegramError in e926 call, post value: ' + str(url))
+        else:
+            logger.debug('Bad tags entered in e926.')
             update.message.reply_text(text=failed)
-
-        except IndexError:
-            logger.debug('IndexError in e926 call, probably incorrect tags')
-            update.message.reply_text(text=failed)
-
     else:
         update.message.reply_text(text=failed)
 
