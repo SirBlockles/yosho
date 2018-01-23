@@ -189,18 +189,17 @@ updater.dispatcher.add_handler(die_handler)
 @modifiers(action=Ca.UPLOAD_PHOTO)
 def e926(bot, update, tags=None):
     failed = 'Error:\n\ne926 query failed.'
-    post_count = 50
 
     if tags is None:
         tags = clean(update.message.text)
 
     # construct the request
     index = 'https://e926.net/post/index.json'
-    params = {'limit': str(post_count), 'tags': tags}
+    params = {'limit': '50', 'tags': tags}
     headers = {'User-Agent': 'YoshoBot || @WyreYote and @TeamFortress on Telegram'}
 
     r = requests.get(index, params=params, headers=headers)
-    time.sleep(.5)  # rate limit, can be lowered to .25 if needed.
+    time.sleep(.5)
 
     if r.status_code == requests.codes.ok:
         data = r.json()
@@ -210,7 +209,6 @@ def e926(bot, update, tags=None):
             url = choice(posts)
             logger.debug(url)
             update.message.reply_photo(photo=url)
-            time.sleep(.5)  # rate limit, can be lowered to .25 if needed.
 
         except TelegramError:
             logger.debug('TelegramError in e926 call, post value: ' + str(url))
@@ -439,23 +437,23 @@ def macro(bot, update):
             mod = is_mod(user)
             if name == 'all' and mod:
                 macro_list = [(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE') + k for k in keys]
-                message.reply_text('All macros:\n' + '\n'.join(macro_list))
+                message.reply_text('All macros:\n' + ', '.join(macro_list))
 
             elif name == 'hidden' and mod:
                 macro_list = [(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE') + k for k in keys if COMMANDS[k][2]]
-                message.reply_text('Hidden macros:\n' + '\n'.join(macro_list))
+                message.reply_text('Hidden macros:\n' + ', '.join(macro_list))
 
             elif name == 'protected' and mod:
                 macro_list = [(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE') + k for k in keys if COMMANDS[k][3]]
-                message.reply_text('Protected macros:\n' + '\n'.join(macro_list))
+                message.reply_text('Protected macros:\n' + ', '.join(macro_list))
 
             elif name == 'unprotected' and mod:
                 macro_list = [(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE') + k for k in keys if not COMMANDS[k][3]]
-                message.reply_text('Unprotected macros:\n' + '\n'.join(macro_list))
+                message.reply_text('Unprotected macros:\n' + ', '.join(macro_list))
 
             else:
                 macro_list = [(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE') + k for k in keys if not COMMANDS[k][2]]
-                message.reply_text('Visible macros:\n' + '\n'.join(macro_list))
+                message.reply_text('Visible macros:\n' + ', '.join(macro_list))
 
     elif mode == 'contents':
         if name in keys:
