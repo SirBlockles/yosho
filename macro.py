@@ -35,12 +35,12 @@ class Macro:
 
 class MacroSet:
     def subset(self, match=None, search=None, variety=None, hidden=None, protected=None, nsfw=None):
-        return MacroSet({m for m in self.macros if all((m.hidden == hidden or hidden is None,
-                                               m.protected == protected or protected is None,
-                                               m.nsfw == nsfw or nsfw is None,
-                                               m.variety == variety or variety is None,
-                                               m.name == match or match is None,
-                                               search is None or search in m.name))})
+        return MacroSet({m for m in self.macros if all((hidden is None or m.hidden == hidden,
+                                                        protected is None or m.protected == protected,
+                                                        nsfw is None or m.nsfw == nsfw,
+                                                        variety is None or m.variety == variety,
+                                                        match is None or m.name == match,
+                                                        search is None or search in m.name))})
 
     def add(self, value):
         self.macros.add(value)

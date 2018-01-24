@@ -375,7 +375,7 @@ def macro(bot, update):
     if modes[mode] == 'macro' and name not in MACROS:
         if expr is not None:
             try:
-                MACROS[name] = Macro(name, mode.upper(), expr, hidden=False, protected=is_mod(user), nsfw=False)
+                MACROS.add(Macro(name, mode.upper(), expr, hidden=False, protected=is_mod(user), nsfw=False))
             except ValueError:
                 message.reply_text(text=err + 'Bad photo url.')
             message.reply_text(text='{0} macro "{1}" created.'.format(mode, name))
