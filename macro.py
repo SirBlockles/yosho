@@ -61,7 +61,7 @@ class MacroSet:
         data = json.load(file)
         return MacroSet({Macro(k,
                                data[k]['variety'],
-                               data[k]['content'],
+                               data[k]['_content'],
                                description=data[k]['description'],
                                hidden=data[k]['hidden'],
                                protected=data[k]['protected'],
