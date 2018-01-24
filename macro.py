@@ -46,7 +46,7 @@ class MacroSet:
         self.macros.add(value)
 
     def remove(self, key):
-        if key in self.macros:
+        if key in self:
             self.macros.remove(self[key])
         else:
             raise KeyError
