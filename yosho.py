@@ -21,6 +21,7 @@ from telegram import InlineQueryResultArticle, InputTextMessageContent, InputMed
 from telegram.error import TelegramError
 from telegram.ext import Updater, CommandHandler, InlineQueryHandler, RegexHandler, CallbackQueryHandler
 
+from macro import Macro, MacroSet
 
 TOKEN_DICT = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
 TELEGRAM_TOKEN = TOKEN_DICT['yosho_bot']
@@ -29,7 +30,7 @@ WOLFRAM_TOKEN = TOKEN_DICT['wolfram']
 
 db = dropbox.Dropbox(DROPBOX_TOKEN)
 
-MODS = ('wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'radookal', 'pawjob')
+MODS = {'wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'radookal', 'pawjob'}
 
 # not PEP-8 compliant but idc
 is_mod = lambda name: name.lower() in MODS
@@ -41,10 +42,9 @@ GLOBALS_PATH = 'GLOBALS.pkl'
 db_pull(GLOBALS_PATH)
 GLOBALS = pickle.load(open(GLOBALS_PATH, 'rb'))
 
-COMMANDS_PATH = 'COMMANDS.pkl'
-db_pull(COMMANDS_PATH)
-COMMANDS = pickle.load(open(COMMANDS_PATH, 'rb'))
-
+MACROS_PATH = 'MACROS.json'
+db_pull(MACROS_PATH)
+MACROS = MacroSet.load(open(MACROS_PATH, 'rb'))
 
 # defaults
 WOLFRAM_TIMEOUT = 20
@@ -145,20 +145,7 @@ def build_menu(buttons, n_cols, header_buttons=None, footer_buttons=None):
     return menu
 
 
-def bad_image_url(url):
-    try:
-        r = requests.head(url)
-        mime_type = r.headers.get('content-type')
-    except Exception as e:
-        return 'URL is invalid:\n' + e.__class__.__name__
-    if r.status_code == requests.codes.ok:
-        if mime_type not in ('image/png', 'image/jpeg'):
-            return 'URL is not image.'
-    else:
-        return 'Invalid url or connection error.'
-    return None
-
-
+# noinspection PyUnusedLocal
 def error(bot, update, error):
     logger.warning('Update "{0}" caused error "{1}"'.format(update, error))
 
@@ -177,6 +164,7 @@ start_handler = CommandHandler("start", start)
 updater.dispatcher.add_handler(start_handler)
 
 
+# noinspection PyUnusedLocal
 @modifiers(mods=True, action=Ca.TYPING)
 def die(bot, update):
     update.message.reply_text(text='KMS')
@@ -187,6 +175,7 @@ die_handler = CommandHandler("die", die)
 updater.dispatcher.add_handler(die_handler)
 
 
+# noinspection PyUnusedLocal
 @modifiers(action=Ca.UPLOAD_PHOTO)
 def e926(bot, update, tags=None):
     failed = 'Error:\n\ne926 query failed.'
@@ -225,6 +214,7 @@ e926_handler = CommandHandler("e926", e926)
 updater.dispatcher.add_handler(e926_handler)
 
 
+# noinspection PyUnusedLocal
 @modifiers(mods=True)
 def set_global(bot, update):
     global GLOBALS
@@ -330,6 +320,7 @@ updater.dispatcher.add_handler(eval_handler)
 # creates and modifies macro commands
 @modifiers(action=Ca.TYPING)
 def macro(bot, update):
+    global MACROS
     message = update.message
 
     modes = {'eval': 'macro',
@@ -346,7 +337,6 @@ def macro(bot, update):
              'contents': 'read',
              'list': 'read'}
 
-    global COMMANDS
     err = 'Macro editor error:\n\n'
     expr = clean(message.text)
 
@@ -370,9 +360,8 @@ def macro(bot, update):
         return
 
     user = message.from_user.username.lower()
-    keys = COMMANDS.keys()
-    if name in keys:
-        if COMMANDS[name][3] and not is_mod(user) and not modes[mode] == 'read':
+    if name in MACROS:
+        if MACROS[name].protected and not is_mod(user) and not modes[mode] == 'read':
             message.reply_text(text=err + 'Macro {} is write protected.'.format(name))
             return
 
@@ -383,28 +372,22 @@ def macro(bot, update):
     else:
         expr = None
 
-    if modes[mode] == 'macro' and name not in keys:
+    if modes[mode] == 'macro' and name not in MACROS:
         if expr is not None:
-            if mode == 'photo':
-                bad = bad_image_url(expr)
-                if bad:
-                    message.reply_text(text=err + bad)
-                    return
-
-            COMMANDS[name] = [expr, mode.upper(), False, is_mod(user)]
+            try:
+                MACROS[name] = Macro(name, mode.upper(), expr, hidden=False, protected=is_mod(user), nsfw=False)
+            except ValueError:
+                message.reply_text(text=err + 'Bad photo url.')
             message.reply_text(text='{0} macro "{1}" created.'.format(mode, name))
         else:
             message.reply_text(text=err + 'Missing macro contents.')
 
     elif mode == 'modify':
-        if name in keys and expr is not None:
-            if COMMANDS[name][1] == 'PHOTO':
-                bad = bad_image_url(expr)
-                if bad:
-                    message.reply_text(text=err + bad)
-                    return
-
-            COMMANDS[name][0] = expr
+        if name in MACROS and expr is not None:
+            try:
+                MACROS[name].content = expr
+            except ValueError:
+                message.reply_text(text=err + 'Bad photo url.')
             message.reply_text(text='Macro "{}" modified.'.format(name))
         elif expr is None:
             message.reply_text(text=err + 'Missing macro text/code.')
@@ -413,91 +396,94 @@ def macro(bot, update):
 
     elif mode == 'clean':
         if is_mod(user):
-            COMMANDS = {k: COMMANDS[k] for k in COMMANDS.keys() if COMMANDS[k][3]}
+            MACROS = MACROS.subset(protected=False)
             message.reply_text('Cleaned up macros.')
         else:
             message.reply_text(text=err + 'Only bot mods can do that.')
 
     elif mode == 'remove':
-        if name in keys:
-            del COMMANDS[name]
+        if name in MACROS:
+            MACROS.remove(name)
             message.reply_text(text='Macro "{}" removed.'.format(name))
         else:
             message.reply_text(text=err + 'No macro with name {}.'.format(name))
 
     elif mode == 'rename':
-        if name in keys:
+        if name in MACROS:
             new_name = expr.split(' ')[0]
-            COMMANDS[new_name] = COMMANDS[name]
-            del COMMANDS[name]
+            MACROS[name].name = new_name
             message.reply_text(text='Macro "{0}" renamed to {1}'.format(name, new_name))
         else:
             message.reply_text(text=err + 'No macro with name {}.'.format(name))
 
     elif mode == 'list':
-            mod = is_mod(user)
-            if name == 'all' and mod:
-                macro_list = [(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE') + k for k in keys]
-                message.reply_text('All macros:\n' + ', '.join(macro_list))
+        mod = is_mod(user)
+        if name == 'all' and mod:
+            names = ((bot.name + ' ') * (m.variety == Macro.INLINE) + m.name for m in MACROS)
+            message.reply_text('All macros:\n' + ', '.join(names))
 
-            elif name == 'hidden' and mod:
-                macro_list = [(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE') + k for k in keys if COMMANDS[k][2]]
-                message.reply_text('Hidden macros:\n' + ', '.join(macro_list))
+        elif name == 'hidden' and mod:
+            names = ((bot.name + ' ') * (m.variety == Macro.INLINE) + m.name for m in
+                     MACROS.subset(hidden=True))
+            message.reply_text('Hidden macros:\n' + ', '.join(names))
 
-            elif name == 'protected' and mod:
-                macro_list = [(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE') + k for k in keys if COMMANDS[k][3]]
-                message.reply_text('Protected macros:\n' + ', '.join(macro_list))
+        elif name == 'protected' and mod:
+            names = ((bot.name + ' ') * (m.variety == Macro.INLINE) + m.name for m in
+                     MACROS.subset(protected=True))
+            message.reply_text('Protected macros:\n' + ', '.join(names))
 
-            elif name == 'unprotected' and mod:
-                macro_list = [(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE') + k for k in keys if not COMMANDS[k][3]]
-                message.reply_text('Unprotected macros:\n' + ', '.join(macro_list))
+        elif name == 'unprotected' and mod:
+            names = ((bot.name + ' ') * (m.variety == Macro.INLINE) + m.name for m in
+                     MACROS.subset(protected=False))
+            message.reply_text('Unprotected macros:\n' + ', '.join(names))
 
-            else:
-                macro_list = [(bot.name + ' ') * (COMMANDS[k][1] == 'INLINE') + k for k in keys if not COMMANDS[k][2]]
-                message.reply_text('Visible macros:\n' + ', '.join(macro_list))
+        else:
+            names = ((bot.name + ' ') * (m.variety == Macro.INLINE) + m.name for m in
+                     MACROS.subset(hidden=False))
+            message.reply_text('Visible macros:\n' + ', '.join(names))
 
     elif mode == 'contents':
-        if name in keys:
-            if not COMMANDS[name][2] or is_mod(user):
+        if name in MACROS:
+            if not MACROS[name].hidden or is_mod(user):
                 message.reply_text('Contents of {0} macro {1}: {2}'
-                                   .format(COMMANDS[name][1].lower(), name, COMMANDS[name][0]))
+                                   .format(MACROS[name].variety.lower(), name, MACROS[name].contents))
             else:
                 message.reply_text(text=err + 'Macro {} contents hidden.'.format(name))
         else:
             message.reply_text(text=err + 'No macro with name {}.'.format(name))
 
     elif mode == 'hide':
-        if name in keys:
+        if name in MACROS:
             if is_mod(user):
-                COMMANDS[name][2] ^= True
-                message.reply_text('Hide macro {0}: {1}'.format(name, COMMANDS[name][2]))
+                MACROS[name].hidden ^= True
+                message.reply_text('Hide macro {0}: {1}'.format(name, MACROS[name].hidden))
             else:
                 message.reply_text(text=err + 'Only bot mods can hide or show macros.')
         else:
             message.reply_text(text=err + 'No macro with name {}.'.format(name))
 
     elif mode == 'protect':
-        if name in keys:
+        if name in MACROS:
             if is_mod(user):
-                COMMANDS[name][3] ^= True
-                message.reply_text('Protect macro {0}: {1}'.format(name, COMMANDS[name][3]))
+                MACROS[name].protected ^= True
+                message.reply_text('Protect macro {0}: {1}'.format(name, MACROS[name].protected))
             else:
                 message.reply_text(text=err + 'Only bot mods can protect macros.')
         else:
             message.reply_text(text=err + 'No macro with name {}.'.format(name))
 
-    elif name in COMMANDS:
+    elif name in MACROS:
         message.reply_text(text=err + 'Macro already exists.')
 
-    COMMANDS = {k: COMMANDS[k] for k in sorted(COMMANDS.keys())}
-    pickle.dump(COMMANDS, open(COMMANDS_PATH, 'wb+'))
-    db_push(COMMANDS_PATH)
+    MacroSet.dump(MACROS, open(MACROS_PATH, 'w+'))
+    db_push(MACROS_PATH)
 
 
 macro_handler = CommandHandler("macro", macro)
 updater.dispatcher.add_handler(macro_handler)
 
 
+# noinspection PyUnusedLocal
 @modifiers(action=Ca.TYPING)
 def wolfram(bot, update):
     global WOLFRAM_RESULTS
@@ -533,8 +519,8 @@ def wolfram(bot, update):
                                          for i, p in enumerate(pods)}
 
                 if len(WOLFRAM_RESULTS[name]) > 1:
-                    m = message.reply_text('Input interpretation: {}\nChoose result to view:'.format(interp)
-                                           , reply_markup=markup)
+                    m = message.reply_text('Input interpretation: {}\nChoose result to view:'.format(interp),
+                                           reply_markup=markup)
                     jobs.run_once(wolfram_timeout, WOLFRAM_TIMEOUT, context=(m.message_id, m.chat.id,
                                                                              message.message_id, message.chat_id))
                 else:
@@ -561,9 +547,9 @@ def wolfram_callback(bot, update):
 
             img_b = io.BytesIO(requests.get(url).content)
             img = Image.open(img_b)
-            min = 100
-            if img.size[0] < min or img.size[1] < min:  # Hacky way to make sure any image sends.
-                pad = sorted([min - img.size[0], min - img.size[1]])
+            minimum = 100
+            if img.size[0] < minimum or img.size[1] < minimum:  # Hacky way to make sure any image sends.
+                pad = sorted([minimum - img.size[0], minimum - img.size[1]])
                 img = ImageOps.expand(img, border=pad[1] // 2, fill=255)
             fn = 'temp{}.png'.format(idx)
             img.save(fn, format='PNG')
@@ -606,20 +592,21 @@ def wolfram_timeout(bot, job):
         bot.deleteMessage(message_id=job.context[0], chat_id=job.context[1])
     except TelegramError:
         return
-    bot.send_message(reply_to_message_id=job.context[2], chat_id=job.context[3], text=
-    'Failed to choose an option within {} seconds.\nResults timed out.'.format(WOLFRAM_TIMEOUT))
+    bot.send_message(reply_to_message_id=job.context[2], chat_id=job.context[3],
+                     text='Failed to choose an option within {} seconds.\nResults timed out.'.format(WOLFRAM_TIMEOUT))
 
 
+# noinspection PyUnusedLocal
 def inline_stuff(bot, update):
     results = list()
     query = update.inline_query.query
 
-    if query in COMMANDS.keys():
-        if COMMANDS[query][1] == 'INLINE':
+    if query in MACROS:
+        if MACROS[query].variety == Macro.INLINE:
             logger.info('Inline query called: ' + query)
             results.append(
                 InlineQueryResultArticle(id=query, title=query,
-                                         input_message_content=InputTextMessageContent(COMMANDS[query][0])))
+                                         input_message_content=InputTextMessageContent(MACROS[query].content)))
         else:
             return
 
@@ -635,10 +622,12 @@ def call_macro(bot, update):  # process macros and invalid commands.
     message = update.message
     quoted = message.reply_to_message
 
+    # noinspection PyUnusedLocal
     @modifiers(age=False, name=True, action=Ca.TYPING)
     def invalid(bot, update, text):
         update.message.reply_text(text=text)
 
+    # noinspection PyUnusedLocal
     @modifiers(age=False, action=Ca.TYPING)
     def known(bot, update, text):
         if quoted is None:
@@ -646,6 +635,7 @@ def call_macro(bot, update):  # process macros and invalid commands.
         else:
             quoted.reply_text(text=text)
 
+    # noinspection PyUnusedLocal
     @modifiers(age=False, action=Ca.UPLOAD_PHOTO)
     def photo(bot, update, url):
         try:
@@ -657,25 +647,25 @@ def call_macro(bot, update):  # process macros and invalid commands.
             logger.debug('TelegramError in photo macro call: ' + str(url))
 
     command = re.sub('@[@\w]+', '', re.split('\s+', message.text)[0])
-    if command in COMMANDS.keys():
-        cmd, mode, hidden, protected = COMMANDS[command]
-
-        if mode == 'EVAL':  # check if command is code or text
+    if command in MACROS:
+        variety = MACROS[command].variety
+        content = MACROS[command].content
+        if variety == Macro.EVAL:
             symbols = {'INPUT': clean(message.text),
-                       'HIDDEN': hidden,
-                       'PROTECTED': protected}
-            evaluate(bot, update, cmd=cmd, symbols=symbols)
+                       'HIDDEN': MACROS[command].hidden,
+                       'PROTECTED': MACROS[command].protected}
+            evaluate(bot, update, cmd=content, symbols=symbols)
 
-        elif mode == 'TEXT':
-            known(bot, update, cmd)
+        elif variety == 'TEXT':
+            known(bot, update, content)
 
-        elif mode == 'PHOTO':
-            photo(bot, update, cmd)
+        elif variety == 'PHOTO':
+            photo(bot, update, content)
 
-        elif mode == 'E926':
-            e926(bot, update, tags=cmd)
+        elif variety == 'E926':
+            e926(bot, update, tags=content)
 
-        elif mode == 'INLINE':
+        elif variety == 'INLINE':
             message.reply_text(text="Macro error:\n\nThat's an inline macro! Try @yosho_bot " + command)
     else:
         invalid(bot, update, 'Error:\n\nUnknown command: ' + command)
@@ -685,6 +675,7 @@ macro_handler = RegexHandler(r'/.*', call_macro)
 updater.dispatcher.add_handler(macro_handler)
 
 
+# noinspection PyUnusedLocal,PyUnusedLocal
 def clear(bot, job):
     global INTERPRETERS
     INTERPRETERS = {}

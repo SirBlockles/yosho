@@ -1,0 +1,402 @@
+{
+    "/GARFIELD": {
+        "_content": "https://cdn.discordapp.com/attachments/159829216630800385/403593325862715402/IMG_20180116_232536_478.jpg",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "PHOTO"
+    },
+    "/backwards": {
+        "_content": "text=''\nif INPUT == '':\n#text = PRECEDING\nelse:\n#text = INPUT\ntext[::-1]",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "EVAL"
+    },
+    "/badtime": {
+        "_content": "\u2026\u2026\u2026\u2026/\u00b4\u00af/)\u2026\u2026\u2026\u2026\u2026.(\\\u00af.\u2026\u2026\u2026\u2026..\n\u2026\u2026\u2026../\u2026//\u2026\u2026\u2026.i\u2026\u2026.\\\u2026.\u2026\u2026\u2026\u2026..\n\u2026\u2026\u2026./\u2026//\u2026fuken luv\u2026.\\\u2026.\u2026\u2026\u2026\u2026.\n\u2026../\u00b4\u00af/\u2026./\u00b4\u00af..undertale./\u00af .\u2026\\\u00af`.\u2026\u2026.\n.././\u2026/\u2026./\u2026./.|_.have._|..\u2026.\u2026\u2026..\u2026..\n(.(b.(..a.(..d./..)..)\u2026\u2026(..(.\\ti.)..m.)..e.).)\u2026.\n..\u2026\u2026\u2026\u2026\u2026\\/\u2026/\u2026\u2026\u2026\\/\u2026\u2026\u2026\u2026\u2026./\u2026.\n\u2026\u2026\u2026\u2026\u2026\u2026.. /\u2026\u2026\u2026.\u2026\u2026\u2026\u2026\u2026..",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "TEXT"
+    },
+    "/bat": {
+        "_content": "bat",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "E926"
+    },
+    "/box": {
+        "_content": "text=''\nif INPUT == '':\n#text = PRECEDING\nelse:\n#text = INPUT\n\"\\n\".join([\"\".join([x+\"\\u035f\"+\"\\u035e\" for x in ('['+l)[:len(l)]]) + l[len(l)-1: ] +']' if not l == '' else '' for l in text.split('\\n')])",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "EVAL"
+    },
+    "/bust": {
+        "_content": "Why bussa \ud83e\udd5c when u can bussa \ud83d\udd29",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "TEXT"
+    },
+    "/colour": {
+        "_content": "daddy",
+        "description": "",
+        "hidden": true,
+        "nsfw": false,
+        "protected": true,
+        "variety": "E926"
+    },
+    "/cursed": {
+        "_content": "yoshi = ['https://static1.e621.net/data/9d/a7/9da7776fd8aa0c9a84a6be722f136e04.png', 'https://static1.e621.net/data/17/26/172675580277526b96ea8588cf3a60a6.jpg', 'https://static1.e621.net/data/d3/89/d38913f91cfffa73bff5cb7518c03aee.png', 'https://static1.e621.net/data/df/b3/dfb348f011506ec8678919b1ecea8690.jpg', 'https://static1.e621.net/data/33/3c/333cc7ffd25c589e0b3a9f072f1c332b.jpg', 'https://static1.e621.net/data/62/c6/62c6d3b45a7f9d264d4e5109795c2249.jpg', 'https://static1.e621.net/data/0a/e8/0ae86135c2739f3f85ad04ab4817f159.png']\nrandom.choice(yoshi)",
+        "description": "",
+        "hidden": true,
+        "nsfw": false,
+        "protected": false,
+        "variety": "EVAL"
+    },
+    "/deer": {
+        "_content": "deer",
+        "description": "",
+        "hidden": true,
+        "nsfw": false,
+        "protected": true,
+        "variety": "E926"
+    },
+    "/delet": {
+        "_content": "https://i.ytimg.com/vi/tVEAXcnpgWY/hqdefault.jpg",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "PHOTO"
+    },
+    "/echo": {
+        "_content": "REPLY= False\ntext = INPUT\nif text == '':\n#text = \"Gimmie some text to echo!\"\nelif text == \"Gimmie some text to echo!\":\n#text = \"That's my line.\"\ntext",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "EVAL"
+    },
+    "/effective.": {
+        "_content": "Power \u0644\u064f\u0644\u064f\u0635\u0651\u061c\u0628\u064f\u0644\u064f\u0644\u0635\u0651\u0628\u064f\u0631\u0631\u064b\u064b \u0963 h\u061c \u0963\u061c \u0963 \u0963",
+        "description": "",
+        "hidden": true,
+        "nsfw": false,
+        "protected": true,
+        "variety": "TEXT"
+    },
+    "/emojify": {
+        "_content": "text= ''\nif INPUT == '':\n#text = PRECEDING\nelse:\n#text = INPUT\ntext = text.replace('ab','\ud83c\udd8e').replace('AB','\ud83c\udd8e').replace('aB','\ud83c\udd8e').replace('Ab','\ud83c\udd8e').replace('a','\ud83c\udd70\ufe0f').replace('A','\ud83c\udd70\ufe0f').replace('b','\ud83c\udd71\ufe0f').replace('B','\ud83c\udd71\ufe0f').replace('cl','\ud83c\udd91').replace('CL','\ud83c\udd91').replace('cL','\ud83c\udd91').replace('Cl','\ud83c\udd91').replace('o','\ud83c\udd7e\ufe0f').replace('O','\ud83c\udd7e\ufe0f').replace('x','\u274c').replace('X','\u274c').replace('t', '\u271d\ufe0f').replace('T','\u271d\ufe0f').replace('u', '\u26ce').replace('U','\u26ce').replace('v', '\u2648\ufe0f').replace('V','\u2648\ufe0f').replace('p', '\ud83c\udd7f\ufe0f').replace('P','\ud83c\udd7f\ufe0f').replace('i', '\u2139\ufe0f').replace('I', '\u2139\ufe0f').replace('h', '\u2653\ufe0f').replace('H','\u2653\ufe0f').replace('c', '\u00a9').replace('C','\u00a9').replace('r', '\u00ae').replace('R','\u00ae').replace('s', '\ud83d\udcb2').replace('S','\ud83d\udcb2')\n\" \".join([x+random.choice([\"\ud83d\ude02\", \"\ud83d\udc4c\", \"\ud83d\ude1c\"]) if idx%random.randint(4, 6)==0 else x for idx, x in enumerate((text).split(\" \"))])",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "EVAL"
+    },
+    "/emoshi": {
+        "_content": "https://static1.e621.net/data/01/f0/01f0b53c836be531bfd05ab25a7f4739.png",
+        "description": "",
+        "hidden": true,
+        "nsfw": false,
+        "protected": false,
+        "variety": "PHOTO"
+    },
+    "/eval": {
+        "_content": "Code returned nothing.",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
+    "/eval_info": {
+        "_content": "Eval info: https://pastebin.com/raw/uikj0rzd",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "TEXT"
+    },
+    "/face": {
+        "_content": "\ud83d\udc42\ud83d\udc41\ud83d\udc43\ud83d\udc41\ud83d\udc42\n             \ud83d\udc44",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "TEXT"
+    },
+    "/fuckWyre": {
+        "_content": "@WyreYote",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
+    "/gay": {
+        "_content": "mizutsune order:score solo",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "E926"
+    },
+    "/help": {
+        "_content": "Available commands:\n/eval <expression> - does math and basic python code, use # for tabs\n/e926 <tags> - search e926\n/wolfram - query Wolfram Alpha\n\nA few of many macros:\n/echo <text> - echoes text\n/why - post random cursed image\n/roll <int> - rolls a number between 1 and x\n/GARFIELD - reply to a message with a garfield meme\n/emojify <input> - emojifies text, reply to a message with this to emojify that message instead of your input\n\n/macro <arguments> - macro editor\n\u2014> Send \"/macro\" to view modes/help.\n\u2014> Send \"/macro list\" for all macros and inline commands.",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "TEXT"
+    },
+    "/important": {
+        "_content": "'https://i.imgur.com/9hp5Cz1.mp4'",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "EVAL"
+    },
+    "/jackal": {
+        "_content": "jackal",
+        "description": "",
+        "hidden": true,
+        "nsfw": false,
+        "protected": true,
+        "variety": "E926"
+    },
+    "/kms": {
+        "_content": "https://www.youtube.com/watch?v=LY_WGL617nQ",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
+    "/lioness": {
+        "_content": "lion female solo",
+        "description": "",
+        "hidden": true,
+        "nsfw": false,
+        "protected": true,
+        "variety": "E926"
+    },
+    "/lynx": {
+        "_content": "lynx",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "E926"
+    },
+    "/macro_help": {
+        "_content": "Macro help: https://pastebin.com/raw/qzBR6GgB",
+        "description": "",
+        "hidden": true,
+        "nsfw": false,
+        "protected": true,
+        "variety": "TEXT"
+    },
+    "/maned_wolf": {
+        "_content": "maned_wolf",
+        "description": "",
+        "hidden": true,
+        "nsfw": false,
+        "protected": true,
+        "variety": "E926"
+    },
+    "/micro": {
+        "_content": "no, you want /macro :^)",
+        "description": "",
+        "hidden": true,
+        "nsfw": false,
+        "protected": true,
+        "variety": "TEXT"
+    },
+    "/mock": {
+        "_content": "text = ''\nif INPUT == '':\n#text = PRECEDING\nelse:\n#text = INPUT\n''.join([(text.lower()[i] if random.random() > .5 else text.upper()[i]) for i, c in enumerate(text)])",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "EVAL"
+    },
+    "/mybox": {
+        "_content": "({|})",
+        "description": "",
+        "hidden": true,
+        "nsfw": false,
+        "protected": true,
+        "variety": "TEXT"
+    },
+    "/none": {
+        "_content": "\u200d",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
+    "/nya": {
+        "_content": "text= ''\nif INPUT == '':\n#text = PRECEDING\nelse:\n#text = INPUT\n\" \".join([x+\" nyaa ^^\" if idx%random.randint(4, 6)==0 else x for idx, x in enumerate((text).split(\" \"))])",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "EVAL"
+    },
+    "/ointments": {
+        "_content": "Ointments.",
+        "description": "",
+        "hidden": true,
+        "nsfw": false,
+        "protected": true,
+        "variety": "TEXT"
+    },
+    "/ok": {
+        "_content": "ok",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
+    "/papi": {
+        "_content": "'Dick me daddy%s! ahn~ Give me your cummies \ud83c\udf52\ud83c\udf46\ud83d\udc45\ud83d\udca6 \ud83d\ude0d\ud83d\ude29\ud83d\ude1c\ud83d\ude0f' % (' '*bool(THEIR_NAME)+THEIR_NAME,)",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "EVAL"
+    },
+    "/plussy": {
+        "_content": "yoshi macro",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "E926"
+    },
+    "/replace": {
+        "_content": "args = INPUT.split('='); PRECEDING.replace(args[0], args[1])",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "EVAL"
+    },
+    "/roll": {
+        "_content": "if INPUT == '':\n#text = str(random.randint(1, 6))\nelif INPUT.isnumeric():\n#text = str(random.randint(1, int(INPUT)))\nelse:\n#text = \"Invalid input.\\n\\nProper syntax is /roll <positive integer>.\"\ntext",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "EVAL"
+    },
+    "/squid": {
+        "_content": "https://i.imgur.com/VMnaYQB.jpg",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "PHOTO"
+    },
+    "/start_info": {
+        "_content": "Yoshobot by @TeamFortress and @WyreYote, does lots of misc stuff. Do /help for details.",
+        "description": "",
+        "hidden": true,
+        "nsfw": false,
+        "protected": true,
+        "variety": "TEXT"
+    },
+    "/tagtest": {
+        "_content": "'You, ' + MY_NAME + ',\\nReplied to, ' + THEIR_NAME + ': ' + PRECEDING + '\\nWith: ' + INPUT + '\\n\\nAm I hidden: ' + str(HIDDEN) + '\\nAm I protected: ' + str(PROTECTED) + '\\n\\nWe are in: ' + GROUP",
+        "description": "",
+        "hidden": true,
+        "nsfw": false,
+        "protected": true,
+        "variety": "EVAL"
+    },
+    "/toeshi": {
+        "_content": "https://static1.e621.net/data/9d/a7/9da7776fd8aa0c9a84a6be722f136e04.png",
+        "description": "",
+        "hidden": true,
+        "nsfw": false,
+        "protected": false,
+        "variety": "PHOTO"
+    },
+    "/whoIsGay": {
+        "_content": "MY_NAME + ' is gay'",
+        "description": "",
+        "hidden": true,
+        "nsfw": false,
+        "protected": true,
+        "variety": "EVAL"
+    },
+    "/why": {
+        "_content": "~what_has_science_done ~where_is_your_god_now",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "E926"
+    },
+    "/yeet": {
+        "_content": "yeet",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
+    "/yoshi_cock": {
+        "_content": "https://static1.e621.net/data/d3/89/d38913f91cfffa73bff5cb7518c03aee.png",
+        "description": "",
+        "hidden": true,
+        "nsfw": false,
+        "protected": false,
+        "variety": "PHOTO"
+    },
+    "/yote": {
+        "_content": "coyote solo",
+        "description": "",
+        "hidden": true,
+        "nsfw": false,
+        "protected": true,
+        "variety": "E926"
+    },
+    "badtime": {
+        "_content": "\u2026\u2026\u2026\u2026/\u00b4\u00af/)\u2026\u2026\u2026\u2026\u2026.(\\\u00af`.\u2026\u2026\u2026\u2026..\n\u2026\u2026\u2026../\u2026//\u2026\u2026\u2026.i\u2026\u2026.\\\u2026.\u2026\u2026\u2026\u2026..\n\u2026\u2026\u2026./\u2026//\u2026fuken luv\u2026.\\\u2026.\u2026\u2026\u2026\u2026.\n\u2026../\u00b4\u00af/\u2026./\u00b4\u00af..undertale./\u00af` .\u2026\\\u00af`.\u2026\u2026.\n.././\u2026/\u2026./\u2026./.|_.have._|..\u2026.\u2026\u2026..\u2026..\n(.(b.(..a.(..d./..)..)\u2026\u2026(..(.\\ti.)..m.)..e.).)\u2026.\n..\u2026\u2026\u2026\u2026\u2026\\/\u2026/\u2026\u2026\u2026\\/\u2026\u2026\u2026\u2026\u2026./\u2026.\n\u2026\u2026\u2026\u2026\u2026\u2026.. /\u2026\u2026\u2026.\u2026\u2026\u2026\u2026\u2026..",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "INLINE"
+    },
+    "shrug": {
+        "_content": "\u00af\\_(\u30c4)_/\u00af",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "INLINE"
+    },
+    "youknow": {
+        "_content": "\u2800\u2800\u2800\u2800\u28e0\u28e6\u28e4\u28c0\n\u2800\u2800\u2800\u2800\u28a1\u28e4\u28ff\u28ff\n\u2800\u2800\u2800\u2800\u2820\u281c\u28be\u285f\n\u2800\u2800\u2800\u2800\u2800\u2839\u283f\u2803\u2804\n\u2800\u2800\u2808\u2800\u2809\u2809\u2811\u2800\u2800\u2820\u2888\u28c6\n\u2800\u2800\u28c4\u2800\u2800\u2800\u2800\u2800\u28b6\u28f7\u2803\u28b5\n\u2810\u2830\u28f7\u2800\u2800\u2800\u2800\u2880\u289f\u28fd\u28c6\u2800\u2883\n\u2830\u28fe\u28f6\u28e4\u287c\u28b3\u28e6\u28e4\u28f4\u28fe\u28ff\u28ff\u281e\n\u2800\u2808\u2809\u2809\u281b\u281b\u2809\u2809\u2809\u2819\u2801\n\u2800\u2800\u2850\u2818\u28ff\u28ff\u28ef\u283f\u281b\u28ff\u2844\n\u2800\u2800\u2801\u2880\u28c4\u28c4\u28e0\u2865\u2814\u28fb\u2847\n\u2800\u2800\u2800\u2818\u28db\u28ff\u28df\u28d6\u28ad\u28ff\u2847\n\u2800\u2800\u2880\u28ff\u28ff\u28ff\u28ff\u28f7\u28ff\u28fd\u2847\n\u2800\u2800\u28b8\u28ff\u28ff\u28ff\u2847\u28ff\u28ff\u28ff\u28c7\n\u2800\u2800\u2800\u28b9\u28ff\u28ff\u2840\u2838\u28ff\u28ff\u284f\n\u2800\u2800\u2800\u28b8\u28ff\u28ff\u2807\u2800\u28ff\u28ff\u28ff\n\u2800\u2800\u2800\u2808\u28ff\u28ff\u2800\u2800\u28b8\u28ff\u287f\n\u2800\u2800\u2800\u2800\u28ff\u28ff\u2800\u2800\u2880\u28ff\u2847\n\u2800\u28e0\u28f4\u28ff\u287f\u281f\u2800\u2800\u28b8\u28ff\u28f7\n\u2800\u2809\u2809\u2801\u2800\u2800\u2800\u2800\u28b8\u28ff\u28ff\u2801\n\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2808",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "INLINE"
+    }
+}
