@@ -105,7 +105,7 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, action=
         if time_check and name_check and mod_check:
 
             title = chat.type + ' -> ' + (chat.title if chat.username is None else '@' + chat.username)
-            logger.info('{0} command called from {1}, user: @{2}, with message: "{3}"'
+            logger.info('{} command called from {}, user: @{}, with message: "{}"'
                         .format(method.__name__, title, message_user, message.text))
 
             # flood detector
@@ -147,7 +147,7 @@ def build_menu(buttons, n_cols, header_buttons=None, footer_buttons=None):
 
 # noinspection PyUnusedLocal
 def error(bot, update, error):
-    logger.warning('Update "{0}" caused error "{1}"'.format(update, error))
+    logger.warning('Update "{}" caused error "{}"'.format(update, error))
 
 
 updater.dispatcher.add_error_handler(error)
@@ -220,7 +220,7 @@ def set_global(bot, update):
     global GLOBALS
     args = [a.strip() for a in clean(update.message.text).split('=')]
     names = (k for k, v in globals().items() if type(v) in (int, bool))
-    listed = ('{0} = {1}'.format(k, v) for k, v in globals().items() if type(v) in (int, bool))
+    listed = ('{} = {}'.format(k, v) for k, v in globals().items() if type(v) in (int, bool))
     if len(args) > 1:
         if args[0] in names:
             if str(args[1]).isnumeric():
@@ -264,7 +264,7 @@ def evaluate(bot, update, cmd=None, symbols=None):
     interp = Interpreter()
     if EVAL_MEMORY and name in INTERPRETERS.keys():
         interp.symtable = {**INTERPRETERS[name], **Interpreter().symtable}
-        logger.debug('Loaded interpreter "{0}": {1}'.format(name, INTERPRETERS[name]))
+        logger.debug('Loaded interpreter "{}": {}'.format(name, INTERPRETERS[name]))
 
     quoted = update.message.reply_to_message
     preceding = '' if quoted is None else quoted.text
@@ -290,7 +290,7 @@ def evaluate(bot, update, cmd=None, symbols=None):
     if EVAL_MEMORY and cmd is None:
         INTERPRETERS[name] = {k: v for k, v in interp.symtable.items() if k not in
                               Interpreter().symtable.keys() and k not in symbols.keys()}
-        logger.debug('Saved interpreter "{0}": {1}'.format(name, INTERPRETERS[name]))
+        logger.debug('Saved interpreter "{}": {}'.format(name, INTERPRETERS[name]))
 
     if ctx.state == ctx.TIMED_OUT:
         result += 'Timed out.'
@@ -376,9 +376,9 @@ def macro(bot, update):
         if expr is not None:
             try:
                 MACROS.add(Macro(name, mode.upper(), expr, hidden=False, protected=is_mod(user), nsfw=False))
+                message.reply_text(text='{} macro "{}" created.'.format(mode, name))
             except ValueError:
                 message.reply_text(text=err + 'Bad photo url.')
-            message.reply_text(text='{0} macro "{1}" created.'.format(mode, name))
         else:
             message.reply_text(text=err + 'Missing macro contents.')
 
@@ -386,9 +386,9 @@ def macro(bot, update):
         if name in MACROS and expr is not None:
             try:
                 MACROS[name].content = expr
+                message.reply_text(text='Macro "{}" modified.'.format(name))
             except ValueError:
                 message.reply_text(text=err + 'Bad photo url.')
-            message.reply_text(text='Macro "{}" modified.'.format(name))
         elif expr is None:
             message.reply_text(text=err + 'Missing macro text/code.')
         else:
@@ -412,7 +412,7 @@ def macro(bot, update):
         if name in MACROS:
             new_name = expr.split(' ')[0]
             MACROS[name].name = new_name
-            message.reply_text(text='Macro "{0}" renamed to {1}'.format(name, new_name))
+            message.reply_text(text='Macro "{}" renamed to {}'.format(name, new_name))
         else:
             message.reply_text(text=err + 'No macro with name {}.'.format(name))
 
@@ -445,7 +445,7 @@ def macro(bot, update):
     elif mode == 'contents':
         if name in MACROS:
             if not MACROS[name].hidden or is_mod(user):
-                message.reply_text('Contents of {0} macro {1}: {2}'
+                message.reply_text('Contents of {} macro {}: {}'
                                    .format(MACROS[name].variety.lower(), name, MACROS[name].contents))
             else:
                 message.reply_text(text=err + 'Macro {} contents hidden.'.format(name))
@@ -456,7 +456,7 @@ def macro(bot, update):
         if name in MACROS:
             if is_mod(user):
                 MACROS[name].hidden ^= True
-                message.reply_text('Hide macro {0}: {1}'.format(name, MACROS[name].hidden))
+                message.reply_text('Hide macro {}: {}'.format(name, MACROS[name].hidden))
             else:
                 message.reply_text(text=err + 'Only bot mods can hide or show macros.')
         else:
@@ -466,7 +466,7 @@ def macro(bot, update):
         if name in MACROS:
             if is_mod(user):
                 MACROS[name].protected ^= True
-                message.reply_text('Protect macro {0}: {1}'.format(name, MACROS[name].protected))
+                message.reply_text('Protect macro {}: {}'.format(name, MACROS[name].protected))
             else:
                 message.reply_text(text=err + 'Only bot mods can protect macros.')
         else:
@@ -543,7 +543,7 @@ def wolfram_callback(bot, update):
         for idx, subpod in enumerate(data[1]):
             url = subpod.find('img').attrib['src']
             title = subpod.attrib['title']
-            caption = 'Selection: {0}{1}\nInput: {2}'.format(data[0], '\nSubpod: ' * bool(title) + title, data[2])
+            caption = 'Selection: {}{}\nInput: {}'.format(data[0], '\nSubpod: ' * bool(title) + title, data[2])
 
             img_b = io.BytesIO(requests.get(url).content)
             img = Image.open(img_b)
