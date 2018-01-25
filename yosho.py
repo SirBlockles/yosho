@@ -119,6 +119,10 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, action=
                         if bot.username in admins:
                             bot.deleteMessage(chat_id=message.chat_id, message_id=message.message_id)
                         else:
+                            bot.send_message(chat_id=message.chat_id, reply_to_message_id=message.message_id, text=
+                            'Command caught by flood detector. There is a {} second cooldown between commands!\n'
+                            'Mod me to disable these messages and'
+                            ' enable automatic flood deletion.'.format(FLOOD_TIMEOUT))
                             logger.debug("flood detector couldn't delete command")
 
                         logger.info('message canceled by flood detector: ' + str(elapsed))
@@ -634,18 +638,18 @@ inline_handler = InlineQueryHandler(inline_stuff)
 updater.dispatcher.add_handler(inline_handler)
 
 
-@modifiers(name='ALLOW_UNNAMED', flood=False)
+@modifiers(name='ALLOW_UNNAMED')
 def call_macro(bot, update):  # process macros and invalid commands.
     message = update.message
     quoted = message.reply_to_message
 
     # noinspection PyUnusedLocal
-    @modifiers(age=False, name=True, action=Ca.TYPING)
+    @modifiers(age=False, flood=False, name=True, action=Ca.TYPING)
     def invalid(bot, update, text):
         update.message.reply_text(text=text)
 
     # noinspection PyUnusedLocal
-    @modifiers(age=False, action=Ca.TYPING)
+    @modifiers(age=False, flood=False, action=Ca.TYPING)
     def known(bot, update, text):
         if quoted is None:
             update.message.reply_text(text=text)
@@ -653,7 +657,7 @@ def call_macro(bot, update):  # process macros and invalid commands.
             quoted.reply_text(text=text)
 
     # noinspection PyUnusedLocal
-    @modifiers(age=False, action=Ca.UPLOAD_PHOTO)
+    @modifiers(age=False, flood=False, action=Ca.UPLOAD_PHOTO)
     def photo(bot, update, url):
         try:
             if quoted is None:
