@@ -32,7 +32,7 @@ db = dropbox.Dropbox(DROPBOX_TOKEN)
 
 MODS = {'wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'radookal', 'pawjob'}
 
-# not PEP-8 compliant but idc
+# not PEP8 compliant but idc
 is_mod = lambda name: name.lower() in MODS
 clean = lambda s: str.strip(re.sub('/[@\w]+\s+', '', s + ' ', 1))  # strips command name and bot name from input
 db_pull = lambda name: db.files_download_to_file(name, '/' + name)
@@ -72,7 +72,7 @@ last_commands = {}
 
 def load_globals():
     for k, g in globals().items():
-        if type(g) in (int, bool):
+        if isinstance(g, (int, bool)):
             if k in GLOBALS.keys():
                 globals()[k] = GLOBALS[k]
     logger.level = LOGGING_LEVEL
@@ -173,6 +173,23 @@ def die(bot, update):
 
 die_handler = CommandHandler("die", die)
 updater.dispatcher.add_handler(die_handler)
+
+
+@modifiers(mods=True, action=Ca.TYPING)
+def leave(bot, update):
+    chat = clean(update.message.text)
+    try:
+        if chat.replace('-', '').isnumeric():
+            bot.leave_chat(chat_id=int(chat))
+        else:
+            bot.leave_chat(chat_id=chat)
+        update.message.reply_text(text='Left chat {}.'.format(chat))
+    except TelegramError:
+        update.message.reply_text(text='Error leaving chat {}.\nMake sure chat name/id is valid!'.format(chat))
+
+
+leave_handler = CommandHandler('leave', leave)
+updater.dispatcher.add_handler(leave_handler)
 
 
 # noinspection PyUnusedLocal
@@ -498,7 +515,7 @@ def wolfram(bot, update):
     if name not in WOLFRAM_RESULTS.keys():
         WOLFRAM_RESULTS[name] = None
 
-    if not query == '':
+    if query != '':
         # construct the request
         base = 'http://api.wolframalpha.com/v2/query'
         params = {'appid': WOLFRAM_TOKEN, 'input': query, 'width': 800}
