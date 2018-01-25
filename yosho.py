@@ -105,8 +105,8 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, action=
         if time_check and name_check and mod_check:
 
             title = chat.type + ' -> ' + (chat.title if chat.username is None else '@' + chat.username)
-            logger.info('{} command called from {}, user: @{}, with message: "{}"'
-                        .format(method.__name__, title, message_user, message.text))
+            logger.info('{} command called from {{{}, {}}}, user: @{}, with message: "{}"'
+                        .format(method.__name__, title, chat.id, message_user, message.text))
 
             # flood detector
             start = time.time()
