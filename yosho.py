@@ -478,7 +478,7 @@ def macro(bot, update):
         if name in MACROS:
             if not MACROS[name].hidden or is_mod(user):
                 message.reply_text('Contents of {} macro {}: {}'
-                                   .format(MACROS[name].variety.lower(), name, MACROS[name].contents))
+                                   .format(MACROS[name].variety.lower(), name, MACROS[name].content))
             else:
                 message.reply_text(text=err + 'Macro {} contents hidden.'.format(name))
         else:
