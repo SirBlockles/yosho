@@ -267,6 +267,9 @@ updater.dispatcher.add_handler(globals_handler)
 @modifiers(action=Ca.TYPING)
 def evaluate(bot, update, cmd=None, symbols=None):
     global INTERPRETERS
+    user = update.message.from_user
+    message_user = user.username if user.username is not None else user.name
+
     err = 'Invalid input:\n\n'
     result = err
 
@@ -274,7 +277,9 @@ def evaluate(bot, update, cmd=None, symbols=None):
 
     if expr == '':
         update.message.text = '/eval_info' + bot.name.lower()
+        temp = last_commands[message_user]
         call_macro(bot, update)
+        last_commands[message_user] = temp
         return
 
     if len(expr) > EVAL_MAX_INPUT:
@@ -363,7 +368,9 @@ def macro(bot, update):
 
     if expr == '':
         update.message.text = '/macro_help' + bot.name.lower()
+        temp = last_commands[message_user]
         call_macro(bot, update)
+        last_commands[message_user] = temp
         return
 
     args = re.split('\s+', expr)
@@ -638,18 +645,18 @@ inline_handler = InlineQueryHandler(inline_stuff)
 updater.dispatcher.add_handler(inline_handler)
 
 
-@modifiers(name='ALLOW_UNNAMED')
+@modifiers(name='ALLOW_UNNAMED', flood=False)
 def call_macro(bot, update):  # process macros and invalid commands.
     message = update.message
     quoted = message.reply_to_message
 
     # noinspection PyUnusedLocal
-    @modifiers(age=False, flood=False, name=True, action=Ca.TYPING)
+    @modifiers(age=False, name=True, action=Ca.TYPING)
     def invalid(bot, update, text):
         update.message.reply_text(text=text)
 
     # noinspection PyUnusedLocal
-    @modifiers(age=False, flood=False, action=Ca.TYPING)
+    @modifiers(age=False, action=Ca.TYPING)
     def known(bot, update, text):
         if quoted is None:
             update.message.reply_text(text=text)
@@ -657,7 +664,7 @@ def call_macro(bot, update):  # process macros and invalid commands.
             quoted.reply_text(text=text)
 
     # noinspection PyUnusedLocal
-    @modifiers(age=False, flood=False, action=Ca.UPLOAD_PHOTO)
+    @modifiers(age=False, action=Ca.UPLOAD_PHOTO)
     def photo(bot, update, url):
         try:
             if quoted is None:
