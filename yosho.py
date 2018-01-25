@@ -278,6 +278,7 @@ def evaluate(bot, update, cmd=None, symbols=None):
     if expr == '':
         update.message.text = '/eval_info' + bot.name.lower()
         temp = last_commands[message_user]
+        last_commands[message_user] = 0
         call_macro(bot, update)
         last_commands[message_user] = temp
         return
@@ -348,6 +349,8 @@ updater.dispatcher.add_handler(eval_handler)
 def macro(bot, update):
     global MACROS
     message = update.message
+    user = update.message.from_user
+    message_user = user.username if user.username is not None else user.name
 
     modes = {'eval': 'macro',
              'text': 'macro',
@@ -369,6 +372,7 @@ def macro(bot, update):
     if expr == '':
         update.message.text = '/macro_help' + bot.name.lower()
         temp = last_commands[message_user]
+        last_commands[message_user] = 0
         call_macro(bot, update)
         last_commands[message_user] = temp
         return
