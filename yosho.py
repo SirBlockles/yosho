@@ -738,7 +738,7 @@ def call_macro(bot, update):  # process macros and invalid commands.
                 photo(bot, update, content)
 
             elif variety == Macro.E621:
-                e621(bot, update, tags=content)
+                e621(bot, update, tags=content + ' ' + clean(message.text))
 
             elif variety == Macro.INLINE:
                 quoted = None
