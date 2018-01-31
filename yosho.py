@@ -235,7 +235,7 @@ updater.dispatcher.add_handler(leave_handler)
 # noinspection PyUnusedLocal
 @modifiers(action=Ca.UPLOAD_PHOTO)
 def e621(bot, update, tags=None):
-    failed = 'Error:\n\ne926 query failed.'
+    failed = 'Error:\n\ne621 query failed.'
 
     index = 'https://e621.net/post/index.json'
     chat = update.message.chat
@@ -263,10 +263,10 @@ def e621(bot, update, tags=None):
             try:
                 update.message.reply_photo(photo=url, timeout=IMAGE_SEND_TIMEOUT)
             except TelegramError:
-                logger.debug('TelegramError in e926.')
+                logger.debug('TelegramError in e621.')
                 update.message.reply_text(text=failed)
         else:
-            logger.debug('Bad tags entered in e926.')
+            logger.debug('Bad tags entered in e621.')
             update.message.reply_text(text=failed)
     else:
         update.message.reply_text(text=failed)
