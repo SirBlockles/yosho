@@ -90,9 +90,10 @@ load_globals()
 # name checks if correct bot @name is present if value is True, also passes unnamed commands if value is ALLOW_UNNAMED
 # mods is bot mods, admin is chat admins/owner
 # TODO use kwargs instead of multiple optional arguments.
-def modifiers(method=None, age=True, name=False, mods=False, flood=True, admins=False, action=None):
+def modifiers(method=None, age=True, name=False, mods=False, flood=True, admins=False, nsfw=False, action=None):
     if method is None:  # if method is None optional arguments have been passed, return usable decorator
-        return functools.partial(modifiers, age=age, name=name, mods=mods, flood=flood, admins=False, action=action)
+        return functools.partial(modifiers, age=age, name=name, mods=mods, flood=flood,
+                                 admins=admins, nsfw=nsfw, action=action)
 
     @functools.wraps(method)
     def wrap(*args, **kwargs):  # otherwise wrap function and continue
@@ -104,6 +105,7 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, admins=
         message_user = user.username if user.username is not None else user.name  # name of OP/user of command
         message_age = (datetime.datetime.now() - message.date).total_seconds()  # age of message in minutes
         chat = message.chat
+        title = chat.title if chat.username is None else '@' + chat.username
         admins_list = [x.user.username for x in bot.getChatAdministrators(chat_id=message.chat_id,
                                                                      message_id=message.message_id)]
 
@@ -112,9 +114,9 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, admins=
         name_check = not name or message_bot == bot.name.lower() or (message_bot is None and name == 'ALLOW_UNNAMED')
         mod_check = not mods or is_mod(message_user)
         admin_check = not admins or message_user in admins_list
-        if all((time_check, name_check, mod_check, admin_check)):
+        nsfw_check = not nsfw or (title in SFW.keys() and not SFW[title])
+        if all((time_check, name_check, mod_check, admin_check, nsfw_check)):
 
-            title = (chat.title if chat.username is None else '@' + chat.username)
             logger.info('{} command called from {} -> {{{}, {}}}, user: @{}, with message: "{}"'
                         .format(method.__name__, chat.type, title, chat.id, message_user, message.text))
 
@@ -228,14 +230,19 @@ updater.dispatcher.add_handler(leave_handler)
 
 # noinspection PyUnusedLocal
 @modifiers(action=Ca.UPLOAD_PHOTO)
-def e926(bot, update, tags=None):
+def e621(bot, update, tags=None):
     failed = 'Error:\n\ne926 query failed.'
+
+    index = 'https://e621.net/post/index.json'
+    chat = update.message.chat
+    name = chat.title if chat.username is None else '@' + chat.username
+    if name in SFW.keys() and SFW[name]:
+        index = 'https://e926.net/post/index.json'
 
     if tags is None:
         tags = clean(update.message.text)
 
     # construct the request
-    index = 'https://e926.net/post/index.json'
     params = {'limit': '50', 'tags': tags}
     headers = {'User-Agent': 'YoshoBot || @WyreYote and @TeamFortress on Telegram'}
 
@@ -261,8 +268,8 @@ def e926(bot, update, tags=None):
         update.message.reply_text(text=failed)
 
 
-e926_handler = CommandHandler("e926", e926)
-updater.dispatcher.add_handler(e926_handler)
+e621_handler = CommandHandler("e621", e621)
+updater.dispatcher.add_handler(e621_handler)
 
 
 # noinspection PyUnusedLocal
@@ -721,8 +728,8 @@ def call_macro(bot, update):  # process macros and invalid commands.
         elif variety == Macro.PHOTO:
             photo(bot, update, content)
 
-        elif variety == Macro.E926:
-            e926(bot, update, tags=content)
+        elif variety == Macro.E621:
+            e621(bot, update, tags=content)
 
         elif variety == Macro.INLINE:
             quoted = None

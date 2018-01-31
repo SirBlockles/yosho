@@ -3,12 +3,10 @@ import json
 
 
 class Macro:
-    _varieties = ('TEXT', 'EVAL', 'PHOTO', 'INLINE', 'E926', 'ALIAS')
-    TEXT, EVAL, PHOTO, INLINE, E926, ALIAS = _varieties
+    _varieties = ('TEXT', 'EVAL', 'PHOTO', 'INLINE', 'E621', 'ALIAS')
+    TEXT, EVAL, PHOTO, INLINE, E621, ALIAS = _varieties
 
     def __init__(self, name, variety, content, description='', hidden=False, protected=False, nsfw=False):
-        if variety not in Macro._varieties:
-            raise AttributeError(variety + ' is not a macro variety.')
         self.name = str(name)
         self.variety = variety
         self._content = None
@@ -57,7 +55,7 @@ class MacroSet:
         return MacroSet({m for m in self.macros if all((hidden is None or m.hidden == hidden,
                                                         protected is None or m.protected == protected,
                                                         nsfw is None or m.nsfw == nsfw,
-                                                        variety is None or m.variety.lower() == variety,
+                                                        variety is None or variety in {m.variety.lower(), m.variety},
                                                         match is None or m.name == match,
                                                         search is None or search in m.name))})
 
