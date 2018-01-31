@@ -711,6 +711,7 @@ def call_macro(bot, update):  # process macros and invalid commands.
             logger.debug('TelegramError in photo macro call: ' + str(url))
 
     def run(command=None):
+        global quoted
 
         if command is None:
             command = re.sub('@[@\w]+', '', re.split('\s+', message.text)[0])
