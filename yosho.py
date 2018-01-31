@@ -715,20 +715,20 @@ def call_macro(bot, update):  # process macros and invalid commands.
                        'PROTECTED': MACROS[command].protected}
             evaluate(bot, update, cmd=content, symbols=symbols)
 
-        elif variety == 'TEXT':
+        elif variety == Macro.TEXT:
             known(bot, update, content)
 
-        elif variety == 'PHOTO':
+        elif variety == Macro.PHOTO:
             photo(bot, update, content)
 
-        elif variety == 'E926':
+        elif variety == Macro.E926:
             e926(bot, update, tags=content)
 
-        elif variety == 'INLINE':
+        elif variety == Macro.INLINE:
             quoted = None
             known(bot, update, "Macro error:\n\nThat's an inline macro! Try @yosho_bot " + command)
 
-        elif variety == 'ALIAS':
+        elif variety == Macro.ALIAS:
             update.message.text = 'content' + bot.name.lower()
             call_macro(bot, update)
 

@@ -3,8 +3,8 @@ import json
 
 
 class Macro:
-    _varieties = ('TEXT', 'EVAL', 'PHOTO', 'INLINE', 'E926')
-    TEXT, EVAL, PHOTO, INLINE, E926 = _varieties
+    _varieties = ('TEXT', 'EVAL', 'PHOTO', 'INLINE', 'E926', 'ALIAS')
+    TEXT, EVAL, PHOTO, INLINE, E926, ALIAS = _varieties
 
     def __init__(self, name, variety, content, description='', hidden=False, protected=False, nsfw=False):
         if variety not in Macro._varieties:
