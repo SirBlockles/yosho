@@ -106,14 +106,18 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, admins=
         message_age = (datetime.datetime.now() - message.date).total_seconds()  # age of message in minutes
         chat = message.chat
         title = chat.title if chat.username is None else '@' + chat.username
-        admins_list = [x.user.username for x in bot.getChatAdministrators(chat_id=message.chat_id,
-                                                                     message_id=message.message_id)]
+
+        if chat.type == 'private':
+            admins_list = [message_user]
+        else:
+            admins_list = [x.user.username for x in bot.getChatAdministrators(chat_id=message.chat_id,
+                                                                         message_id=message.message_id)]
 
         # check incoming message attributes
         time_check = not age or message_age < MESSAGE_TIMEOUT
         name_check = not name or message_bot == bot.name.lower() or (message_bot is None and name == 'ALLOW_UNNAMED')
         mod_check = not mods or is_mod(message_user)
-        admin_check = chat.type == 'private' or not admins or message_user in admins_list
+        admin_check = not admins or message_user in admins_list
         nsfw_check = not nsfw or (title in SFW.keys() and not SFW[title])
         if all((time_check, name_check, mod_check, admin_check, nsfw_check)):
 
@@ -706,41 +710,45 @@ def call_macro(bot, update):  # process macros and invalid commands.
         except TelegramError:
             logger.debug('TelegramError in photo macro call: ' + str(url))
 
-    command = re.sub('@[@\w]+', '', re.split('\s+', message.text)[0])
-    if command in MACROS:
-        variety = MACROS[command].variety
-        content = MACROS[command].content
-        if MACROS[command].nsfw and name in SFW.keys():
-            if SFW[name]:
-                known(bot, update, "Macro error:\n\n{} is NSFW, this chat has been marked as SFW by the admins!"
-                      .format(command))
-                return
+    def run(command=None):
 
-        if variety == Macro.EVAL:
-            symbols = {'INPUT': clean(message.text),
-                       'HIDDEN': MACROS[command].hidden,
-                       'PROTECTED': MACROS[command].protected}
-            evaluate(bot, update, cmd=content, symbols=symbols)
+        if command is None:
+            command = re.sub('@[@\w]+', '', re.split('\s+', message.text)[0])
 
-        elif variety == Macro.TEXT:
-            known(bot, update, content)
+        if command in MACROS:
+            variety = MACROS[command].variety
+            content = MACROS[command].content
+            if MACROS[command].nsfw and name in SFW.keys():
+                if SFW[name]:
+                    known(bot, update, "Macro error:\n\n{} is NSFW, this chat has been marked as SFW by the admins!"
+                          .format(command))
+                    return
 
-        elif variety == Macro.PHOTO:
-            photo(bot, update, content)
+            if variety == Macro.EVAL:
+                symbols = {'INPUT': clean(message.text),
+                           'HIDDEN': MACROS[command].hidden,
+                           'PROTECTED': MACROS[command].protected}
+                evaluate(bot, update, cmd=content, symbols=symbols)
 
-        elif variety == Macro.E621:
-            e621(bot, update, tags=content)
+            elif variety == Macro.TEXT:
+                known(bot, update, content)
 
-        elif variety == Macro.INLINE:
-            quoted = None
-            known(bot, update, "Macro error:\n\nThat's an inline macro! Try @yosho_bot " + command)
+            elif variety == Macro.PHOTO:
+                photo(bot, update, content)
 
-        elif variety == Macro.ALIAS:
-            update.message.text = 'content' + bot.name.lower()
-            call_macro(bot, update)
+            elif variety == Macro.E621:
+                e621(bot, update, tags=content)
 
-    else:
-        invalid(bot, update, 'Error:\n\nUnknown command: ' + command)
+            elif variety == Macro.INLINE:
+                quoted = None
+                known(bot, update, "Macro error:\n\nThat's an inline macro! Try @yosho_bot " + command)
+
+            elif variety == Macro.ALIAS:
+                run(content)
+
+        else:
+            invalid(bot, update, 'Error:\n\nUnknown command: ' + command)
+    run()
 
 
 macro_handler = RegexHandler(r'/.*', call_macro)
