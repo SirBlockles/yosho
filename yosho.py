@@ -391,7 +391,7 @@ def macro(bot, update):
              'text': 'macro',
              'inline': 'macro',
              'photo': 'macro',
-             'e926': 'macro',
+             'e621': 'macro',
              'alias': 'macro',
              'remove': 'write',
              'hide': 'write',
