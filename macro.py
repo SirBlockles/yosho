@@ -3,11 +3,11 @@ import json
 
 
 class Macro:
-    __varieties = ('TEXT', 'EVAL', 'PHOTO', 'INLINE', 'E926')
-    TEXT, EVAL, PHOTO, INLINE, E926 = __varieties
+    _varieties = ('TEXT', 'EVAL', 'PHOTO', 'INLINE', 'E926')
+    TEXT, EVAL, PHOTO, INLINE, E926 = _varieties
 
     def __init__(self, name, variety, content, description='', hidden=False, protected=False, nsfw=False):
-        if variety not in Macro.__varieties:
+        if variety not in Macro._varieties:
             raise AttributeError(variety + ' is not a macro variety.')
         self.name = str(name)
         self.variety = variety
@@ -30,11 +30,29 @@ class Macro:
         self._content = value
 
     def __repr__(self):
-        return '{} macro "{}": "{}"'.format(self.variety, self.name, self._content)
+        return 'Macro "{}": {} "{}"'.format(self.name, self.variety, self._content)
 
 
 class MacroSet:
-    def subset(self, match=None, search=None, variety=None, hidden=None, protected=None, nsfw=None):
+    def subset(self, match=None, search=None, variety=None, hidden=False, protected=None, nsfw=None, filt=None):
+
+        if filt:
+            k = filt.keys()
+
+            if 'match' in k:
+                match = filt['match']
+            if 'search' in k:
+                search = filt['search']
+            if 'variety' in k:
+                variety = filt['variety']
+
+            if 'hidden' in k:
+                hidden = int(filt['hidden'])
+            if 'protected' in k:
+                protected = int(filt['protected'])
+            if 'nsfw' in k:
+                nsfw = int(filt['nsfw'])
+
         return MacroSet({m for m in self.macros if all((hidden is None or m.hidden == hidden,
                                                         protected is None or m.protected == protected,
                                                         nsfw is None or m.nsfw == nsfw,

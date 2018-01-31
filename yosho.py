@@ -37,6 +37,11 @@ is_mod = lambda name: name.lower() in MODS
 clean = lambda s: str.strip(re.sub('/[@\w]+\s+', '', s + ' ', 1))  # strips command name and bot name from input
 db_pull = lambda name: db.files_download_to_file(name, '/' + name)
 db_push = lambda name: db.files_upload(open(name, 'rb').read(), '/' + name, mode=WriteMode('overwrite'))
+db_make = lambda name: db.files_upload(open(name, 'rb').read(), '/' + name, mode=WriteMode('add'))
+
+SFW_PATH = 'SFW.pkl'
+db_pull(SFW_PATH)
+SFW = pickle.load(open(SFW_PATH, 'rb'))
 
 GLOBALS_PATH = 'GLOBALS.pkl'
 db_pull(GLOBALS_PATH)
@@ -67,7 +72,7 @@ jobs = updater.job_queue
 logging.basicConfig(format='%(asctime)s - [%(levelname)s] - %(message)s')
 logger = logging.getLogger(__name__)
 logger.info("Loading bot...")
-last_commands = {}
+last_commands = dict()
 
 
 def load_globals():
@@ -81,11 +86,13 @@ def load_globals():
 load_globals()
 
 
-# message modifiers decorator.
+# message modifiers decorator
 # name checks if correct bot @name is present if value is True, also passes unnamed commands if value is ALLOW_UNNAMED
-def modifiers(method=None, age=True, name=False, mods=False, flood=True, action=None):
+# mods is bot mods, admin is chat admins/owner
+# TODO use kwargs instead of multiple optional arguments.
+def modifiers(method=None, age=True, name=False, mods=False, flood=True, admins=False, action=None):
     if method is None:  # if method is None optional arguments have been passed, return usable decorator
-        return functools.partial(modifiers, age=age, name=name, mods=mods, flood=flood, action=action)
+        return functools.partial(modifiers, age=age, name=name, mods=mods, flood=flood, admins=False, action=action)
 
     @functools.wraps(method)
     def wrap(*args, **kwargs):  # otherwise wrap function and continue
@@ -97,12 +104,15 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, action=
         message_user = user.username if user.username is not None else user.name  # name of OP/user of command
         message_age = (datetime.datetime.now() - message.date).total_seconds()  # age of message in minutes
         chat = message.chat
+        admins_list = [x.user.username for x in bot.getChatAdministrators(chat_id=message.chat_id,
+                                                                     message_id=message.message_id)]
 
         # check incoming message attributes
         time_check = not age or message_age < MESSAGE_TIMEOUT
         name_check = not name or message_bot == bot.name.lower() or (message_bot is None and name == 'ALLOW_UNNAMED')
         mod_check = not mods or is_mod(message_user)
-        if time_check and name_check and mod_check:
+        admin_check = not admins or message_user in admins_list
+        if all((time_check, name_check, mod_check, admin_check)):
 
             title = (chat.title if chat.username is None else '@' + chat.username)
             logger.info('{} command called from {} -> {{{}, {}}}, user: @{}, with message: "{}"'
@@ -114,15 +124,13 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, action=
                 if message_user in last_commands.keys() and not is_mod(message_user):
                     elapsed = start - last_commands[message_user]
                     if elapsed < FLOOD_TIMEOUT:
-                        admins = [x.user.username for x in bot.getChatAdministrators(chat_id=message.chat_id,
-                                                                                     message_id=message.message_id)]
-                        if bot.username in admins:
+                        if bot.username in admins_list:
                             bot.deleteMessage(chat_id=message.chat_id, message_id=message.message_id)
                         else:
                             bot.send_message(chat_id=message.chat_id, reply_to_message_id=message.message_id, text=
-                            'Command caught by flood detector. There is a {} second cooldown between commands!\n'
-                            'Mod me to disable these messages and'
-                            ' enable automatic flood deletion.'.format(FLOOD_TIMEOUT))
+                            "There's a {} second cooldown between commands!\n"
+                            "Mod me for automatic flood deletion.".format(FLOOD_TIMEOUT))
+
                             logger.debug("flood detector couldn't delete command")
 
                         logger.info('message canceled by flood detector: ' + str(elapsed))
@@ -147,6 +155,10 @@ def build_menu(buttons, n_cols, header_buttons=None, footer_buttons=None):
     if footer_buttons:
         menu.append(footer_buttons)
     return menu
+
+
+def no_flood(u):
+    last_commands[u] = time.time() - MESSAGE_TIMEOUT * 2
 
 
 # noinspection PyUnusedLocal
@@ -177,6 +189,24 @@ def die(bot, update):
 
 die_handler = CommandHandler("die", die)
 updater.dispatcher.add_handler(die_handler)
+
+
+# noinspection PyUnusedLocal
+@modifiers(flood=False, admins=True, action=Ca.TYPING)
+def sfw(bot, update):
+    chat = update.message.chat
+    name = chat.title if chat.username is None else '@' + chat.username
+    if name in SFW.keys():
+        SFW[name] ^= True
+    else:
+        SFW[name] = True
+    pickle.dump(SFW, open(SFW_PATH, 'wb+'))
+    db_push(SFW_PATH)
+    update.message.reply_text(text='Chat {} is SFW only: {}'.format(name, SFW[name]))
+
+
+sfw_handler = CommandHandler("sfw", sfw)
+updater.dispatcher.add_handler(sfw_handler)
 
 
 @modifiers(mods=True, action=Ca.TYPING)
@@ -277,10 +307,8 @@ def evaluate(bot, update, cmd=None, symbols=None):
 
     if expr == '':
         update.message.text = '/eval_info' + bot.name.lower()
-        temp = last_commands[message_user]
-        last_commands[message_user] = 0
+        no_flood(message_user)
         call_macro(bot, update)
-        last_commands[message_user] = temp
         return
 
     if len(expr) > EVAL_MAX_INPUT:
@@ -357,12 +385,14 @@ def macro(bot, update):
              'inline': 'macro',
              'photo': 'macro',
              'e926': 'macro',
+             'alias': 'macro',
              'remove': 'write',
              'hide': 'write',
              'protect': 'write',
              'clean': 'write',
              'modify': 'write',
              'rename': 'write',
+             'nsfw': 'write',
              'contents': 'read',
              'list': 'read'}
 
@@ -371,10 +401,8 @@ def macro(bot, update):
 
     if expr == '':
         update.message.text = '/macro_help' + bot.name.lower()
-        temp = last_commands[message_user]
-        last_commands[message_user] = 0
+        no_flood(message_user)
         call_macro(bot, update)
-        last_commands[message_user] = temp
         return
 
     args = re.split('\s+', expr)
@@ -442,33 +470,17 @@ def macro(bot, update):
 
     elif mode == 'rename':
         if name in MACROS:
-            new_name = expr.split(' ')[0]
+            new_name = args[1]
             MACROS[name].name = new_name
             message.reply_text(text='Macro "{}" renamed to {}'.format(name, new_name))
         else:
             message.reply_text(text=err + 'No macro with name {}.'.format(name))
 
     elif mode == 'list':
-        mod = is_mod(user)
-        if name == 'all' and mod:
-            names = ((bot.name + ' ') * (m.variety == Macro.INLINE) + m.name for m in MACROS)
-            message.reply_text('All macros:\n' + ', '.join(names))
-
-        elif name == 'hidden' and mod:
-            names = ((bot.name + ' ') * (m.variety == Macro.INLINE) + m.name for m in
-                     MACROS.subset(hidden=True))
-            message.reply_text('Hidden macros:\n' + ', '.join(names))
-
-        elif name == 'protected' and mod:
-            names = ((bot.name + ' ') * (m.variety == Macro.INLINE) + m.name for m in
-                     MACROS.subset(protected=True))
-            message.reply_text('Protected macros:\n' + ', '.join(names))
-
-        elif name == 'unprotected' and mod:
-            names = ((bot.name + ' ') * (m.variety == Macro.INLINE) + m.name for m in
-                     MACROS.subset(protected=False))
-            message.reply_text('Unprotected macros:\n' + ', '.join(names))
-
+        if is_mod(user):
+            filt = {i.split(':')[0]: i.split(':')[1] for i in args[1:] if ':' in i}
+            names = ((bot.name + ' ') * (m.variety == Macro.INLINE) + m.name for m in MACROS.subset(filt=filt))
+            message.reply_text('Macros:\n' + ', '.join(names))
         else:
             names = ((bot.name + ' ') * (m.variety == Macro.INLINE) + m.name for m in
                      MACROS.subset(hidden=False))
@@ -501,6 +513,13 @@ def macro(bot, update):
                 message.reply_text('Protect macro {}: {}'.format(name, MACROS[name].protected))
             else:
                 message.reply_text(text=err + 'Only bot mods can protect macros.')
+        else:
+            message.reply_text(text=err + 'No macro with name {}.'.format(name))
+
+    elif mode == 'nsfw':
+        if name in MACROS:
+                MACROS[name].nsfw ^= True
+                message.reply_text('NSFW macro {}: {}'.format(name, MACROS[name].nsfw))
         else:
             message.reply_text(text=err + 'No macro with name {}.'.format(name))
 
@@ -653,6 +672,8 @@ updater.dispatcher.add_handler(inline_handler)
 def call_macro(bot, update):  # process macros and invalid commands.
     message = update.message
     quoted = message.reply_to_message
+    chat = update.message.chat
+    name = chat.title if chat.username is None else '@' + chat.username
 
     # noinspection PyUnusedLocal
     @modifiers(age=False, name=True, action=Ca.TYPING)
@@ -674,7 +695,7 @@ def call_macro(bot, update):  # process macros and invalid commands.
             if quoted is None:
                 update.message.reply_photo(photo=url, timeout=IMAGE_SEND_TIMEOUT)
             else:
-                quoted.reply_photo(photo=url)
+                quoted.reply_photo(photo=url, timeout=IMAGE_SEND_TIMEOUT)
         except TelegramError:
             logger.debug('TelegramError in photo macro call: ' + str(url))
 
@@ -682,6 +703,12 @@ def call_macro(bot, update):  # process macros and invalid commands.
     if command in MACROS:
         variety = MACROS[command].variety
         content = MACROS[command].content
+        if MACROS[command].nsfw and name in SFW.keys():
+            if SFW[name]:
+                known(bot, update, "Macro error:\n\n{} is NSFW, this chat has been marked as SFW by the admins!"
+                      .format(command))
+                return
+
         if variety == Macro.EVAL:
             symbols = {'INPUT': clean(message.text),
                        'HIDDEN': MACROS[command].hidden,
@@ -698,7 +725,13 @@ def call_macro(bot, update):  # process macros and invalid commands.
             e926(bot, update, tags=content)
 
         elif variety == 'INLINE':
-            message.reply_text(text="Macro error:\n\nThat's an inline macro! Try @yosho_bot " + command)
+            quoted = None
+            known(bot, update, "Macro error:\n\nThat's an inline macro! Try @yosho_bot " + command)
+
+        elif variety == 'ALIAS':
+            update.message.text = 'content' + bot.name.lower()
+            call_macro(bot, update)
+
     else:
         invalid(bot, update, 'Error:\n\nUnknown command: ' + command)
 

@@ -1,4 +1,20 @@
 {
+    "///eval": {
+        "_content": "\u200f\u200f\u200e",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
+    "/Egg": {
+        "_content": "Lmao eggs d \ud83d\ude02\ud83d\ude02\ud83d\ude02\ud83d\ude02\ud83d\udc4c\ud83d\udc4c\ud83d\udc4c\ud83d\udc4c\ud83d\udc4c",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
     "/GARFIELD": {
         "_content": "https://cdn.discordapp.com/attachments/159829216630800385/403593325862715402/IMG_20180116_232536_478.jpg",
         "description": "",
@@ -6,6 +22,30 @@
         "nsfw": false,
         "protected": true,
         "variety": "PHOTO"
+    },
+    "/LILPUMP": {
+        "_content": "ESSSSKEEEETTTIIIIITTTTT",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
+    "/STUFF": {
+        "_content": "IMMA STICK A PIZZA IN YOUR ASS SIDEWAYS",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
+    "/ah": {
+        "_content": "My Balls",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
     },
     "/backwards": {
         "_content": "text=''\nif INPUT == '':\n#text = PRECEDING\nelse:\n#text = INPUT\ntext[::-1]",
@@ -31,6 +71,22 @@
         "protected": true,
         "variety": "E926"
     },
+    "/bigwords": {
+        "_content": "METHIONYLTHREONYLTHREONYGLUTAMINYLARGINY LOPADOTEMACHOSELACHOGALEOKRANIOLEIPSAN PNEUMONOULTRAMICROSCOPICSILICOVOLCANOCONIOSIS. PARASTRATIOSPHECOMYIA STRATIOSPHECOMYIOIDES. PSEUDOPSEUDOHYPOPARATHYROIDISM FLOCCINAUCINIHILIPILIFICATION. SUBDERMATOGLYPHIC.",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
+    "/birthday": {
+        "_content": "'Happy birthday ' + THEIR_NAME + '!'",
+        "description": "",
+        "hidden": true,
+        "nsfw": false,
+        "protected": true,
+        "variety": "EVAL"
+    },
     "/box": {
         "_content": "text=''\nif INPUT == '':\n#text = PRECEDING\nelse:\n#text = INPUT\n\"\\n\".join([\"\".join([x+\"\\u035f\"+\"\\u035e\" for x in ('['+l)[:len(l)]]) + l[len(l)-1: ] +']' if not l == '' else '' for l in text.split('\\n')])",
         "description": "",
@@ -47,12 +103,36 @@
         "protected": true,
         "variety": "TEXT"
     },
+    "/butt": {
+        "_content": "https://www.youtube.com/watch?v=HLZFJ4Rj56o",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
+    "/clear": {
+        "_content": "\u200f\u200f\u200e",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
     "/colour": {
         "_content": "daddy",
         "description": "",
         "hidden": true,
         "nsfw": false,
         "protected": true,
+        "variety": "E926"
+    },
+    "/curse": {
+        "_content": "no",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
         "variety": "E926"
     },
     "/cursed": {
@@ -63,8 +143,16 @@
         "protected": false,
         "variety": "EVAL"
     },
+    "/dav": {
+        "_content": "Dav on em \ud83d\ude24\ud83d\ude02\ud83d\udcb2\ud83d\udcaf",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "TEXT"
+    },
     "/deer": {
-        "_content": "deer",
+        "_content": "deer anthro",
         "description": "",
         "hidden": true,
         "nsfw": false,
@@ -78,6 +166,14 @@
         "nsfw": false,
         "protected": false,
         "variety": "PHOTO"
+    },
+    "/derpsky": {
+        "_content": "sad cat",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "E926"
     },
     "/echo": {
         "_content": "REPLY= False\ntext = INPUT\nif text == '':\n#text = \"Gimmie some text to echo!\"\nelif text == \"Gimmie some text to echo!\":\n#text = \"That's my line.\"\ntext",
@@ -127,6 +223,14 @@
         "protected": true,
         "variety": "TEXT"
     },
+    "/e\u200f\u200f\u200e\u200f\u200f\u200e\u200f\u200f\u200eval": {
+        "_content": "\u200f\u200f\u200e",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
     "/face": {
         "_content": "\ud83d\udc42\ud83d\udc41\ud83d\udc43\ud83d\udc41\ud83d\udc42\n             \ud83d\udc44",
         "description": "",
@@ -135,21 +239,21 @@
         "protected": true,
         "variety": "TEXT"
     },
-    "/fuckWyre": {
-        "_content": "@WyreYote",
+    "/god": {
+        "_content": "\ud83d\udc41\ud83d\udc45\ud83d\udc41",
         "description": "",
         "hidden": false,
         "nsfw": false,
         "protected": false,
         "variety": "TEXT"
     },
-    "/gay": {
-        "_content": "mizutsune order:score solo",
+    "/h": {
+        "_content": "\u200f\u200f\u200e",
         "description": "",
         "hidden": false,
         "nsfw": false,
-        "protected": true,
-        "variety": "E926"
+        "protected": false,
+        "variety": "TEXT"
     },
     "/help": {
         "_content": "Available commands:\n/eval <expression> - does math and basic python code, use # for tabs\n/e926 <tags> - search e926\n/wolfram - query Wolfram Alpha\n\nA few of many macros:\n/echo <text> - echoes text\n/why - post random cursed image\n/roll <int> - rolls a number between 1 and x\n/GARFIELD - reply to a message with a garfield meme\n/emojify <input> - emojifies text, reply to a message with this to emojify that message instead of your input\n\n/macro <arguments> - macro editor\n\u2014> Send \"/macro\" to view modes/help.\n\u2014> Send \"/macro list\" for all macros and inline commands.",
@@ -158,6 +262,22 @@
         "nsfw": false,
         "protected": true,
         "variety": "TEXT"
+    },
+    "/hewwo": {
+        "_content": "\uff0f\uff8c\uff8c                   \u30e0\uff40\u30fd\n/ \u30ce)   \u2227__\u2227           \uff09   \u30fd\n/ \uff5c  (\u00b4\u30fb\u03c9\u30fb''\uff09\u30ce\u2312\uff08\u309d_,\u30ce\n / \uff89\u23127\u2312\u30fd\u30fc\u304f  \uff3c \uff0f\n \u4e36\uff3f \u30ce    \u30ce\uff64         |/\n   `\u30fd `\u30fc-\u2018_\u4eba`\u30fc\uff89\n       \u4e36 \uffe3 _\u4eba\u2019\u5f61\uff89\n      \uff0f\uff40\u30fd _/\\  \\",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "TEXT"
+    },
+    "/hotdog": {
+        "_content": "https://i.imgur.com/MkDllYA.png",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "PHOTO"
     },
     "/important": {
         "_content": "'https://i.imgur.com/9hp5Cz1.mp4'",
@@ -175,8 +295,24 @@
         "protected": true,
         "variety": "E926"
     },
+    "/jorts": {
+        "_content": "\u02b0\u1d52\u1db0\u1d49\u02b8, \u1d9c\u1d43\u1db0 \u02b8\u1d52\u1d58 \u02b0\u1d49\u1dab\u1d56 \u1d50\u1d49? \ud835\udc08'\ud835\udc15\ud835\udc04 \ud835\udc12\ud835\udc04\ud835\udc04\ud835\udc0c \ud835\udc13\ud835\udc0e \ud835\udc07\ud835\udc00\ud835\udc15\ud835\udc04 \ud835\udc0b\ud835\udc0e\ud835\udc12\ud835\udc13 \ud835\udc0c\ud835\udc18 \uff4a \uff4f \uff52 \uff54 \uff53 \u2122 \u3048\u30de",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
     "/kms": {
         "_content": "https://www.youtube.com/watch?v=LY_WGL617nQ",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
+    "/lardo": {
+        "_content": "L\u0303 \u036e\u0367\u030b\u0303\u0302\u0342\u0303\u0313\u0342\u0365\u0365\u030e\u0358\u035c\u035e\u031b\u0354\u035a\u0356\u0356\u0317\u0330\u032e\u0347\u0329\u0332\u033b\u032e\u033b\u0331\u0359\u032a\u0329\u0330 \u0342\u0363\u036a\u0344  \u0313\u034a\u031a\u0312\u0311\u0301\u0314\u0364\u0321\u0334\u0331\u0348\u0359\u0330\u033a\u0316\u0359\u031d\u032d\u032a\u0345\u0326\u0325\u0316\u032a\u033b\u033bA\u033d\u0310\u036f\u0367\u035e\u0327\u0315\u0337\u033c\u031c\u0329\u032f\u035a\u0331\u033c \u034b \u030e\u0351\u031a \u030e\u0305\u0351\u0363\u0303\u035c\u0321\u0334\u035c\u0324\u032b\u031e\u031f\u034d\u035a\u032f\u0317\u0331\u032a\u031c\u0359\u0318\u033a\u0359\u0318\u0316R\u0314\u0308\u0303\u034b\u0307\u0369\u0310\u0304\u030e\u036d\u0367\u0352\u0300\u0369\u0367 \u034c\u0364\u0363\u0335\u0335\u0341\u0334\u0334\u032d\u032e\u0356\u0316\u0316\u0326\u0331 \u0324\u032c\u0356\u0356\u0353\u0319\u0347 \u030f\u034a\u0351\u036e\u0311\u0350\u0300\u0334\u035f\u0323\u0332\u0332\u034d\u032d\u0326\u032e\u0353\u0345\u0319\u0320\u031d\u032b\u0320\u033a\u032a\u032a\u0317\u0326D\u0303\u0309\u0313\u0302 \u0306\u031a\u0343\u0309\u034f\u031b\u032e\u034d \u034e\u031f\u0345\u035a\u0316\u0316\u0324\u033b\u031e\u032e\u0348\u0356\u032d\u0325 \u0314\u0366\u034a\u036c\u036a\u033e\u0342\u0311\u036e\u034a\u0365\u0309\u0362\u035d\u0322\u0341\u035c\u0345\u032a\u031c\u0347\u0339O\u030e\u033e\u030e\u0313\u031a\u0303\u0336\u031b\u0341\u0361\u035f\u031f\u0330\u032d\u0355",
         "description": "",
         "hidden": false,
         "nsfw": false,
@@ -190,6 +326,22 @@
         "nsfw": false,
         "protected": true,
         "variety": "E926"
+    },
+    "/lister": {
+        "_content": "Get ready for non consensual sex.",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
+    "/luck": {
+        "_content": "NO LUCK PLEASE. JUST SKILL",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
     },
     "/lynx": {
         "_content": "lynx",
@@ -215,6 +367,22 @@
         "protected": true,
         "variety": "E926"
     },
+    "/maxlardo": {
+        "_content": "M\u0346\u0343\u0314\u0301\u0342\u034b\u0304\u0336\u035c\u035c\u0321\u031e\u0320\u0354\u032e\u0318\u033b\u033a\u0347\u031f\u031f\u035a\u0317\u032a\u035a\u0320\u032bA\u0357\u0343\u031a\u0343\u0344\u0309\u0366\u0369\u035f\u0334\u035d\u0327\u0327\u033b\u0332\u0325\u0339\u0354\u0326\u034d\u032d\u0319\u0359\u0331\u033b\u0348X\u0311\u0351\u0314\u0366\u0352\u0300\u034c\u0346\u0300\u0306\u0312\u0352 \u031b\u0337\u031b\u0358\u035c\u031d\u0353\u032e\u031d\u032f\u0330\u034e \u036a \u0312\u0367\u0367\u031a\u030e\u0303\u036f\u036f\u0300\u034f\u0340\u0328\u0335\u0341\u0329\u0323\u0319\u031d\u0319\u033a\u034d\u035a\u0319\u0326\u0316\u0329\u032e\u0353\u0355\u0339L\u0313\u0308\u0313\u0357\u0300\u0305\u0352\u035b\u035d\u035f\u0340\u0340\u0324\u0332\u035a\u0349\u032a\u035a\u0317\u035a \u0350\u0369\u0312\u0305\u033e\u0352\u036d\u0313\u0357\u036b\u0350\u0313\u0313\u0363\u035b\u035f\u0361\u0321\u0340\u0489\u032b\u032c\u0324\u0345\u032e\u033c\u0320\u0324\u032e\u032c\u0332\u0345\u0319A\u0300\u030f\u0309\u0309\u036c\u0363\u0312\u0357\u030e\u0304\u0313\u035b\u034c\u030d\u031b\u0361\u031b\u0318\u032f\u0339\u034e\u0316\u0323\u0324\u031d\u0326  \u0313\u0308\u0344\u0343\u0352\u036e\u0310\u0307\u0357\u0305\u0346\u034a\u0311\u0338\u0315\u0355\u035a\u0359\u0330\u031f\u0356\u0331\u031e\u032e\u034e\u0354\u0332\u0355\u034dR\u0368\u0367\u030c\u0352\u0366\u0342\u030e\u0303\u0358\u0335\u0321\u0322\u0320\u032c\u0316\u032d\u0332\u032b\u032e\u031c\u0347\u033a\u0329\u034e \u0318\u034d\u0356\u034d\u0347 \u0352\u0368\u030c\u034b\u030e\u0364\u0350\u0363\u0313\u0351\u035f\u035e\u0336\u031d\u0353\u031d\u0317\u034e\u031e\u032f\u0316\u032d\u0359D\u0357\u030f\u0344\u033d\u0306\u0351\u035b \u0334\u0489\u0327\u0341\u0338\u031c\u0354\u032c\u0329\u032b\u0326\u031d\u033c \u0352\u0305\u0343\u0313\u0334\u0327\u0358\u0320\u031f\u032c\u032c\u031d\u0353 \u031c\u032b\u0331\u0349\u0331\u0359\u033aO \u030c\u035b\u035b\u0300\u0350\u0300\u030f\u0343\u034a\u0312\u0366\u0357\u035c\u0361\u035e\u0335\u032f\u0323\u0331\u0354\u034e\u0359\u0349\u0355\u0318\u032d\u032c\u031e\u0356\u031f\u0317\n\u0301\u0368\u0367\u0310\u0351\u0357\u0350\u0342\u0366\u036e\u0300\u0366\u035b\u0344\u0309\u0363\u035e\u0328\u0338\u0489\u035e\u034d\u032b\u0326\u0345\u0332\u0355\u0324\u0324\u0331\u0318\u032a\u0359\u031c\u0331\u0319\u034d\u0320\u0356",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
+    "/me_irl": {
+        "_content": "me too thanks",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
     "/micro": {
         "_content": "no, you want /macro :^)",
         "description": "",
@@ -222,6 +390,14 @@
         "nsfw": false,
         "protected": true,
         "variety": "TEXT"
+    },
+    "/mizu": {
+        "_content": "solo mizutsune",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "E926"
     },
     "/mock": {
         "_content": "text = ''\nif INPUT == '':\n#text = PRECEDING\nelse:\n#text = INPUT\n''.join([(text.lower()[i] if random.random() > .5 else text.upper()[i]) for i, c in enumerate(text)])",
@@ -241,6 +417,22 @@
     },
     "/none": {
         "_content": "\u200d",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
+    "/nubs": {
+        "_content": "Reserved until further notice.",
+        "description": "",
+        "hidden": true,
+        "nsfw": false,
+        "protected": true,
+        "variety": "TEXT"
+    },
+    "/nut": {
+        "_content": "nut",
         "description": "",
         "hidden": false,
         "nsfw": false,
@@ -271,6 +463,14 @@
         "protected": false,
         "variety": "TEXT"
     },
+    "/paginis": {
+        "_content": "what",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "TEXT"
+    },
     "/papi": {
         "_content": "'Dick me daddy%s! ahn~ Give me your cummies \ud83c\udf52\ud83c\udf46\ud83d\udc45\ud83d\udca6 \ud83d\ude0d\ud83d\ude29\ud83d\ude1c\ud83d\ude0f' % (' '*bool(THEIR_NAME)+THEIR_NAME,)",
         "description": "",
@@ -295,13 +495,29 @@
         "protected": true,
         "variety": "EVAL"
     },
-    "/roll": {
-        "_content": "if INPUT == '':\n#text = str(random.randint(1, 6))\nelif INPUT.isnumeric():\n#text = str(random.randint(1, int(INPUT)))\nelse:\n#text = \"Invalid input.\\n\\nProper syntax is /roll <positive integer>.\"\ntext",
+    "/retarded": {
+        "_content": "MY_NAME",
         "description": "",
         "hidden": false,
         "nsfw": false,
         "protected": true,
         "variety": "EVAL"
+    },
+    "/roll": {
+        "_content": "if INPUT == '':\n#text = str(random.randint(1, 6))\nelif INPUT.isnumeric():\n#text = str(random.randint(1, int(INPUT)+1))\nelse:\n#text = \"Invalid input.\\n\\nProper syntax is /roll <positive integer>.\"\ntext",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "EVAL"
+    },
+    "/source": {
+        "_content": "https://github.com/Muddeh-TK/yosho",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "TEXT"
     },
     "/squid": {
         "_content": "https://i.imgur.com/VMnaYQB.jpg",
@@ -335,6 +551,14 @@
         "protected": false,
         "variety": "PHOTO"
     },
+    "/toilet": {
+        "_content": "https://soundcloud.com/bestdropsever/yoshis-toilet",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "TEXT"
+    },
     "/whoIsGay": {
         "_content": "MY_NAME + ' is gay'",
         "description": "",
@@ -344,12 +568,20 @@
         "variety": "EVAL"
     },
     "/why": {
-        "_content": "~what_has_science_done ~where_is_your_god_now",
+        "_content": "~what_has_science_done ~where_is_your_god_now ~no ~nightmare_fuel order:score_asc",
         "description": "",
         "hidden": false,
         "nsfw": false,
         "protected": true,
         "variety": "E926"
+    },
+    "/windmillify": {
+        "_content": "\"\".join([x+\" \u5350\" for x in (~preceding).split(\" \")])",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "EVAL"
     },
     "/yeet": {
         "_content": "yeet",
@@ -368,15 +600,47 @@
         "variety": "PHOTO"
     },
     "/yote": {
-        "_content": "coyote solo",
+        "_content": "https://i.imgur.com/r8EwRDw.png",
         "description": "",
-        "hidden": true,
+        "hidden": false,
         "nsfw": false,
         "protected": true,
-        "variety": "E926"
+        "variety": "PHOTO"
+    },
+    "/\ud83d\udc41\ud83d\udc45\ud83d\udc41": {
+        "_content": "https://i.imgur.com/LWty2SO.png",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "PHOTO"
     },
     "badtime": {
         "_content": "\u2026\u2026\u2026\u2026/\u00b4\u00af/)\u2026\u2026\u2026\u2026\u2026.(\\\u00af`.\u2026\u2026\u2026\u2026..\n\u2026\u2026\u2026../\u2026//\u2026\u2026\u2026.i\u2026\u2026.\\\u2026.\u2026\u2026\u2026\u2026..\n\u2026\u2026\u2026./\u2026//\u2026fuken luv\u2026.\\\u2026.\u2026\u2026\u2026\u2026.\n\u2026../\u00b4\u00af/\u2026./\u00b4\u00af..undertale./\u00af` .\u2026\\\u00af`.\u2026\u2026.\n.././\u2026/\u2026./\u2026./.|_.have._|..\u2026.\u2026\u2026..\u2026..\n(.(b.(..a.(..d./..)..)\u2026\u2026(..(.\\ti.)..m.)..e.).)\u2026.\n..\u2026\u2026\u2026\u2026\u2026\\/\u2026/\u2026\u2026\u2026\\/\u2026\u2026\u2026\u2026\u2026./\u2026.\n\u2026\u2026\u2026\u2026\u2026\u2026.. /\u2026\u2026\u2026.\u2026\u2026\u2026\u2026\u2026..",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "INLINE"
+    },
+    "hmmm": {
+        "_content": "\u2830\u287f\u283f\u281b\u281b\u283b\u283f\u28f7\n\u2800\u2800\u2800\u2800\u28c0\u28c4\u2840\u2800\u2800\u2800\u2800\u2880\u28c0\u28c0\u28e4\u28c4\u28c0\u2840\n\u2800\u2800\u2800\u28b8\u28ff\u28ff\u28f7\u2800\u2800\u2800\u2800\u281b\u281b\u28ff\u28ff\u28ff\u285b\u283f\u2837\n\u2800 \u2800\u2800\u2818\u283f\u283f\u280b\u2800\u2800\u2800\u2800\u2800\u2800\u28ff\u28ff\u28ff\u2807 \u2800\u2800\u2800 \u2800\u2800\u2808\u2809\u2801\n\n\u2800\u2800\u2800\u2800\u28ff\u28f7\u28c4\u2800\u28b6\u28f6\u28f7\u28f6\u28f6\u28e4\u28c0\n\u2800\u2800\u2800\u2800\u28ff\u28ff\u28ff\u2800\u2800\u2800\u2800\u2800\u2808\u2819\u283b\u2817\n\u2800\u2800\u2800\u28f0\u28ff\u28ff\u28ff\u2800\u2800\u2800\u2800\u2880\u28c0\u28e0\u28e4\u28f4\u28f6\u2844\n\u2800\u28e0\u28fe\u28ff\u28ff\u28ff\u28e5\u28f6\u28f6\u28ff\u28ff\u28ff\u28ff\u28ff\u283f\u283f\u281b\u2803\n\u28b0\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u2844\n\u28b8\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u2841\n\u2808\u28bf\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u2801\n\u2800\u2800\u281b\u28bf\u28ff\u28ff\u28ff\u28ff\u28ff\u28ff\u287f\u281f\n\u2800\u2800\u2800\u2800\u2800\u2809\u2809\u2809",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "INLINE"
+    },
+    "loss1": {
+        "_content": "\u2800\u28f4\u28f4\u2864  \n\u2800\u28e0\u2800\u28bf\u2807\u2847\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u28b0\u28b7\u2857  \n\u2800\u28b6\u28bd\u283f\u28d7\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u28fc\u2867\u2802\u2800\u2800\u28fc\u28f7\u2846  \n\u2800\u2800\u28fe\u28b6\u2810\u28f1\u2800\u2800\u2800\u2800\u2800\u28e4\u28dc\u28fb\u28e7\u28f2\u28e6\u2824\u28e7\u28ff\u2836  \n\u2800\u2880\u28ff\u28ff\u28c7\u2800\u2800\u2800\u2800\u2800\u2800\u281b\u283f\u28ff\u28ff\u28f7\u28e4\u28c4\u2879\u28ff\u28f7  \n\u2800\u28b8\u28ff\u28b8\u28ff\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2808\u2819\u28bf\u28ff\u28ff\u28ff\u28ff\u28ff  \n\u2800\u283f\u2803\u2808\u283f\u2806\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2839\u283f\u283f\u283f",
+        "description": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "INLINE"
+    },
+    "loss2": {
+        "_content": "\u2880\u2880\u2840\u2800\u2880\u28e4\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2840\u2840  \n\u2800\u28ff\u285f\u2847\u2800\u282d\u284b\u2805\u2800\u2800\u2800\u2800\u2800\u28b0\u28df\u28bf  \n\u2800\u28f9\u284c\u2800\u2800\u28e8\u28fe\u28f7\u28c4\u2800\u2800\u2800\u2800\u2888\u2814\u280c  \n\u2830\u28f7\u28ff\u2840\u2890\u28bf\u28ff\u28ff\u28bb\u2800\u2800\u2800\u28a0\u28ff\u287f\u2864\u28f4\u2804\u2880\u28c0\u2840  \n\u2818\u28ff\u28ff\u2802\u2808\u28b8\u28ff\u28ff\u28f8\u2800\u2800\u2800\u2898\u28ff\u28ff\u28c0\u2860\u28e0\u28fa\u28ff\u28f7  \n\u2800\u28ff\u28ff\u2846\u2800\u28b8\u28ff\u28ff\u28fe\u2847\u2800\u28ff\u28ff\u28ff\u28ff\u28ff\u28d7\u28fb\u287b\u283f\u2801  \n\u2800\u28ff\u28ff\u2847\u2800\u28b8\u28ff\u28ff\u2847\u2800\u2800\u2809\u2809\u2809\u2809\u2809\u2809\u2801",
         "description": "",
         "hidden": false,
         "nsfw": false,
