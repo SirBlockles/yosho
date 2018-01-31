@@ -113,7 +113,7 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, admins=
         time_check = not age or message_age < MESSAGE_TIMEOUT
         name_check = not name or message_bot == bot.name.lower() or (message_bot is None and name == 'ALLOW_UNNAMED')
         mod_check = not mods or is_mod(message_user)
-        admin_check = not admins or message_user in admins_list
+        admin_check = chat.type == 'private' or not admins or message_user in admins_list
         nsfw_check = not nsfw or (title in SFW.keys() and not SFW[title])
         if all((time_check, name_check, mod_check, admin_check, nsfw_check)):
 
