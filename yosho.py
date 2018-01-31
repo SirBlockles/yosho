@@ -467,7 +467,7 @@ def macro(bot, update):
 
     elif mode == 'clean':
         if is_mod(user):
-            MACROS = MACROS.subset(protected=False)
+            MACROS = MACROS.subset(protected=True)
             message.reply_text('Cleaned up macros.')
         else:
             message.reply_text(text=err + 'Only bot mods can do that.')
