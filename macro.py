@@ -35,6 +35,7 @@ class Macro:
 
 class MacroSet:
     def subset(self, match=None, search=None, variety=None, hidden=False, protected=None, nsfw=None, filt=None):
+        convert = lambda s: None if s == 'None' else s == 'True'
 
         if filt:
             k = filt.keys()
@@ -47,16 +48,16 @@ class MacroSet:
                 variety = filt['variety']
 
             if 'hidden' in k:
-                hidden = int(filt['hidden'])
+                hidden = convert(filt['hidden'])
             if 'protected' in k:
-                protected = int(filt['protected'])
+                protected = convert(filt['protected'])
             if 'nsfw' in k:
-                nsfw = int(filt['nsfw'])
+                nsfw = convert(filt['nsfw'])
 
         return MacroSet({m for m in self.macros if all((hidden is None or m.hidden == hidden,
                                                         protected is None or m.protected == protected,
                                                         nsfw is None or m.nsfw == nsfw,
-                                                        variety is None or m.variety == variety,
+                                                        variety is None or m.variety.lower() == variety,
                                                         match is None or m.name == match,
                                                         search is None or search in m.name))})
 
