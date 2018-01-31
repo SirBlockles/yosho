@@ -6,12 +6,12 @@ class Macro:
     _varieties = ('TEXT', 'EVAL', 'PHOTO', 'INLINE', 'E621', 'ALIAS')
     TEXT, EVAL, PHOTO, INLINE, E621, ALIAS = _varieties
 
-    def __init__(self, name, variety, content, description='', hidden=False, protected=False, nsfw=False):
+    def __init__(self, name, variety, content, creator='', hidden=False, protected=False, nsfw=False):
         self.name = str(name)
         self.variety = variety
         self._content = None
         self.content = content
-        self.description = str(description)
+        self.creator = str(creator)
         self.hidden = hidden
         self.protected = protected
         self.nsfw = nsfw
@@ -79,7 +79,7 @@ class MacroSet:
         return MacroSet({Macro(k,
                                data[k]['variety'],
                                data[k]['_content'],
-                               description=data[k]['description'],
+                               creator=data[k]['creator'],
                                hidden=data[k]['hidden'],
                                protected=data[k]['protected'],
                                nsfw=data[k]['nsfw']) for k, v in data.items()})
