@@ -529,8 +529,11 @@ def macro(bot, update):
 
     elif mode == 'nsfw':
         if name in MACROS:
+            if is_mod(user):
                 MACROS[name].nsfw ^= True
                 message.reply_text('NSFW macro {}: {}'.format(name, MACROS[name].nsfw))
+            else:
+                message.reply_text(text=err + 'Only bot mods can change macro nsfw state.')
         else:
             message.reply_text(text=err + 'No macro with name {}.'.format(name))
 
