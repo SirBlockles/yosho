@@ -30,10 +30,8 @@ WOLFRAM_TOKEN = TOKEN_DICT['wolfram']
 
 db = dropbox.Dropbox(DROPBOX_TOKEN)
 
-MODS = {'wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'radookal', 'pawjob'}
-
 # not PEP8 compliant but idc
-is_mod = lambda name: name.lower() in MODS
+is_mod = lambda name: name.lower() in {'wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'radookal', 'pawjob'}
 clean = lambda s: str.strip(re.sub('/[@\w]+\s+', '', s + ' ', 1))  # strips command name and bot name from input
 db_pull = lambda name: db.files_download_to_file(name, '/' + name)
 db_push = lambda name: db.files_upload(open(name, 'rb').read(), '/' + name, mode=WriteMode('overwrite'))
@@ -389,8 +387,7 @@ updater.dispatcher.add_handler(eval_handler)
 def macro(bot, update):
     global MACROS
     message = update.message
-    user = update.message.from_user
-    message_user = user.username if user.username is not None else user.name
+    message_user = message.from_user.username if message.from_user.username is not None else message.from_user.name
 
     modes = {'eval': 'macro',
              'text': 'macro',
@@ -431,7 +428,7 @@ def macro(bot, update):
         message.reply_text(text=err + 'Missing macro name.')
         return
 
-    user = message.from_user.username.lower()
+    user = message_user.lower()
     if name in MACROS:
         if MACROS[name].protected and not is_mod(user) and not modes[mode] == 'read':
             message.reply_text(text=err + 'Macro {} is write protected.'.format(name))
@@ -445,9 +442,13 @@ def macro(bot, update):
         expr = None
 
     if modes[mode] == 'macro' and name not in MACROS:
-        if expr is not None:
+        if expr:
             try:
-                MACROS.add(Macro(name, mode.upper(), expr, hidden=False, protected=is_mod(user), nsfw=False))
+                MACROS.add(Macro(name, mode.upper(), expr, hidden=False, protected=is_mod(user), nsfw=False,
+                                 creator={'user': message_user,
+                                          'chat': message.chat.id,
+                                          'chat_type': message.chat.type}))
+
                 message.reply_text(text='{} macro "{}" created.'.format(mode, name))
             except ValueError:
                 message.reply_text(text=err + 'Bad photo url.')
