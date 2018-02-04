@@ -489,8 +489,10 @@ def macro(bot, update):
 
     elif mode == 'list':
         if is_mod(user):
-            filt = {i.split(':')[0]: i.split(':')[1] for i in args[1:] if ':' in i}
-            names = ((bot.name + ' ') * (m.variety == Macro.INLINE) + m.name for m in MACROS.subset(filt=filt))
+            include = {i.split(':')[0]: i.split(':')[1] for i in args[1:] if ':' in i and not i.startswith('-')}
+            exclude = {i.split(':')[0][1:]: i.split(':')[1] for i in args[1:] if ':' in i and i.startswith('-')}
+            macros = MACROS.subset(filt=include) - MACROS.subset(filt=exclude)
+            names = ((bot.name + ' ') * (m.variety == Macro.INLINE) + m.name for m in macros.sort)
             message.reply_text('Macros:\n' + ', '.join(names))
         else:
             names = ((bot.name + ' ') * (m.variety == Macro.INLINE) + m.name for m in

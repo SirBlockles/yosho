@@ -68,6 +68,9 @@ class MacroSet:
         else:
             raise KeyError
 
+    def sort(self):
+        sorted(self.macros, key=lambda m: m.name)
+
     @staticmethod
     def dump(mset, file):
         serializable = {m.name: {k: v for k, v in m.__dict__.items() if not k == 'name'} for m in mset.macros}
