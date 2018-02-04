@@ -90,10 +90,11 @@ load_globals()
 # name checks if correct bot @name is present if value is True, also passes unnamed commands if value is ALLOW_UNNAMED
 # mods is bot mods, admin is chat admins/owner
 # TODO use kwargs instead of multiple optional arguments.
-def modifiers(method=None, age=True, name=False, mods=False, flood=True, admins=False, nsfw=False, action=None):
+def modifiers(method=None, age=True, name=False, mods=False, flood=True, admins=False, nsfw=False, action=None,
+              level=logging.INFO):
     if method is None:  # if method is None optional arguments have been passed, return usable decorator
         return functools.partial(modifiers, age=age, name=name, mods=mods, flood=flood,
-                                 admins=admins, nsfw=nsfw, action=action)
+                                 admins=admins, nsfw=nsfw, action=action, level=level)
 
     @functools.wraps(method)
     def wrap(*args, **kwargs):  # otherwise wrap function and continue
@@ -121,8 +122,8 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, admins=
         nsfw_check = not nsfw or (title in SFW.keys() and not SFW[title])
         if all((time_check, name_check, mod_check, admin_check, nsfw_check)):
 
-            logger.info('{} command called from {} -> {{{}, {}}}, user: @{}, with message: "{}"'
-                        .format(method.__name__, chat.type, title, chat.id, message_user, message.text))
+            logger.log(level, '{} command called from {} -> {{{}, {}}}, user: @{}, with message: "{}"'
+                       .format(method.__name__, chat.type, title, chat.id, message_user, message.text))
 
             # flood detector
             start = time.time()
@@ -133,8 +134,8 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, admins=
                         if bot.username in admins_list:
                             bot.deleteMessage(chat_id=message.chat_id, message_id=message.message_id)
                         else:
-                            bot.send_message(chat_id=message.chat_id, reply_to_message_id=message.message_id, text=
-                            "There's a {} second cooldown between commands!\n"
+                            bot.send_message(chat_id=message.chat_id, reply_to_message_id=message.message_id,
+                                             text="There's a {} second cooldown between commands!\n"
                             "Mod me for automatic flood deletion.".format(FLOOD_TIMEOUT))
 
                             logger.debug("flood detector couldn't delete command")
@@ -176,7 +177,7 @@ updater.dispatcher.add_error_handler(error)
 
 
 # start text
-@modifiers(age=False, action=Ca.TYPING)
+@modifiers(age=False, action=Ca.TYPING, level=logging.DEBUG)
 def start(bot, update):
     update.message.text = '/start_info' + bot.name.lower()
     call_macro(bot, update)
@@ -187,7 +188,7 @@ updater.dispatcher.add_handler(start_handler)
 
 
 # noinspection PyUnusedLocal
-@modifiers(mods=True, action=Ca.TYPING)
+@modifiers(mods=True, action=Ca.TYPING, level=logging.DEBUG)
 def die(bot, update):
     update.message.reply_text(text='KMS')
     quit()
@@ -215,7 +216,7 @@ sfw_handler = CommandHandler("sfw", sfw)
 updater.dispatcher.add_handler(sfw_handler)
 
 
-@modifiers(mods=True, action=Ca.TYPING)
+@modifiers(mods=True, action=Ca.TYPING, level=logging.DEBUG)
 def leave(bot, update):
     chat = clean(update.message.text)
     try:
@@ -277,7 +278,7 @@ updater.dispatcher.add_handler(e621_handler)
 
 
 # noinspection PyUnusedLocal
-@modifiers(mods=True)
+@modifiers(mods=True, level=logging.DEBUG)
 def set_global(bot, update):
     global GLOBALS
     args = [a.strip() for a in clean(update.message.text).split('=')]
@@ -695,7 +696,7 @@ inline_handler = InlineQueryHandler(inline_stuff)
 updater.dispatcher.add_handler(inline_handler)
 
 
-@modifiers(name='ALLOW_UNNAMED', flood=False)
+@modifiers(name='ALLOW_UNNAMED', flood=False, level=logging.DEBUG)
 def call_macro(bot, update):  # process macros and invalid commands.
     message = update.message
     quoted = message.reply_to_message
