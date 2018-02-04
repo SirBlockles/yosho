@@ -113,10 +113,10 @@ class MacroSet:
             raise KeyError
 
     def __add__(self, macros):
-        return self.macros.union(macros)
+        return MacroSet(self.macros.union(macros))
 
     def __sub__(self, macros):
-        return self.macros.difference(macros)
+        return MacroSet(self.macros.difference(macros))
 
     def __repr__(self):
         return 'MacroSet {{{}}}'.format(', '.join((repr(m) for m in self.macros)))
