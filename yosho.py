@@ -489,14 +489,25 @@ def macro(bot, update):
 
     elif mode == 'list':
         if is_mod(user):
+            filt = {i.split(':')[0]: i.split(':')[1] for i in args[1:] if ':' in i}
             include = {i.split(':')[0]: i.split(':')[1] for i in args[1:] if ':' in i and not i.startswith('-')}
             exclude = {i.split(':')[0][1:]: i.split(':')[1] for i in args[1:] if ':' in i and i.startswith('-')}
-            macros = MACROS.subset(filt=include) - MACROS.subset(filt=exclude)
-            names = ((bot.name + ' ') * (m.variety == Macro.INLINE) + m.name for m in macros.sort())
-            message.reply_text('Macros:\n' + ', '.join(names))
+
+            try:
+                macros = MACROS.subset(filt=include)
+                if exclude:
+                    macros -= MACROS.subset(filt=exclude)
+            except ValueError:
+                message.reply_text(text=err + 'Unknown key in list filter: {}.'.format(filt))
+                return
+
+            if macros:
+                names = ((bot.name + ' ') * (m.variety == Macro.INLINE) + m.name for m in macros.sort())
+                message.reply_text('Macros:\n' + ', '.join(names))
+            else:
+                message.reply_text(text=err + 'No macros found.')
         else:
-            names = ((bot.name + ' ') * (m.variety == Macro.INLINE) + m.name for m in
-                     MACROS.subset(hidden=False))
+            names = ((bot.name + ' ') * (m.variety == Macro.INLINE) + m.name for m in MACROS.subset())
             message.reply_text('Visible macros:\n' + ', '.join(names))
 
     elif mode == 'contents':

@@ -38,6 +38,9 @@ class MacroSet:
         if filt:
             k = filt.keys()
 
+            if not all([i in {'match', 'search', 'variety', 'hidden', 'protected', 'nsfw'} for i in k]):
+                raise ValueError('Unknown key in filter dictionary.')
+
             if 'match' in k:
                 match = filt['match']
             if 'search' in k:
@@ -52,28 +55,28 @@ class MacroSet:
             if 'nsfw' in k:
                 nsfw = convert(filt['nsfw'])
 
-        return MacroSet({m for m in self.macros if all((hidden is None or m.hidden == hidden,
-                                                        protected is None or m.protected == protected,
-                                                        nsfw is None or m.nsfw == nsfw,
-                                                        variety is None or variety in {m.variety.lower(), m.variety},
-                                                        match is None or m.name == match,
-                                                        search is None or search in m.name))})
+        return MacroSet({m for m in self._macros if all((hidden is None or m.hidden == hidden,
+                                                         protected is None or m.protected == protected,
+                                                         nsfw is None or m.nsfw == nsfw,
+                                                         variety is None or variety in {m.variety.lower(), m.variety},
+                                                         match is None or m.name == match,
+                                                         search is None or search in m.name))})
 
     def add(self, value):
-        self.macros.add(value)
+        self._macros.add(value)
 
     def remove(self, key):
         if key in self:
-            self.macros.remove(self[key])
+            self._macros.remove(self[key])
         else:
             raise KeyError
 
     def sort(self):
-        sorted(self.macros, key=lambda m: m.name)
+        return sorted(self._macros, key=lambda m: m.name)
 
     @staticmethod
     def dump(mset, file):
-        serializable = {m.name: {k: v for k, v in m.__dict__.items() if not k == 'name'} for m in mset.macros}
+        serializable = {m.name: {k: v for k, v in m.__dict__.items() if not k == 'name'} for m in mset}
         json.dump(serializable, file, indent=4, sort_keys=True)
 
     @staticmethod
@@ -88,35 +91,35 @@ class MacroSet:
                                nsfw=data[k]['nsfw']) for k, v in data.items()})
 
     def __init__(self, macros):
-        self.macros = set(macros)
+        self._macros = set(macros)
 
     def __len__(self):
-        return len(self.macros)
+        return len(self._macros)
 
     def __iter__(self):
-        return iter(self.macros)
+        return iter(self._macros)
 
     def __contains__(self, name):
-        return name in (m.name for m in self.macros)
+        return name in (m.name for m in self._macros)
 
     def __getitem__(self, item):
-        m = next((m for m in self.macros if m.name == item), None)
+        m = next((m for m in self._macros if m.name == item), None)
         if m is None:
             raise KeyError
         return m
 
     def __setitem__(self, key, value):
-        if key in self.macros:
+        if key in self._macros:
             self.remove(key)
             self.add(value)
         else:
             raise KeyError
 
     def __add__(self, macros):
-        return MacroSet(self.macros.union(macros))
+        return MacroSet(self._macros.union(macros))
 
     def __sub__(self, macros):
-        return MacroSet(self.macros.difference(macros))
+        return MacroSet(self._macros.difference(macros))
 
     def __repr__(self):
-        return 'MacroSet {{{}}}'.format(', '.join((repr(m) for m in self.macros)))
+        return 'MacroSet {{{}}}'.format(', '.join((repr(m) for m in self._macros)))
