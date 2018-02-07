@@ -58,7 +58,7 @@ EVAL_MEMORY = True
 EVAL_TIMEOUT = 1
 EVAL_MAX_OUTPUT = 128
 EVAL_MAX_INPUT = 1000
-INTERPRETER_TIMEOUT = 60 * 60
+FLUSH_INTERVAL = 60 * 10
 IMAGE_SEND_TIMEOUT = 40
 
 WOLFRAM_RESULTS = {}
@@ -194,6 +194,17 @@ def die(bot, update):
 
 die_handler = CommandHandler("die", die)
 updater.dispatcher.add_handler(die_handler)
+
+
+# noinspection PyUnusedLocal
+@modifiers(mods=True, action=Ca.TYPING, level=logging.DEBUG)
+def manual_flush(bot, update):
+    flush(bot, None)
+    update.message.reply_text(text='Cleared interpreters and pushed macro updates.')
+
+
+flush_handler = CommandHandler("flush", manual_flush)
+updater.dispatcher.add_handler(manual_flush)
 
 
 # noinspection PyUnusedLocal
@@ -555,9 +566,6 @@ def macro(bot, update):
     elif name in MACROS:
         message.reply_text(text=err + 'Macro already exists.')
 
-    MacroSet.dump(MACROS, open(MACROS_PATH, 'w+'))
-    db_push(MACROS_PATH)
-
 
 macro_handler = CommandHandler("macro", macro)
 updater.dispatcher.add_handler(macro_handler)
@@ -775,11 +783,13 @@ updater.dispatcher.add_handler(macro_handler)
 
 
 # noinspection PyUnusedLocal,PyUnusedLocal
-def clear(bot, job):
+def flush(bot, job):
+    MacroSet.dump(MACROS, open(MACROS_PATH, 'w+'))
+    db_push(MACROS_PATH)
     global INTERPRETERS
     INTERPRETERS = {}
 
 
 logger.info("bot loaded")
 updater.start_polling()
-jobs.run_repeating(clear, interval=INTERPRETER_TIMEOUT)  # clear interpreters regularly to prevent high memory usage
+jobs.run_repeating(flush, interval=FLUSH_INTERVAL)
