@@ -304,6 +304,15 @@ def inline_stuff(bot, update, bot_globals):
 handlers.append([InlineQueryHandler(inline_stuff), None])
 
 
+# noinspection PyUnusedLocal
+def manual_flush(bot, update, bot_globals):
+    flush(bot, update)
+    update.message.reply_text(text='Cleared interpreters and pushed macro updates.')
+
+
+handlers.append([CommandHandler("flush", manual_flush), {'mods': True, 'action': Ca.TYPING, 'level': logging.DEBUG}])
+
+
 def call_macro(bot, update, bot_globals):  # process macros and invalid commands.
     message = update.message
     quoted = message.reply_to_message
@@ -393,12 +402,3 @@ def flush(bot, update):
     INTERPRETERS = {}
     MacroSet.dump(MACROS, open(MACROS_PATH, 'w+'))
     db_push(MACROS_PATH)
-
-
-# noinspection PyUnusedLocal
-def manual_flush(bot, update, bot_globals):
-    flush(bot, update)
-    update.message.reply_text(text='Cleared interpreters and pushed macro updates.')
-
-
-handlers.append([CommandHandler("flush", manual_flush), {'mods': True, 'action': Ca.TYPING, 'level': logging.DEBUG}])
