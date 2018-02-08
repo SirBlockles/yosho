@@ -8,9 +8,9 @@ from telegram.ext import CommandHandler
 
 from helpers import clean, db_push
 
-handlers = []
-
 ORDER = 0
+
+handlers = []
 
 
 # noinspection PyUnusedLocal

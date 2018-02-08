@@ -11,6 +11,8 @@ from helpers import clean
 
 ORDER = 0
 
+handlers = []
+
 
 # noinspection PyUnusedLocal
 def e621(bot, update, bot_globals=None, tags=None):
@@ -60,4 +62,4 @@ def e621(bot, update, bot_globals=None, tags=None):
         update.message.reply_text(text=failed)
 
 
-handlers = [[CommandHandler("e621", e621), {'action': Ca.UPLOAD_PHOTO}]]
+handlers.append([CommandHandler("e621", e621), {'action': Ca.UPLOAD_PHOTO}])
