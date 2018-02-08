@@ -25,7 +25,7 @@ INTERPRETERS = {}
 handlers = []
 
 
-def evaluate(bot, update, bot_globals, cmd=None, symbols=None):
+def evaluate(bot, update, bot_globals=None, cmd=None, symbols=None):
     def no_flood(u):
         bot_globals['last_commands'][u] = time.time() - bot_globals['MESSAGE_TIMEOUT'] * 2
 
@@ -105,7 +105,7 @@ handlers.append([CommandHandler("eval", evaluate), {'action': Ca.TYPING}])
 
 
 # creates and modifies macro commands
-def macro(bot, update, bot_globals):
+def macro(bot, update, bot_globals=None):
     def no_flood(u):
         bot_globals['last_commands'][u] = time.time() - bot_globals['MESSAGE_TIMEOUT'] * 2
 
@@ -285,7 +285,7 @@ handlers.append([CommandHandler("macro", macro), {'action': Ca.TYPING}])
 
 
 # noinspection PyUnusedLocal
-def inline_stuff(bot, update, bot_globals):
+def inline_stuff(bot, update, bot_globals=None):
     results = list()
     query = update.inline_query.query
 
@@ -305,7 +305,7 @@ handlers.append([InlineQueryHandler(inline_stuff), None])
 
 
 # noinspection PyUnusedLocal
-def manual_flush(bot, update, bot_globals):
+def manual_flush(bot, update, bot_globals=None):
     flush(bot, update)
     update.message.reply_text(text='Cleared interpreters and pushed macro updates.')
 
@@ -313,7 +313,7 @@ def manual_flush(bot, update, bot_globals):
 handlers.append([CommandHandler("flush", manual_flush), {'mods': True, 'action': Ca.TYPING, 'level': logging.DEBUG}])
 
 
-def call_macro(bot, update, bot_globals):  # process macros and invalid commands.
+def call_macro(bot, update, bot_globals=None):  # process macros and invalid commands.
     message = update.message
     quoted = message.reply_to_message
     chat = update.message.chat
@@ -402,3 +402,7 @@ def flush(bot, update):
     INTERPRETERS = {}
     MacroSet.dump(MACROS, open(MACROS_PATH, 'w+'))
     db_push(MACROS_PATH)
+
+
+def init(bot_globals=None):
+    bot_globals['jobs'].run_repeating(flush, interval=bot_globals['FLUSH_INTERVAL'])

@@ -13,7 +13,7 @@ ORDER = 0
 
 
 # noinspection PyUnusedLocal
-def e621(bot, update, bot_globals, tags=None):
+def e621(bot, update, bot_globals=None, tags=None):
     def no_flood(u):
         bot_globals['last_commands'][u] = time.time() - bot_globals['MESSAGE_TIMEOUT'] * 2
 

@@ -137,9 +137,16 @@ def load_plugins():
 
     def globals_sender(method):
         def wrapper(*args, **kwargs):
-            return method(*args, globals(), **kwargs)
+            kwargs['bot_globals'] = globals()
+            return method(*args, **kwargs)
 
         return wrapper
+
+    def order(p):
+        if hasattr(PLUGINS[p], 'ORDER') and isinstance(PLUGINS[p].ORDER, int):
+            return PLUGINS[p].ORDER
+        else:
+            return 0
 
     for fn in (n for n in os.listdir('plugins') if n.endswith('.py')):
         plugin = import_module('plugins.' + fn[:len(fn) - 3])
@@ -148,15 +155,22 @@ def load_plugins():
             name = plugin.__doc__.split(':')[1]
             PLUGINS[name] = plugin
 
-    for n in sorted(PLUGINS.keys(), key=lambda n: PLUGINS[n].ORDER):
-        for h, m in PLUGINS[n].handlers:
-            if m:
-                h.callback = modifiers(h.callback, **m)
+    for n in sorted(PLUGINS.keys(), key=order):
+        if hasattr(PLUGINS[n], 'handlers'):
+            for h, m in PLUGINS[n].handlers:
+                if m:
+                    h.callback = modifiers(h.callback, **m)
 
-            if 'bot_globals' in inspect.signature(h.callback).parameters:
-                h.callback = globals_sender(h.callback)
+                if 'bot_globals' in inspect.signature(h.callback).parameters:
+                    h.callback = globals_sender(h.callback)
 
-            updater.dispatcher.add_handler(h)
+                updater.dispatcher.add_handler(h)
+
+        if hasattr(PLUGINS[n], 'init') and callable(PLUGINS[n].init):
+            if 'bot_globals' in inspect.signature(PLUGINS[n].init).parameters:
+                PLUGINS[n].init(bot_globals=globals())
+            else:
+                PLUGINS[n].init()
 
         logger.info('Loaded plugin {}'.format(n))
 
@@ -183,8 +197,5 @@ updater.dispatcher.add_handler(CommandHandler("start", start))
 
 
 load_plugins()
-if 'macro processor' in PLUGINS.keys():
-    jobs.run_repeating(PLUGINS['macro processor'].flush, interval=FLUSH_INTERVAL)
-
 logger.info("bot loaded")
 updater.start_polling()

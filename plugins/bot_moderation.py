@@ -39,7 +39,7 @@ handlers.append([CommandHandler('leave', leave), {'mods': True, 'action': Ca.TYP
 
 # TODO make this command less horrid
 # noinspection PyUnusedLocal
-def set_global(bot, update, bot_globals):
+def set_global(bot, update, bot_globals=None):
     args = [a.strip() for a in clean(update.message.text).split('=')]
     names = (k for k, v in bot_globals.items() if type(v) in (int, bool))
     listed = ('{} = {}'.format(k, v) for k, v in bot_globals.items() if type(v) in (int, bool))

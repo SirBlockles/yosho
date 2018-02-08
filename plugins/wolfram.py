@@ -21,7 +21,7 @@ ORDER = 0
 
 
 # noinspection PyUnusedLocal
-def wolfram(bot, update, bot_globals):
+def wolfram(bot, update, bot_globals=None):
     message = update.message
     name = message.from_user.name
 
@@ -70,7 +70,7 @@ def wolfram(bot, update, bot_globals):
 handlers.append([CommandHandler("wolfram", wolfram), {'action': Ca.TYPING}])
 
 
-def wolfram_callback(bot, update, bot_globals):
+def wolfram_callback(bot, update, bot_globals=None):
     def album(data):
         output = []
         for idx, subpod in enumerate(data[1]):

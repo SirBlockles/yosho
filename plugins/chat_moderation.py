@@ -10,7 +10,7 @@ ORDER = 0
 
 
 # noinspection PyUnusedLocal
-def sfw(bot, update, bot_globals):
+def sfw(bot, update, bot_globals=None):
     chat = update.message.chat
     name = chat.title if chat.username is None else '@' + chat.username
     if name in bot_globals['SFW'].keys():
