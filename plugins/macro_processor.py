@@ -375,6 +375,7 @@ def call_macro(bot, update, bot_globals=None):  # process macros and invalid com
 
             elif variety == Macro.E621:
                 if 'e621 command' in bot_globals['PLUGINS'].keys():
+                    bot.sendChatAction(chat_id=message.chat_id, action=Ca.UPLOAD_PHOTO)
                     bot_globals['PLUGINS']['e621 command'].e621(bot, update, bot_globals,
                                                  tags='{} {}'.format(content, clean(message.text)))
                 else:
