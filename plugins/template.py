@@ -16,7 +16,7 @@ def init(bot_globals=None):
     bot_globals['logger'].info("Template plugin loaded.")  # Example usage of bot globals.
 
 
-# Make sure to include a list of handler, modifier dict pairs if your plugin introduces new commands.
+# Make sure to include a list of [handler, modifier] dict pairs if your plugin introduces new commands.
 
 # Modifier dict values may include:
 # age <bool>: Dictates if the bot should check if the command has expired or not. Defaults to True.
