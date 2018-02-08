@@ -5,6 +5,8 @@ from telegram.ext import CommandHandler
 # Load order, higher loads later. For preventing plugin conflicts. Removing this defaults load order to 0.
 ORDER = -1
 
+handlers = []
+
 
 # Include bot_globals as an optional argument if needed.
 def command(bot, update):
@@ -30,4 +32,4 @@ def init(bot_globals=None):
 # level <logging.LEVEL aka int>: Console logging level to display when this command is processed. Defaults to INFO.
 
 # NOTE: you may pass None instead of a modifier dict if you don't wish to use any modifiers.
-handlers = [[CommandHandler('template_plugin', command), {'action': Ca.TYPING}]]
+handlers.append([CommandHandler('template_plugin', command), {'action': Ca.TYPING}])

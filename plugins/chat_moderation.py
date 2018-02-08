@@ -8,6 +8,8 @@ from helpers import db_push
 
 ORDER = 0
 
+handlers = []
+
 
 # noinspection PyUnusedLocal
 def sfw(bot, update, bot_globals=None):
@@ -22,4 +24,4 @@ def sfw(bot, update, bot_globals=None):
     update.message.reply_text(text='Chat {} is SFW only: {}'.format(name, bot_globals['SFW'][name]))
 
 
-handlers = [[CommandHandler("sfw", sfw), {'flood': False, 'admins': True, 'action': Ca.TYPING}]]
+handlers.append([CommandHandler("sfw", sfw), {'flood': False, 'admins': True, 'action': Ca.TYPING}])

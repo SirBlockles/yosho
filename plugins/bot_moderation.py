@@ -70,3 +70,12 @@ def set_global(bot, update, bot_globals=None):
 
 
 handlers.append([CommandHandler("global", set_global), {'mods': True, 'action': Ca.TYPING, 'level': logging.DEBUG}])
+
+
+def delete(bot, update):
+    quoted = update.message.reply_to_message
+    if quoted and quoted.from_user == bot.user:
+        quoted.delete()
+
+
+handlers.append([CommandHandler("delete", delete), {'flood': False, 'mods': True}])
