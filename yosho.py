@@ -204,7 +204,7 @@ def manual_flush(bot, update):
 
 
 flush_handler = CommandHandler("flush", manual_flush)
-updater.dispatcher.add_handler(manual_flush)
+updater.dispatcher.add_handler(flush_handler)
 
 
 # noinspection PyUnusedLocal
