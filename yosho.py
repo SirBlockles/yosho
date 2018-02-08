@@ -1,44 +1,28 @@
 import csv
 import datetime
 import functools
-import io
-import os
-from importlib import import_module
+import inspect
 import logging
+import os
 import pickle
 import re
 import time
-import types
-import xml.etree.ElementTree as Xml
-from random import choice
+from importlib import import_module
 
-import dropbox
-import requests
 import stopit
 import telegram
-from PIL import Image, ImageOps
 from asteval import Interpreter
-from dropbox.files import WriteMode
 from telegram import ChatAction as Ca
-from telegram import InlineQueryResultArticle, InputTextMessageContent, InputMediaPhoto
+from telegram import InlineQueryResultArticle, InputTextMessageContent
 from telegram.error import TelegramError
-from telegram.ext import Updater, CommandHandler, InlineQueryHandler, RegexHandler, CallbackQueryHandler
+from telegram.ext import Updater, CommandHandler, InlineQueryHandler, RegexHandler
 
+from helpers import is_mod, clean, db_push, db_pull
 from macro import Macro, MacroSet
 
 TOKEN_DICT = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
-TELEGRAM_TOKEN = TOKEN_DICT['yosho_bot']
-DROPBOX_TOKEN = TOKEN_DICT['dropbox']
+TELEGRAM_TOKEN = TOKEN_DICT['yoshobeta_bot']
 WOLFRAM_TOKEN = TOKEN_DICT['wolfram']
-
-db = dropbox.Dropbox(DROPBOX_TOKEN)
-
-# not PEP8 compliant but idc
-is_mod = lambda name: name.lower() in {'wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'radookal', 'pawjob'}
-clean = lambda s: str.strip(re.sub('/[@\w]+\s+', '', s + ' ', 1))  # strips command name and bot name from input
-db_pull = lambda name: db.files_download_to_file(name, '/' + name)
-db_push = lambda name: db.files_upload(open(name, 'rb').read(), '/' + name, mode=WriteMode('overwrite'))
-db_make = lambda name: db.files_upload(open(name, 'rb').read(), '/' + name, mode=WriteMode('add'))
 
 SFW_PATH = 'SFW.pkl'
 db_pull(SFW_PATH)
@@ -53,7 +37,6 @@ db_pull(MACROS_PATH)
 MACROS = MacroSet.load(open(MACROS_PATH, 'rb'))
 
 # defaults
-WOLFRAM_TIMEOUT = 20
 LOGGING_LEVEL = logging.DEBUG
 MESSAGE_TIMEOUT = 60
 FLOOD_TIMEOUT = 20
@@ -64,7 +47,6 @@ EVAL_MAX_INPUT = 1000
 FLUSH_INTERVAL = 60 * 10
 IMAGE_SEND_TIMEOUT = 40
 
-WOLFRAM_RESULTS = {}
 INTERPRETERS = {}
 
 bot = telegram.Bot(token=TELEGRAM_TOKEN)
@@ -74,6 +56,8 @@ logging.basicConfig(format='%(asctime)s - [%(levelname)s] - %(message)s')
 logger = logging.getLogger(__name__)
 logger.info("Loading bot...")
 last_commands = dict()
+
+PLUGINS = dict()
 
 
 def load_globals():
@@ -87,30 +71,9 @@ def load_globals():
 load_globals()
 
 
-def load_plugins():
-    plugins = (n[:len(n)-3] for n in os.listdir('plugins') if n.endswith('.py'))
-    for n in plugins:
-        plugin = import_module('plugins.' + n)
-
-        if hasattr(plugin, 'command') and callable(plugin.command):
-            command = CommandHandler(n, plugin.command)
-            updater.dispatcher.add_handler(command)
-            logger.info('Loaded plugin {}.'.format(n))
-        else:
-            return
-
-        if hasattr(plugin, 'callback') and callable(plugin.callback):
-            callback = CallbackQueryHandler(plugin.callback, pattern=plugin.callback_pattern)
-            updater.dispatcher.add_handler(callback)
-
-
-load_plugins()
-
-
 # message modifiers decorator
 # name checks if correct bot @name is present if value is True, also passes unnamed commands if value is ALLOW_UNNAMED
 # mods is bot mods, admin is chat admins/owner
-# TODO use kwargs instead of multiple optional arguments.
 def modifiers(method=None, age=True, name=False, mods=False, flood=True, admins=False, nsfw=False, action=None,
               level=logging.INFO):
     if method is None:  # if method is None optional arguments have been passed, return usable decorator
@@ -133,7 +96,7 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, admins=
             admins_list = [message_user]
         else:
             admins_list = [x.user.username for x in bot.getChatAdministrators(chat_id=message.chat_id,
-                                                                         message_id=message.message_id)]
+                                                                              message_id=message.message_id)]
 
         # check incoming message attributes
         time_check = not age or message_age < MESSAGE_TIMEOUT
@@ -157,7 +120,7 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, admins=
                         else:
                             bot.send_message(chat_id=message.chat_id, reply_to_message_id=message.message_id,
                                              text="There's a {} second cooldown between commands!\n"
-                            "Mod me for automatic flood deletion.".format(FLOOD_TIMEOUT))
+                                                  "Mod me for automatic flood deletion.".format(FLOOD_TIMEOUT))
 
                             logger.debug("flood detector couldn't delete command")
 
@@ -176,13 +139,33 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, admins=
     return wrap
 
 
-def build_menu(buttons, n_cols, header_buttons=None, footer_buttons=None):
-    menu = [buttons[i:i + n_cols] for i in range(0, len(buttons), n_cols)]
-    if header_buttons:
-        menu.insert(0, header_buttons)
-    if footer_buttons:
-        menu.append(footer_buttons)
-    return menu
+def load_plugins():
+    global PLUGINS
+
+    def globals_sender(method):
+        def wrapper(*args, **kwargs):
+            return method(*args, globals(), **kwargs)
+
+        return wrapper
+
+    for fn in (n for n in os.listdir('plugins') if n.endswith('.py')):
+        plugin = import_module('plugins.' + fn[:len(fn) - 3])
+
+        if plugin.__doc__ and plugin.__doc__.startswith('yosho plugin'):
+            name = plugin.__doc__.split(':')[1]
+            PLUGINS[name] = plugin
+
+            for h, m in plugin.handlers:
+                if 'bot_globals' in inspect.signature(h.callback).parameters:
+                    h.callback = globals_sender(h.callback)
+
+                if m:
+                    h.callback = modifiers(h.callback, **m)
+                updater.dispatcher.add_handler(h)
+            logger.info('Loaded plugin {}: {}'.format(fn, name))
+
+
+load_plugins()
 
 
 def no_flood(u):
@@ -205,130 +188,6 @@ def start(bot, update):
 
 
 updater.dispatcher.add_handler(CommandHandler("start", start))
-
-
-# noinspection PyUnusedLocal
-@modifiers(mods=True, action=Ca.TYPING, level=logging.DEBUG)
-def die(bot, update):
-    update.message.reply_text(text='KMS')
-    quit()
-
-
-updater.dispatcher.add_handler(CommandHandler("die", die))
-
-
-# noinspection PyUnusedLocal
-@modifiers(mods=True, action=Ca.TYPING, level=logging.DEBUG)
-def manual_flush(bot, update):
-    flush(bot, None)
-    update.message.reply_text(text='Cleared interpreters and pushed macro updates.')
-
-
-updater.dispatcher.add_handler(CommandHandler("flush", manual_flush))
-
-
-# noinspection PyUnusedLocal
-@modifiers(flood=False, admins=True, action=Ca.TYPING)
-def sfw(bot, update):
-    chat = update.message.chat
-    name = chat.title if chat.username is None else '@' + chat.username
-    if name in SFW.keys():
-        SFW[name] ^= True
-    else:
-        SFW[name] = True
-    pickle.dump(SFW, open(SFW_PATH, 'wb+'))
-    db_push(SFW_PATH)
-    update.message.reply_text(text='Chat {} is SFW only: {}'.format(name, SFW[name]))
-
-
-updater.dispatcher.add_handler(CommandHandler("sfw", sfw))
-
-
-@modifiers(mods=True, action=Ca.TYPING, level=logging.DEBUG)
-def leave(bot, update):
-    chat = clean(update.message.text)
-    try:
-        if chat.replace('-', '').isnumeric():
-            bot.leave_chat(chat_id=int(chat))
-        else:
-            bot.leave_chat(chat_id=chat)
-        update.message.reply_text(text='Left chat {}.'.format(chat))
-    except TelegramError:
-        update.message.reply_text(text='Error leaving chat {}.\nMake sure chat name/id is valid!'.format(chat))
-
-
-updater.dispatcher.add_handler(CommandHandler('leave', leave))
-
-
-# noinspection PyUnusedLocal
-@modifiers(action=Ca.UPLOAD_PHOTO)
-def e621(bot, update, tags=None):
-    failed = 'Error:\n\ne621 query failed.'
-
-    index = 'https://e621.net/post/index.json'
-    chat = update.message.chat
-    name = chat.title if chat.username is None else '@' + chat.username
-    if name in SFW.keys() and SFW[name]:
-        index = 'https://e926.net/post/index.json'
-
-    if tags is None:
-        tags = clean(update.message.text)
-
-    # construct the request
-    params = {'limit': '50', 'tags': tags}
-    headers = {'User-Agent': 'YoshoBot || @WyreYote and @TeamFortress on Telegram'}
-
-    r = requests.get(index, params=params, headers=headers)
-    time.sleep(.5)
-
-    if r.status_code == requests.codes.ok:
-        data = r.json()
-        posts = [p['file_url'] for p in data if p['file_ext'] in ('jpg', 'png')]  # find image urls in json response
-
-        if posts:
-            url = choice(posts)
-            logger.debug(url)
-            try:
-                update.message.reply_photo(photo=url, timeout=IMAGE_SEND_TIMEOUT)
-            except TelegramError:
-                logger.debug('TelegramError in e621.')
-                update.message.reply_text(text=failed)
-        else:
-            logger.debug('Bad tags entered in e621.')
-            update.message.reply_text(text=failed)
-    else:
-        update.message.reply_text(text=failed)
-
-
-updater.dispatcher.add_handler(CommandHandler("e621", e621))
-
-
-# noinspection PyUnusedLocal
-@modifiers(mods=True, level=logging.DEBUG)
-def set_global(bot, update):
-    global GLOBALS
-    args = [a.strip() for a in clean(update.message.text).split('=')]
-    names = (k for k, v in globals().items() if type(v) in (int, bool))
-    listed = ('{} = {}'.format(k, v) for k, v in globals().items() if type(v) in (int, bool))
-    if len(args) > 1:
-        if args[0] in names:
-            if str(args[1]).isnumeric():
-                GLOBALS[args[0]] = int(args[1])
-                load_globals()
-                pickle.dump(GLOBALS, open(GLOBALS_PATH, 'wb+'))
-                db_push(GLOBALS_PATH)
-                update.message.reply_text(text='Global {} updated.'.format(args[0]))
-            else:
-                update.message.reply_text(text='Globals type error.\n\nValue must be int.\nUse 1 or 0 for booleans.')
-        else:
-            update.message.reply_text(text='Globals key error.\n\nThat global does not exist.')
-    elif args[0] == '':
-        update.message.reply_text(text='Globals:\n\n' + '\n'.join(listed))
-    else:
-        update.message.reply_text(text='Globals syntax error.\n\nProper usage is /global <global>=<value>')
-
-
-updater.dispatcher.add_handler(CommandHandler("global", set_global))
 
 
 @modifiers(action=Ca.TYPING)
@@ -586,117 +445,6 @@ updater.dispatcher.add_handler(CommandHandler("macro", macro))
 
 
 # noinspection PyUnusedLocal
-@modifiers(action=Ca.TYPING)
-def wolfram(bot, update):
-    global WOLFRAM_RESULTS
-    message = update.message
-    name = message.from_user.name
-
-    err = 'Wolfram|Alpha error:\n\n'
-    failed = err + 'Wolfram|Alpha query failed.'
-
-    query = clean(update.message.text)
-
-    if name not in WOLFRAM_RESULTS.keys():
-        WOLFRAM_RESULTS[name] = None
-
-    if query != '':
-        # construct the request
-        base = 'http://api.wolframalpha.com/v2/query'
-        params = {'appid': WOLFRAM_TOKEN, 'input': query, 'width': 800}
-
-        r = requests.get(base, params=params)
-        tree = Xml.XML(r.text)
-        if r.status_code == requests.codes.ok:
-            if (tree.attrib['success'], tree.attrib['error']) == ('true', 'false'):
-                pods = tree.iterfind('pod')
-                buttons = [telegram.InlineKeyboardButton(p.attrib['title'], callback_data='w' + str(i))
-                           for i, p in enumerate(pods) if not p.attrib['id'] == 'Input']
-                markup = telegram.InlineKeyboardMarkup(build_menu(buttons, n_cols=2))
-
-                interp = re.sub(' +', ' ', tree.find('pod').find('subpod').find('plaintext').text)
-
-                pods = tree.iterfind('pod')
-                WOLFRAM_RESULTS[name] = {i: (p.attrib['title'], [s for s in p.iterfind('subpod')], interp)
-                                         for i, p in enumerate(pods)}
-
-                if len(WOLFRAM_RESULTS[name]) > 1:
-                    m = message.reply_text('Input interpretation: {}\nChoose result to view:'.format(interp),
-                                           reply_markup=markup)
-                    jobs.run_once(wolfram_timeout, WOLFRAM_TIMEOUT, context=(m.message_id, m.chat.id,
-                                                                             message.message_id, message.chat_id))
-                else:
-                    message.reply_text(text=failed)
-            else:
-                message.reply_text(text=err + "Wolfram|Alpha can't understand your query.")
-        else:
-            message.reply_text(text=failed)
-    else:
-        message.reply_text(text=err + 'Empty query.')
-
-
-updater.dispatcher.add_handler(CommandHandler("wolfram", wolfram))
-
-
-def wolfram_callback(bot, update):
-    def album(data):
-        output = []
-        for idx, subpod in enumerate(data[1]):
-            url = subpod.find('img').attrib['src']
-            title = subpod.attrib['title']
-            caption = 'Selection: {}{}\nInput: {}'.format(data[0], '\nSubpod: ' * bool(title) + title, data[2])
-
-            img_b = io.BytesIO(requests.get(url).content)
-            img = Image.open(img_b)
-            minimum = 100
-            if img.size[0] < minimum or img.size[1] < minimum:  # Hacky way to make sure any image sends.
-                pad = sorted([minimum - img.size[0], minimum - img.size[1]])
-                img = ImageOps.expand(img, border=pad[1] // 2, fill=255)
-            fn = 'temp{}.png'.format(idx)
-            img.save(fn, format='PNG')
-            output.append(InputMediaPhoto(caption=caption, media=fn))
-        return output
-
-    query = update.callback_query
-    idx = int(query.data.replace('w', ''))
-    name = query.from_user.name
-    message = query.message
-
-    if name not in WOLFRAM_RESULTS.keys():
-        WOLFRAM_RESULTS[name] = None
-        return
-
-    bot.sendChatAction(chat_id=message.chat.id, action=Ca.TYPING)
-
-    if message.chat.type == 'private':
-        images = album(WOLFRAM_RESULTS[name][idx])
-        for i in images:
-            bot.send_photo(caption=i.caption, photo=open(i.media, 'rb'), chat_id=message.chat.id,
-                           timeout=IMAGE_SEND_TIMEOUT)
-
-    elif query.from_user.id == message.reply_to_message.from_user.id:
-        images = album(WOLFRAM_RESULTS[name][idx])
-        for i in images:
-            bot.send_photo(caption=i.caption, photo=open(i.media, 'rb'), chat_id=message.chat.id,
-                           reply_to_message_id=message.reply_to_message.message_id, timeout=IMAGE_SEND_TIMEOUT)
-
-    message.delete()
-    WOLFRAM_RESULTS[name] = None
-
-
-updater.dispatcher.add_handler(CallbackQueryHandler(wolfram_callback, pattern='^w[0-9]+'))
-
-
-def wolfram_timeout(bot, job):
-    try:
-        bot.deleteMessage(message_id=job.context[0], chat_id=job.context[1])
-    except TelegramError:
-        return
-    bot.send_message(reply_to_message_id=job.context[2], chat_id=job.context[3],
-                     text='Failed to choose an option within {} seconds.\nResults timed out.'.format(WOLFRAM_TIMEOUT))
-
-
-# noinspection PyUnusedLocal
 def inline_stuff(bot, update):
     results = list()
     query = update.inline_query.query
@@ -775,7 +523,10 @@ def call_macro(bot, update):  # process macros and invalid commands.
                 photo(bot, update, content)
 
             elif variety == Macro.E621:
-                e621(bot, update, tags=content + ' ' + clean(message.text))
+                if 'e621 command' in PLUGINS.keys():
+                    PLUGINS['e621 command'].e621(bot, update, globals(), tags=content + ' ' + clean(message.text))
+                else:
+                    update.message.reply_text("Macro error:\n\ne621 plugin isn't installed.")
 
             elif variety == Macro.INLINE:
                 quoted = None
@@ -786,6 +537,7 @@ def call_macro(bot, update):  # process macros and invalid commands.
 
         else:
             invalid(bot, update, 'Error:\n\nUnknown command: ' + command)
+
     run()
 
 
