@@ -1,4 +1,4 @@
-"""yosho plugin:start command"""
+"""yosho plugin:utility commands"""
 from telegram import ChatAction as Ca
 from telegram.ext import CommandHandler
 
@@ -14,3 +14,10 @@ def start(bot, update, bot_globals):
 
 
 handlers.append([CommandHandler('start', start), {'action': Ca.TYPING, 'name': True, 'age': False}])
+
+
+def list_plugins(bot, update, bot_globals):
+    update.message.reply_text(text='Installed plugins:\n'+'\n'.join(bot_globals['PLUGINS'].keys()))
+
+
+handlers.append([CommandHandler('plugins', list_plugins), {'action': Ca.TYPING}])
