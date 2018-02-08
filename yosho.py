@@ -16,7 +16,7 @@ from telegram.ext import Updater, CommandHandler
 from helpers import is_mod, db_pull
 
 TOKEN_DICT = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
-TELEGRAM_TOKEN = TOKEN_DICT['yoshobeta_bot']
+TELEGRAM_TOKEN = TOKEN_DICT['yosho_bot']
 WOLFRAM_TOKEN = TOKEN_DICT['wolfram']
 
 SFW_PATH = 'SFW.pkl'
@@ -90,7 +90,10 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, admins=
 
         # check incoming message attributes
         time_check = not age or message_age < MESSAGE_TIMEOUT
-        name_check = not name or message_bot == bot.name.lower() or (message_bot is None and name == 'ALLOW_UNNAMED')
+        name_check = any((not name,
+                          chat.type == 'private',
+                          message_bot == bot.name.lower(),
+                          message_bot is None and name == 'ALLOW_UNNAMED'))
         mod_check = not mods or is_mod(message_user)
         admin_check = (not admins or message_user in admins_list) or is_mod(message_user)
         nsfw_check = not nsfw or (title in SFW.keys() and not SFW[title])
@@ -167,7 +170,7 @@ updater.dispatcher.add_error_handler(error)
 
 
 # start text
-@modifiers(age=False, action=Ca.TYPING, level=logging.DEBUG)
+@modifiers(age=False, name=True, action=Ca.TYPING, level=logging.DEBUG)
 def start(bot, update):
     if 'macro processor' in PLUGINS.keys():
         update.message.text = '/start_info' + bot.name.lower()
