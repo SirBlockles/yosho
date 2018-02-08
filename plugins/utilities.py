@@ -2,10 +2,13 @@
 from telegram import ChatAction as Ca
 from telegram.ext import CommandHandler
 
+from helpers import clean
+
 handlers = []
 
 
 def start(bot, update, bot_globals):
+    """start info"""
     if 'macro processor' in bot_globals['PLUGINS'].keys():
         update.message.text = '/start_info' + bot.name.lower()
         bot_globals['PLUGINS']['macro processor'].call_macro(bot, update, bot_globals)
@@ -17,7 +20,24 @@ handlers.append([CommandHandler('start', start), {'action': Ca.TYPING, 'name': T
 
 
 def list_plugins(bot, update, bot_globals):
-    update.message.reply_text(text='Installed plugins:\n'+'\n'.join(bot_globals['PLUGINS'].keys()))
+    """lists plugins and their commands"""
+    text = ''
+    expr = clean(update.message.text)
+
+    if expr in bot_globals['PLUGINS']:
+        p = bot_globals['PLUGINS'][expr]
+        text += expr + ':\n\n'
+
+        for h, m in p.handlers:
+            if isinstance(h, CommandHandler):
+                desc = h.callback.__doc__
+                desc = ': ' + desc if desc else ''
+                text += '/{}{}\n'.format(', /'.join(h.command), desc)
+
+    else:
+        text += 'Installed plugins:\n\n' + '\n'.join(bot_globals['PLUGINS'].keys())
+
+    update.message.reply_text(text=text)
 
 
-handlers.append([CommandHandler('plugins', list_plugins), {'action': Ca.TYPING}])
+handlers.append([CommandHandler('plugin', list_plugins), {'action': Ca.TYPING}])

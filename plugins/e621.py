@@ -15,7 +15,8 @@ handlers = []
 
 
 # noinspection PyUnusedLocal
-def e621(bot, update, bot_globals=None, tags=None):
+def e621(bot, update, bot_globals, tags=None):
+    """queries e621/e926 and posts a random image from the first 50 results"""
     def no_flood(u):
         bot_globals['last_commands'][u] = time.time() - bot_globals['MESSAGE_TIMEOUT'] * 2
 

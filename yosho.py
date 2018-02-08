@@ -164,7 +164,7 @@ def load_plugins():
             if len(tags) > 1 and len(tags[1]) > 0:
                 PLUGINS[str.strip(tags[1])] = plugin
             else:
-                logger.error('plugin file {} docstring malformed'.format(fn))
+                logger.error('plugin file "{}" docstring malformed'.format(fn))
 
     for n in sorted(PLUGINS.keys(), key=order):  # enforce plugin load order
         if hasattr(PLUGINS[n], 'handlers'):
@@ -186,7 +186,7 @@ def load_plugins():
             else:
                 PLUGINS[n].init()
 
-        logger.info('loaded plugin {}'.format(n))
+        logger.info('loaded plugin "{}"'.format(n))
 
 
 def error(bot, update, error):

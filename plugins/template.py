@@ -1,4 +1,5 @@
-"""yosho plugin:plugin template"""  # docstring must be of the format """yosho plugin:<plugin name>"""
+"""yosho plugin:plugin template"""
+# docstring must be of the format """yosho plugin:<plugin name>"""
 from telegram import ChatAction as Ca
 from telegram.ext import CommandHandler
 
@@ -8,13 +9,14 @@ ORDER = -1
 handlers = []
 
 
-# Include bot_globals as an optional argument if needed.
+# Include bot_globals as an argument if needed.
 def command(bot, update):
+    """Template plugin command."""  # use docstrings for command descriptions
     update.message.reply_text(text="Template plugin reply.")
 
 
-# You may include init to be executed on plugin load. Include bot_globals as an optional argument if needed.
-def init(bot_globals=None):
+# You may include init to be executed on plugin load. Include bot_globals as an argument if needed.
+def init(bot_globals):
     bot_globals['logger'].info("Template plugin loaded.")  # Example usage of bot globals.
 
 

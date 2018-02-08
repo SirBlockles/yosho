@@ -15,6 +15,7 @@ handlers = []
 
 # noinspection PyUnusedLocal
 def die(bot, update):
+    """kills bot"""
     update.message.reply_text(text='KMS')
     quit()
 
@@ -23,6 +24,7 @@ handlers.append([CommandHandler("die", die), {'mods': True, 'action': Ca.TYPING,
 
 
 def leave(bot, update):
+    """leaves specified chat/chatid"""
     chat = clean(update.message.text)
     try:
         if chat.replace('-', '').isnumeric():
@@ -39,7 +41,8 @@ handlers.append([CommandHandler('leave', leave), {'mods': True, 'action': Ca.TYP
 
 # TODO make this command less horrid
 # noinspection PyUnusedLocal
-def set_global(bot, update, bot_globals=None):
+def set_global(bot, update, bot_globals):
+    """sets or displays int/bool bot globals"""
     args = [a.strip() for a in clean(update.message.text).split('=')]
     names = (k for k, v in bot_globals.items() if type(v) in (int, bool))
     listed = ('{} = {}'.format(k, v) for k, v in bot_globals.items() if type(v) in (int, bool))
@@ -73,6 +76,7 @@ handlers.append([CommandHandler("global", set_global), {'mods': True, 'action': 
 
 
 def delete(bot, update):
+    """delet this"""
     quoted = update.message.reply_to_message
     if quoted:
         try:

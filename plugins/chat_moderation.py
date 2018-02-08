@@ -12,7 +12,8 @@ handlers = []
 
 
 # noinspection PyUnusedLocal
-def sfw(bot, update, bot_globals=None):
+def sfw(bot, update, bot_globals):
+    """toggles per-chat SFW setting"""
     chat = update.message.chat
     name = chat.title if chat.username is None else '@' + chat.username
     if name in bot_globals['SFW'].keys():
