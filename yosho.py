@@ -10,13 +10,12 @@ import time
 from importlib import import_module
 
 import telegram
-from telegram import ChatAction as Ca
-from telegram.ext import Updater, CommandHandler
+from telegram.ext import Updater
 
 from helpers import is_mod, db_pull
 
 TOKEN_DICT = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
-TELEGRAM_TOKEN = TOKEN_DICT['yosho_bot']
+TELEGRAM_TOKEN = TOKEN_DICT['yoshobeta_bot']
 WOLFRAM_TOKEN = TOKEN_DICT['wolfram']
 
 SFW_PATH = 'SFW.pkl'
@@ -50,6 +49,7 @@ last_commands = dict()
 PLUGINS = dict()
 
 
+# load globals from GLOBALS variable/GLOBALS.pkl file.
 def load_globals():
     for k, g in globals().items():
         if isinstance(g, (int, bool)):
@@ -62,8 +62,15 @@ load_globals()
 
 
 # message modifiers decorator
-# name checks if correct bot @name is present if value is True, also passes unnamed commands if value is ALLOW_UNNAMED
-# mods is bot mods, admin is chat admins/owner
+# age <bool>: Dictates if the bot should check if the command has expired or not.
+# name <bool|str>: If True, checks for bot's @name proceeding command.
+# -> If value is 'ALLOW_UNNAMED' will only block commands with incorrect bot @names proceeding them.
+# mods <bool>: Only allow bot moderators to use command.
+# flood <bool>: Check flood detector.
+# admins <bool>: Only allow chat administrators to execute this command.
+# nsfw <bool>: Only executes in chats not marked SFW.
+# action <ChatAction>: Action to send to chat while processing command.
+# level <logging.LEVEL aka int>: Console logging level to display when this command is processed.
 def modifiers(method=None, age=True, name=False, mods=False, flood=True, admins=False, nsfw=False, action=None,
               level=logging.INFO):
     if method is None:  # if method is None optional arguments have been passed, return usable decorator
@@ -151,49 +158,45 @@ def load_plugins():
     for fn in (n for n in os.listdir('plugins') if n.endswith('.py')):
         plugin = import_module('plugins.' + fn[:len(fn) - 3])
 
+        # check and validate docstring
         if plugin.__doc__ and plugin.__doc__.startswith('yosho plugin'):
-            name = plugin.__doc__.split(':')[1]
-            PLUGINS[name] = plugin
+            tags = plugin.__doc__.split(':')
+            if len(tags) > 1 and len(tags[1]) > 0:
+                PLUGINS[str.strip(tags[1])] = plugin
+            else:
+                logger.error('plugin file {} docstring malformed'.format(fn))
 
-    for n in sorted(PLUGINS.keys(), key=order):
+    for n in sorted(PLUGINS.keys(), key=order):  # enforce plugin load order
         if hasattr(PLUGINS[n], 'handlers'):
-            for h, m in PLUGINS[n].handlers:
+            for h, m in PLUGINS[n].handlers:  # register handlers
+                # wrap callback function with modifiers if present
                 if m:
                     h.callback = modifiers(h.callback, **m)
 
+                # wrap callback function with globals if callback function contains 'bot_globals' optional argument
                 if 'bot_globals' in inspect.signature(h.callback).parameters:
                     h.callback = globals_sender(h.callback)
 
                 updater.dispatcher.add_handler(h)
 
+        # if init method is present in plugin, execute on load
         if hasattr(PLUGINS[n], 'init') and callable(PLUGINS[n].init):
             if 'bot_globals' in inspect.signature(PLUGINS[n].init).parameters:
                 PLUGINS[n].init(bot_globals=globals())
             else:
                 PLUGINS[n].init()
 
-        logger.info('Loaded plugin {}'.format(n))
+        logger.info('loaded plugin {}'.format(n))
 
 
-# noinspection PyUnusedLocal
 def error(bot, update, error):
-    logger.warning('Update "{}" caused error "{}"'.format(update, error))
+    logger.warning('update "{}" caused error "{}"'.format(update, error))
 
 
 updater.dispatcher.add_error_handler(error)
 
 
-# start text
-@modifiers(age=False, name=True, action=Ca.TYPING, level=logging.DEBUG)
-def start(bot, update):
-    if 'macro processor' in PLUGINS.keys():
-        update.message.text = '/start_info' + bot.name.lower()
-        PLUGINS['macro processor'].call_macro(bot, update, globals())
-    else:
-        update.message.reply_text(text='Yosho bot by @MuddyTK and @WyreYote')
-
-
-updater.dispatcher.add_handler(CommandHandler("start", start))
+# HARD-CODED COMMANDS GO HERE, BEFORE PLUGINS LOAD #
 
 
 load_plugins()
