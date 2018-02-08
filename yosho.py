@@ -2,6 +2,8 @@ import csv
 import datetime
 import functools
 import io
+import os
+from importlib import import_module
 import logging
 import pickle
 import re
@@ -82,6 +84,26 @@ def load_globals():
 
 
 load_globals()
+
+
+def load_plugins():
+    plugins = (n for n in os.listdir('/plugins') if n.endswith('.py'))
+    for n in plugins:
+        plugin = import_module(n)
+
+        if hasattr(plugin, 'command') and isinstance(plugin.command, function):
+            command = CommandHandler(n, plugin.command)
+            updater.dispatcher.add_handler(command)
+
+            logger.info('Loaded plugin {}.'.format(n))
+        else:
+            return
+
+        if hasattr(plugin, 'callback') and isinstance(plugin.callback, function):
+            callback = CallbackQueryHandler(plugin.callback, pattern=plugin.callback_pattern)
+            updater.dispatcher.add_handler(callback)
+
+load_plugins()
 
 
 # message modifiers decorator
@@ -181,8 +203,7 @@ def start(bot, update):
     call_macro(bot, update)
 
 
-start_handler = CommandHandler("start", start)
-updater.dispatcher.add_handler(start_handler)
+updater.dispatcher.add_handler(CommandHandler("start", start))
 
 
 # noinspection PyUnusedLocal
@@ -192,8 +213,7 @@ def die(bot, update):
     quit()
 
 
-die_handler = CommandHandler("die", die)
-updater.dispatcher.add_handler(die_handler)
+updater.dispatcher.add_handler(CommandHandler("die", die))
 
 
 # noinspection PyUnusedLocal
@@ -203,8 +223,7 @@ def manual_flush(bot, update):
     update.message.reply_text(text='Cleared interpreters and pushed macro updates.')
 
 
-flush_handler = CommandHandler("flush", manual_flush)
-updater.dispatcher.add_handler(flush_handler)
+updater.dispatcher.add_handler(CommandHandler("flush", manual_flush))
 
 
 # noinspection PyUnusedLocal
@@ -221,8 +240,7 @@ def sfw(bot, update):
     update.message.reply_text(text='Chat {} is SFW only: {}'.format(name, SFW[name]))
 
 
-sfw_handler = CommandHandler("sfw", sfw)
-updater.dispatcher.add_handler(sfw_handler)
+updater.dispatcher.add_handler(CommandHandler("sfw", sfw))
 
 
 @modifiers(mods=True, action=Ca.TYPING, level=logging.DEBUG)
@@ -238,8 +256,7 @@ def leave(bot, update):
         update.message.reply_text(text='Error leaving chat {}.\nMake sure chat name/id is valid!'.format(chat))
 
 
-leave_handler = CommandHandler('leave', leave)
-updater.dispatcher.add_handler(leave_handler)
+updater.dispatcher.add_handler(CommandHandler('leave', leave))
 
 
 # noinspection PyUnusedLocal
@@ -282,8 +299,7 @@ def e621(bot, update, tags=None):
         update.message.reply_text(text=failed)
 
 
-e621_handler = CommandHandler("e621", e621)
-updater.dispatcher.add_handler(e621_handler)
+updater.dispatcher.add_handler(CommandHandler("e621", e621))
 
 
 # noinspection PyUnusedLocal
@@ -311,8 +327,7 @@ def set_global(bot, update):
         update.message.reply_text(text='Globals syntax error.\n\nProper usage is /global <global>=<value>')
 
 
-globals_handler = CommandHandler("global", set_global)
-updater.dispatcher.add_handler(globals_handler)
+updater.dispatcher.add_handler(CommandHandler("global", set_global))
 
 
 @modifiers(action=Ca.TYPING)
@@ -389,8 +404,7 @@ def evaluate(bot, update, cmd=None, symbols=None):
         bot.send_message(text=result, chat_id=update.message.chat.id)
 
 
-eval_handler = CommandHandler("eval", evaluate)
-updater.dispatcher.add_handler(eval_handler)
+updater.dispatcher.add_handler(CommandHandler("eval", evaluate))
 
 
 # creates and modifies macro commands
@@ -567,8 +581,7 @@ def macro(bot, update):
         message.reply_text(text=err + 'Macro already exists.')
 
 
-macro_handler = CommandHandler("macro", macro)
-updater.dispatcher.add_handler(macro_handler)
+updater.dispatcher.add_handler(CommandHandler("macro", macro))
 
 
 # noinspection PyUnusedLocal
@@ -621,8 +634,7 @@ def wolfram(bot, update):
         message.reply_text(text=err + 'Empty query.')
 
 
-wolfram_handler = CommandHandler("wolfram", wolfram)
-updater.dispatcher.add_handler(wolfram_handler)
+updater.dispatcher.add_handler(CommandHandler("wolfram", wolfram))
 
 
 def wolfram_callback(bot, update):
@@ -671,8 +683,7 @@ def wolfram_callback(bot, update):
     WOLFRAM_RESULTS[name] = None
 
 
-wolfram_callback_handler = CallbackQueryHandler(wolfram_callback, pattern='^w[0-9]+')
-updater.dispatcher.add_handler(wolfram_callback_handler)
+updater.dispatcher.add_handler(CallbackQueryHandler(wolfram_callback, pattern='^w[0-9]+'))
 
 
 def wolfram_timeout(bot, job):
@@ -701,8 +712,7 @@ def inline_stuff(bot, update):
     update.inline_query.answer(results)
 
 
-inline_handler = InlineQueryHandler(inline_stuff)
-updater.dispatcher.add_handler(inline_handler)
+updater.dispatcher.add_handler(InlineQueryHandler(inline_stuff))
 
 
 @modifiers(name='ALLOW_UNNAMED', flood=False, level=logging.DEBUG)
@@ -778,8 +788,7 @@ def call_macro(bot, update):  # process macros and invalid commands.
     run()
 
 
-macro_handler = RegexHandler(r'/.*', call_macro)
-updater.dispatcher.add_handler(macro_handler)
+updater.dispatcher.add_handler(RegexHandler(r'/.*', call_macro))
 
 
 # noinspection PyUnusedLocal,PyUnusedLocal
