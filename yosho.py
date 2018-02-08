@@ -8,6 +8,7 @@ import logging
 import pickle
 import re
 import time
+import types
 import xml.etree.ElementTree as Xml
 from random import choice
 
@@ -87,21 +88,21 @@ load_globals()
 
 
 def load_plugins():
-    plugins = (n for n in os.listdir('/plugins') if n.endswith('.py'))
+    plugins = (n[:len(n)-3] for n in os.listdir('plugins') if n.endswith('.py'))
     for n in plugins:
-        plugin = import_module(n)
+        plugin = import_module('plugins.' + n)
 
-        if hasattr(plugin, 'command') and isinstance(plugin.command, function):
+        if hasattr(plugin, 'command') and callable(plugin.command):
             command = CommandHandler(n, plugin.command)
             updater.dispatcher.add_handler(command)
-
             logger.info('Loaded plugin {}.'.format(n))
         else:
             return
 
-        if hasattr(plugin, 'callback') and isinstance(plugin.callback, function):
+        if hasattr(plugin, 'callback') and callable(plugin.callback):
             callback = CallbackQueryHandler(plugin.callback, pattern=plugin.callback_pattern)
             updater.dispatcher.add_handler(callback)
+
 
 load_plugins()
 
