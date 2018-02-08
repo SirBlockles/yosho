@@ -7,9 +7,10 @@ from telegram.error import TelegramError
 from telegram.ext import CommandHandler
 
 from helpers import clean, db_push
-from macro import MacroSet
 
 handlers = []
+
+ORDER = 0
 
 
 # noinspection PyUnusedLocal
@@ -19,17 +20,6 @@ def die(bot, update):
 
 
 handlers.append([CommandHandler("die", die), {'mods': True, 'action': Ca.TYPING, 'level': logging.DEBUG}])
-
-
-# noinspection PyUnusedLocal
-def manual_flush(bot, update, bot_globals):
-    MacroSet.dump(bot_globals['MACROS'], open(bot_globals['MACROS_PATH'], 'w+'))
-    db_push(bot_globals['MACROS_PATH'])
-    bot_globals['INTERPRETERS'] = {}
-    update.message.reply_text(text='Cleared interpreters and pushed macro updates.')
-
-
-handlers.append([CommandHandler("flush", manual_flush), {'mods': True, 'action': Ca.TYPING, 'level': logging.DEBUG}])
 
 
 def leave(bot, update):

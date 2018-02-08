@@ -9,19 +9,30 @@ from telegram.ext import CommandHandler
 
 from helpers import clean
 
+ORDER = 0
+
 
 # noinspection PyUnusedLocal
 def e621(bot, update, bot_globals, tags=None):
+    def no_flood(u):
+        bot_globals['last_commands'][u] = time.time() - bot_globals['MESSAGE_TIMEOUT'] * 2
+
     failed = 'Error:\n\ne621 query failed.'
+
+    message = update.message
+    message_user = message.from_user.username if message.from_user.username is not None else message.from_user.name
 
     index = 'https://e621.net/post/index.json'
     chat = update.message.chat
     name = chat.title if chat.username is None else '@' + chat.username
+
     if name in bot_globals['SFW'].keys() and bot_globals['SFW'][name]:
         index = 'https://e926.net/post/index.json'
 
     if tags is None:
         tags = clean(update.message.text)
+    else:
+        no_flood(message_user)
 
     # construct the request
     params = {'limit': '50', 'tags': tags}

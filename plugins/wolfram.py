@@ -1,6 +1,5 @@
 """yosho plugin:Wolfram Alpha command"""
 import io
-import logging
 import re
 import xml.etree.ElementTree as Xml
 
@@ -17,6 +16,8 @@ WOLFRAM_RESULTS = {}
 WOLFRAM_TIMEOUT = 20
 
 handlers = []
+
+ORDER = 0
 
 
 # noinspection PyUnusedLocal
@@ -116,10 +117,7 @@ def wolfram_callback(bot, update, bot_globals):
     WOLFRAM_RESULTS[name] = None
 
 
-handlers.append([CallbackQueryHandler(wolfram_callback, pattern='^w[0-9]+'), {'action': Ca.UPLOAD_PHOTO,
-                                                                              'flood': False,
-                                                                              'age': False,
-                                                                              'level': logging.DEBUG}])
+handlers.append([CallbackQueryHandler(wolfram_callback, pattern='^w[0-9]+'), None])
 
 
 def wolfram_timeout(bot, job):

@@ -6,6 +6,8 @@ from telegram.ext import CommandHandler
 
 from helpers import db_push
 
+ORDER = 0
+
 
 # noinspection PyUnusedLocal
 def sfw(bot, update, bot_globals):
