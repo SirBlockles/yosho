@@ -74,8 +74,11 @@ handlers.append([CommandHandler("global", set_global), {'mods': True, 'action': 
 
 def delete(bot, update):
     quoted = update.message.reply_to_message
-    if quoted and quoted.from_user == bot.user:
-        quoted.delete()
+    if quoted:
+        try:
+            quoted.delete()
+        except TelegramError:
+            return
 
 
 handlers.append([CommandHandler("delete", delete), {'flood': False, 'mods': True}])
