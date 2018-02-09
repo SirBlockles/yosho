@@ -70,6 +70,11 @@ def enabled(bot, update, bot_globals, do=None):
     for i, h in enumerate(bot_globals['updater'].dispatcher.handlers[0]):
         if isinstance(h, (CommandHandler, RegexHandler)):
             if match(name, h.callback.__name__ if isinstance(h, RegexHandler) else h.command):
+                if isinstance(h, RegexHandler):
+                    update.message.reply_text(text="/{} is a RegexHandler command, "
+                                                   "which don't support filters.".format(name))
+                    return
+
                 found = True
 
                 if isinstance(h.filters, collections.Iterable):
