@@ -15,11 +15,6 @@ def command(bot, update):
     update.message.reply_text(text="Template plugin reply.")
 
 
-# You may include init to be executed on plugin load. Include bot_globals as an argument if needed.
-def init(bot_globals):
-    bot_globals['logger'].info("Template plugin initiated.")  # Example usage of bot globals.
-
-
 # Make sure to include a list of [handler, modifier dict] pairs if your plugin introduces new commands.
 
 # Modifier dict values may include:
@@ -35,3 +30,8 @@ def init(bot_globals):
 
 # NOTE: you may pass None instead of a modifier dict if you don't wish to use any modifiers.
 handlers.append([CommandHandler('template_plugin', command), {'action': Ca.TYPING}])
+
+
+# You may include init to be executed on plugin load. Include bot_globals as an argument if needed.
+def init(bot_globals):
+    bot_globals['logger'].info("Template plugin initiated.")  # Example usage of bot globals.
