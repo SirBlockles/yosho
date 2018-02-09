@@ -42,8 +42,8 @@ handlers.append([CommandHandler('leave', leave), {'mods': True, 'action': Ca.TYP
 def set_global(bot, update, bot_globals):
     """sets or displays int/bool bot globals"""
     args = [a.strip() for a in clean(update.message.text).split('=')]
-    names = (k for k, v in bot_globals.items() if type(v) in (int, bool))
-    listed = ('{} = {}'.format(k, v) for k, v in bot_globals.items() if type(v) in (int, bool))
+    names = (k for k, v in bot_globals.items() if isinstance(v, (int, bool)))
+    listed = ('{} = {}'.format(k, v) for k, v in bot_globals.items() if isinstance(v, (int, bool)))
 
     if len(args) > 1:
         if args[0] in names:
@@ -67,7 +67,7 @@ def set_global(bot, update, bot_globals):
     elif args[0] == '':
         update.message.reply_text(text='Globals:\n\n' + '\n'.join(listed))
     else:
-        update.message.reply_text(text='Globals syntax error.\n\nProper usage is /global <global>=<value>')
+        update.message.reply_text(text='Globals syntax error.\n\nProper usage is /global <global> = <value>')
 
 
 handlers.append([CommandHandler("global", set_global), {'mods': True, 'action': Ca.TYPING, 'level': logging.DEBUG}])

@@ -9,9 +9,11 @@ handlers = []
 
 def start(bot, update, bot_globals):
     """start info"""
-    if 'macro processor' in bot_globals['PLUGINS'].keys():
+    plugins = bot_globals['PLUGINS']
+
+    if 'macro processor' in plugins.keys():
         update.message.text = '/start_info' + bot.name.lower()
-        bot_globals['PLUGINS']['macro processor'].call_macro(bot, update, bot_globals)
+        plugins['macro processor'].call_macro(bot, update, bot_globals)
     else:
         update.message.reply_text(text='Yosho bot by @TeamFortress and @WyreYote')
 
@@ -22,11 +24,12 @@ handlers.append([CommandHandler('start', start), {'action': Ca.TYPING, 'name': T
 def list_plugins(bot, update, bot_globals):
     """lists plugins and their commands"""
     text = ''
-    expr = clean(update.message.text)
+    name = clean(update.message.text)
+    plugins = bot_globals['PLUGINS']
 
-    if expr in bot_globals['PLUGINS']:
-        p = bot_globals['PLUGINS'][expr]
-        text += expr + ':\n\n'
+    if name in plugins:
+        p = plugins[name]
+        text += name + ':\n\n'
 
         if hasattr(p, 'handlers'):
             for h, m in p.handlers:
@@ -37,7 +40,7 @@ def list_plugins(bot, update, bot_globals):
                     text += '/{}{}\n'.format(', /'.join(names), desc)
 
     else:
-        text += 'Installed plugins:\n\n' + '\n'.join(bot_globals['PLUGINS'].keys())
+        text += 'Installed plugins:\n\n' + '\n'.join(plugins.keys())
 
     update.message.reply_text(text=text)
 

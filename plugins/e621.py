@@ -22,6 +22,9 @@ def e621(bot, update, bot_globals, tags=None):
 
     failed = 'e621 error:\n\n'
 
+    logger = bot_globals['logger']
+    sfw = bot_globals['SFW']
+
     message = update.message
     message_user = message.from_user.username if message.from_user.username is not None else message.from_user.name
 
@@ -29,7 +32,7 @@ def e621(bot, update, bot_globals, tags=None):
     chat = update.message.chat
     name = chat.title if chat.username is None else '@' + chat.username
 
-    if name in bot_globals['SFW'].keys() and bot_globals['SFW'][name]:
+    if name in sfw.keys() and sfw[name]:
         index = 'https://e926.net/post/index.json'
 
     if tags is None:
@@ -50,14 +53,14 @@ def e621(bot, update, bot_globals, tags=None):
 
         if posts:
             url = choice(posts)
-            bot_globals['logger'].debug(url)
+            logger.debug(url)
             try:
                 update.message.reply_text(text=url)
             except TelegramError:
-                bot_globals['logger'].debug('TelegramError in e621.')
+                logger.debug('TelegramError in e621.')
                 update.message.reply_text(text=failed + 'Telegram error.')
         else:
-            bot_globals['logger'].debug('Bad tags entered in e621.')
+            logger.debug('Bad tags entered in e621.')
             update.message.reply_text(text=failed + 'No images found.')
     else:
         update.message.reply_text(text=failed + 'e621 API error.')

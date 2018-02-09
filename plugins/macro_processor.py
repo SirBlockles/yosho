@@ -21,6 +21,11 @@ MACROS_PATH = 'MACROS.json'
 db_pull(MACROS_PATH)
 MACROS = MacroSet.load(open(MACROS_PATH, 'rb'))
 
+EVAL_MEMORY = True
+EVAL_TIMEOUT = 1
+EVAL_MAX_OUTPUT = 256
+EVAL_MAX_INPUT = 1000
+
 INTERPRETERS = {}
 handlers = []
 
@@ -45,13 +50,13 @@ def evaluate(bot, update, bot_globals, cmd=None, symbols=None):
         call_macro(bot, update, bot_globals)
         return
 
-    if len(expr) > bot_globals['EVAL_MAX_INPUT']:
+    if len(expr) > EVAL_MAX_INPUT:
         update.message.reply_text(err + 'Maximum input length exceeded.')
         return
 
     name = update.message.from_user.name
     interp = Interpreter()
-    if bot_globals['EVAL_MEMORY'] and name in INTERPRETERS.keys():
+    if EVAL_MEMORY and name in INTERPRETERS.keys():
         interp.symtable = {**INTERPRETERS[name], **Interpreter().symtable}
         bot_globals['logger'].debug('Loaded interpreter "{}": {}'.format(name, INTERPRETERS[name]))
 
@@ -71,12 +76,12 @@ def evaluate(bot, update, bot_globals, cmd=None, symbols=None):
 
     interp.symtable = {**interp.symtable, **symbols}
 
-    with stopit.ThreadingTimeout(bot_globals['EVAL_TIMEOUT']) as ctx:
+    with stopit.ThreadingTimeout(EVAL_TIMEOUT) as ctx:
         out = interp(expr)
 
     reply = interp.symtable['REPLY']
 
-    if bot_globals['EVAL_MEMORY'] and cmd is None:
+    if EVAL_MEMORY and cmd is None:
         INTERPRETERS[name] = {k: v for k, v in interp.symtable.items() if k not in
                               Interpreter().symtable.keys() and k not in symbols.keys()}
         bot_globals['logger'].debug('Saved interpreter "{}": {}'.format(name, INTERPRETERS[name]))
@@ -86,8 +91,8 @@ def evaluate(bot, update, bot_globals, cmd=None, symbols=None):
     else:
         if out is None:
             result = 'Code returned nothing.'
-        elif len(str(out)) > bot_globals['EVAL_MAX_OUTPUT']:
-            result = str(out)[:bot_globals['EVAL_MAX_OUTPUT']] + '...'
+        elif len(str(out)) > EVAL_MAX_OUTPUT:
+            result = str(out)[:EVAL_MAX_OUTPUT] + '...'
         else:
             result = str(out)
     if result == '':
@@ -321,24 +326,21 @@ def call_macro(bot, update, bot_globals):  # process macros and invalid commands
     chat = update.message.chat
     name = chat.title if chat.username is None else '@' + chat.username
 
-    # noinspection PyUnusedLocal
-    def invalid(bot, update, text):
+    def invalid(text):
         n = re.match('/\w+(@\w+)\s', message.text + ' ')
         message_bot = (n.group(1).lower() if n else None)
         if message_bot == bot.name.lower():
             bot.sendChatAction(chat_id=message.chat_id, action=Ca.TYPING)
             update.message.reply_text(text=text)
 
-    # noinspection PyUnusedLocal
-    def known(bot, update, text):
+    def known(text):
         bot.sendChatAction(chat_id=message.chat_id, action=Ca.TYPING)
         if quoted is None:
             update.message.reply_text(text=text)
         else:
             quoted.reply_text(text=text)
 
-    # noinspection PyUnusedLocal
-    def photo(bot, update, url):
+    def photo(url):
         bot.sendChatAction(chat_id=message.chat_id, action=Ca.UPLOAD_PHOTO)
         try:
             if quoted is None:
@@ -361,7 +363,7 @@ def call_macro(bot, update, bot_globals):  # process macros and invalid commands
             content = MACROS[command].content
             if MACROS[command].nsfw and name in bot_globals['SFW'].keys():
                 if bot_globals['SFW'][name]:
-                    known(bot, update, "{}{} is NSFW, this chat has been marked as SFW by the admins!"
+                    known("{}{} is NSFW, this chat has been marked as SFW by the admins!"
                           .format(command, err))
                     return
 
@@ -372,10 +374,10 @@ def call_macro(bot, update, bot_globals):  # process macros and invalid commands
                 evaluate(bot, update, bot_globals, cmd=content, symbols=symbols)
 
             elif variety == Macro.TEXT:
-                known(bot, update, content)
+                known(content)
 
             elif variety == Macro.PHOTO:
-                photo(bot, update, content)
+                photo(content)
 
             elif variety == Macro.E621:
                 if 'e621 command' in bot_globals['PLUGINS'].keys():
@@ -387,13 +389,13 @@ def call_macro(bot, update, bot_globals):  # process macros and invalid commands
 
             elif variety == Macro.INLINE:
                 quoted = None
-                known(bot, update, err + "That's an inline macro! Try @yosho_bot " + command)
+                known(err + "That's an inline macro! Try @yosho_bot " + command)
 
             elif variety == Macro.ALIAS:
                 run(content)
 
         else:
-            invalid(bot, update, 'Error:\n\nUnknown command: ' + command)
+            invalid('Error:\n\nUnknown command: ' + command)
 
     run()
 

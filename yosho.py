@@ -30,10 +30,6 @@ GLOBALS = pickle.load(open(GLOBALS_PATH, 'rb'))
 LOGGING_LEVEL = logging.DEBUG
 MESSAGE_TIMEOUT = 60
 FLOOD_TIMEOUT = 20
-EVAL_MEMORY = True
-EVAL_TIMEOUT = 1
-EVAL_MAX_OUTPUT = 128
-EVAL_MAX_INPUT = 1000
 FLUSH_INTERVAL = 60 * 10
 IMAGE_SEND_TIMEOUT = 40
 
@@ -167,7 +163,9 @@ def load_plugins():
             else:
                 logger.error('plugin file "{}" docstring malformed'.format(fn))
 
-    for n in sorted(PLUGINS.keys(), key=order):  # enforce plugin load order
+    sorted_plugins = sorted(PLUGINS.keys(), key=order)
+
+    for n in sorted_plugins:  # enforce plugin load order
         if hasattr(PLUGINS[n], 'handlers'):
             for h, m in PLUGINS[n].handlers:  # register handlers
                 # wrap callback function with modifiers if present
@@ -182,7 +180,7 @@ def load_plugins():
 
         logger.info('loaded plugin "{}"'.format(n))
 
-    for n in sorted(PLUGINS.keys(), key=order):
+    for n in sorted_plugins:  # initialize plugins
         # if init method is present in plugin, execute on load
         if hasattr(PLUGINS[n], 'init') and callable(PLUGINS[n].init):
             if 'bot_globals' in inspect.signature(PLUGINS[n].init).parameters:
