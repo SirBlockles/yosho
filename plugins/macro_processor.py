@@ -351,6 +351,8 @@ def call_macro(bot, update, bot_globals):  # process macros and invalid commands
     def run(command=None):
         global quoted
 
+        err = "Macro error:\n\n"
+
         if command is None:
             command = re.sub('@[@\w]+', '', re.split('\s+', message.text)[0])
 
@@ -359,8 +361,8 @@ def call_macro(bot, update, bot_globals):  # process macros and invalid commands
             content = MACROS[command].content
             if MACROS[command].nsfw and name in bot_globals['SFW'].keys():
                 if bot_globals['SFW'][name]:
-                    known(bot, update, "Macro error:\n\n{} is NSFW, this chat has been marked as SFW by the admins!"
-                          .format(command))
+                    known(bot, update, "{}{} is NSFW, this chat has been marked as SFW by the admins!"
+                          .format(command, err))
                     return
 
             if variety == Macro.EVAL:
@@ -381,11 +383,11 @@ def call_macro(bot, update, bot_globals):  # process macros and invalid commands
                     bot_globals['PLUGINS']['e621 command'].e621(bot, update, bot_globals,
                                                  tags='{} {}'.format(content, clean(message.text)))
                 else:
-                    update.message.reply_text("Macro error:\n\ne621 plugin isn't installed.")
+                    update.message.reply_text(err + "e621 plugin isn't installed.")
 
             elif variety == Macro.INLINE:
                 quoted = None
-                known(bot, update, "Macro error:\n\nThat's an inline macro! Try @yosho_bot " + command)
+                known(bot, update, err + "That's an inline macro! Try @yosho_bot " + command)
 
             elif variety == Macro.ALIAS:
                 run(content)
