@@ -20,7 +20,7 @@ def e621(bot, update, bot_globals, tags=None):
     def no_flood(u):
         bot_globals['last_commands'][u] = time.time() - bot_globals['MESSAGE_TIMEOUT'] * 2
 
-    failed = 'Error:\n\ne621 query failed.'
+    failed = 'e621 error:\n\n'
 
     message = update.message
     message_user = message.from_user.username if message.from_user.username is not None else message.from_user.name
@@ -55,12 +55,12 @@ def e621(bot, update, bot_globals, tags=None):
                 update.message.reply_text(text=url)
             except TelegramError:
                 bot_globals['logger'].debug('TelegramError in e621.')
-                update.message.reply_text(text=failed)
+                update.message.reply_text(text=failed + 'Telegram error.')
         else:
             bot_globals['logger'].debug('Bad tags entered in e621.')
-            update.message.reply_text(text=failed)
+            update.message.reply_text(text=failed + 'No images found.')
     else:
-        update.message.reply_text(text=failed)
+        update.message.reply_text(text=failed + 'e621 API error.')
 
 
 handlers.append([CommandHandler("e621", e621), {'action': Ca.UPLOAD_PHOTO}])
