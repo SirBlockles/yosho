@@ -1,6 +1,7 @@
 """yosho plugin:chat moderator tools"""
 import collections
 import pickle
+import re
 
 from telegram import ChatAction as Ca
 from telegram.ext import CommandHandler, RegexHandler, filters
@@ -103,7 +104,7 @@ def enabled(bot, update, bot_globals, do=None):
         if text.startswith('/disable'):
             ENABLED.add((text, title, chat_id))
         else:
-            ENABLED -= {(text.replace('enable', 'disable'), title, chat_id)}
+            ENABLED -= {(re.sub('^/enable', '/disable', text), title, chat_id)}
 
         pickle.dump(list(ENABLED), open(ENABLED_PATH, 'wb+'))
         db_push(ENABLED_PATH)
