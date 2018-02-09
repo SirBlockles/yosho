@@ -15,7 +15,7 @@ from telegram.ext import Updater
 from helpers import is_mod, db_pull
 
 TOKEN_DICT = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
-TELEGRAM_TOKEN = TOKEN_DICT['yoshobeta_bot']
+TELEGRAM_TOKEN = TOKEN_DICT['yosho_bot']
 WOLFRAM_TOKEN = TOKEN_DICT['wolfram']
 
 SFW_PATH = 'SFW.pkl'
