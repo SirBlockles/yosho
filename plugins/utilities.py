@@ -33,8 +33,8 @@ def list_plugins(bot, update, bot_globals):
                 if isinstance(h, (CommandHandler, RegexHandler)):
                     desc = h.callback.__doc__
                     desc = ': ' + desc if desc else ''
-                    text += '/{}{}\n'.format(', /'.join([h.callback.__name__] if isinstance(h, RegexHandler)
-                                                        else h.command), desc)
+                    names = [h.callback.__name__] if isinstance(h, RegexHandler) else h.command
+                    text += '/{}{}\n'.format(', /'.join(names), desc)
 
     else:
         text += 'Installed plugins:\n\n' + '\n'.join(bot_globals['PLUGINS'].keys())

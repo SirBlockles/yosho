@@ -85,9 +85,9 @@ def enabled(bot, update, bot_globals, do=None):
                 if text.startswith('/disable'):
                     chat_filter = ~chat_filter
 
-                info = '{}d use of "/{}" in chat {}.'.format(str.capitalize(text.split(' ')[0][1:]), name, title)
+                info = '{}d use of "/{}" in chat {}.'.format(text.split(' ')[0][1:], name, title)
                 if not do:
-                    update.message.reply_text(text=info)
+                    update.message.reply_text(text=str.capitalize(info))
                 bot_globals['logger'].debug(info)
 
                 chat_filter = filters.Filters.user(MODS) | chat_filter
