@@ -29,7 +29,7 @@ def command(bot, update):
 # level <logging.LEVEL aka int>: Console logging level to display when this command is processed. Defaults to INFO.
 
 # NOTE: you may pass None instead of a modifier dict if you don't wish to use any modifiers.
-handlers.append([CommandHandler('template_plugin', command), {'action': Ca.TYPING}])
+handlers.append([CommandHandler('template_command', command), {'action': Ca.TYPING}])
 
 
 # You may include init to be executed on plugin load. Include bot_globals as an argument if needed.
