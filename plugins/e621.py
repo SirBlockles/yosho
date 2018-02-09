@@ -52,7 +52,7 @@ def e621(bot, update, bot_globals, tags=None):
             url = choice(posts)
             bot_globals['logger'].debug(url)
             try:
-                update.message.reply_photo(photo=url, timeout=bot_globals['IMAGE_SEND_TIMEOUT'])
+                update.message.reply_text(text=url)
             except TelegramError:
                 bot_globals['logger'].debug('TelegramError in e621.')
                 update.message.reply_text(text=failed)
