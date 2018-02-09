@@ -46,10 +46,7 @@ def enabled(bot, update, bot_globals, do=None):
     text = do[0] if do else update.message.text.lower()
     name = clean(text)
 
-    if update:
-        chat = update.message.chat
-    else:
-        chat = None
+    chat = update.message.chat if update else None
 
     chat_id = do[2] if do else chat.id
 
@@ -59,6 +56,10 @@ def enabled(bot, update, bot_globals, do=None):
         title = chat.title if chat.username is None else '@' + chat.username
 
     name = name[1:] if name.startswith('/') else name
+
+    if name in {'enable', 'disable'}:
+        update.message.reply_text(text='Nice try :^)')
+        return
 
     def match(name, aliases):
         if isinstance(aliases, list):
