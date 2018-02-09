@@ -20,7 +20,6 @@ handlers = []
 ORDER = 0
 
 
-# noinspection PyUnusedLocal
 def wolfram(bot, update, bot_globals):
     """query Wolfram Alpha"""
     message = update.message

@@ -14,7 +14,6 @@ ENABLED = set(pickle.load(open(ENABLED_PATH, 'rb')))
 handlers = []
 
 
-# noinspection PyUnusedLocal
 def sfw(bot, update, bot_globals):
     """toggles per-chat SFW setting"""
     chat = update.message.chat

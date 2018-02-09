@@ -13,7 +13,7 @@ from telegram.ext import InlineQueryHandler, RegexHandler
 
 from helpers import clean
 from helpers import is_mod, db_push, db_pull
-from plugins.macro import Macro, MacroSet
+from macro import Macro, MacroSet
 
 ORDER = 2
 
@@ -286,7 +286,6 @@ def macro(bot, update, bot_globals):
 handlers.append([CommandHandler("macro", macro), {'action': Ca.TYPING}])
 
 
-# noinspection PyUnusedLocal
 def inline_stuff(bot, update, bot_globals):
     results = list()
     query = update.inline_query.query
@@ -306,7 +305,6 @@ def inline_stuff(bot, update, bot_globals):
 handlers.append([InlineQueryHandler(inline_stuff), None])
 
 
-# noinspection PyUnusedLocal
 def manual_flush(bot, update, bot_globals):
     """flushes interpreters and macro edits"""
     flush(bot, update)
@@ -401,7 +399,6 @@ def call_macro(bot, update, bot_globals):  # process macros and invalid commands
 handlers.append([RegexHandler(r'/.*', call_macro), {'name': 'ALLOW_UNNAMED', 'level': logging.INFO}])
 
 
-# noinspection PyUnusedLocal
 def flush(bot, update):
     global INTERPRETERS
     INTERPRETERS = {}

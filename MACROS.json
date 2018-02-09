@@ -23,6 +23,30 @@
         "protected": true,
         "variety": "PHOTO"
     },
+    "/IdiotSteam": {
+        "_content": "ydydotsitsotsyo",
+        "creator": "{'user': 'DigitalEeveelution', 'chat': -1001180022417, 'chat_type': 'supergroup'}",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
+    "/IdiotSteam2": {
+        "_content": "Sylvie Snack:\nhttp://steamcommunity.com/id/lovedoctorsylveon",
+        "creator": "{'user': 'DigitalEeveelution', 'chat': -1001180022417, 'chat_type': 'supergroup'}",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
+    "/JadeSteam": {
+        "_content": "http://steamcommunity.com/id/PokemonGamer/",
+        "creator": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
     "/LILPUMP": {
         "_content": "ESSSSKEEEETTTIIIIITTTTT",
         "creator": "",
@@ -31,8 +55,24 @@
         "protected": false,
         "variety": "TEXT"
     },
+    "/Michael": {
+        "_content": "https://cdn.discordapp.com/attachments/325783499925880843/409091675970076679/DKlkOsaWkAET8Ne.png",
+        "creator": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "PHOTO"
+    },
     "/STUFF": {
         "_content": "IMMA STICK A PIZZA IN YOUR ASS SIDEWAYS",
+        "creator": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
+    "/SummonJade": {
+        "_content": "@DigitalEeveelution",
         "creator": "",
         "hidden": false,
         "nsfw": false,
@@ -63,6 +103,14 @@
         "protected": true,
         "variety": "TEXT"
     },
+    "/bananan": {
+        "_content": "bananan lol",
+        "creator": "{'user': 'socksthefennec', 'chat': -1001264849628, 'chat_type': 'supergroup'}",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
     "/bat": {
         "_content": "bat",
         "creator": "",
@@ -86,6 +134,14 @@
         "nsfw": false,
         "protected": true,
         "variety": "EVAL"
+    },
+    "/boss": {
+        "_content": "http://i0.kym-cdn.com/photos/images/original/001/250/055/98e.jpg",
+        "creator": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "PHOTO"
     },
     "/box": {
         "_content": "text=''\nif INPUT == '':\n#text = PRECEDING\nelse:\n#text = INPUT\n\"\\n\".join([\"\".join([x+\"\\u035f\"+\"\\u035e\" for x in ('['+l)[:len(l)]]) + l[len(l)-1: ] +']' if not l == '' else '' for l in text.split('\\n')])",
@@ -127,6 +183,14 @@
         "protected": true,
         "variety": "E621"
     },
+    "/coyote": {
+        "_content": "order:score coyote",
+        "creator": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "E621"
+    },
     "/curse": {
         "_content": "no",
         "creator": "",
@@ -139,9 +203,17 @@
         "_content": "yoshi = ['https://static1.e621.net/data/9d/a7/9da7776fd8aa0c9a84a6be722f136e04.png', 'https://static1.e621.net/data/17/26/172675580277526b96ea8588cf3a60a6.jpg', 'https://static1.e621.net/data/d3/89/d38913f91cfffa73bff5cb7518c03aee.png', 'https://static1.e621.net/data/df/b3/dfb348f011506ec8678919b1ecea8690.jpg', 'https://static1.e621.net/data/33/3c/333cc7ffd25c589e0b3a9f072f1c332b.jpg', 'https://static1.e621.net/data/62/c6/62c6d3b45a7f9d264d4e5109795c2249.jpg', 'https://static1.e621.net/data/0a/e8/0ae86135c2739f3f85ad04ab4817f159.png']\nrandom.choice(yoshi)",
         "creator": "",
         "hidden": true,
-        "nsfw": false,
+        "nsfw": true,
         "protected": false,
         "variety": "EVAL"
+    },
+    "/daddy": {
+        "_content": "IM DELETING YOU, DADDY!\ud83d\ude2d\ud83d\udc4b \u2588\u2588]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]] 10% complete..... \u2588\u2588\u2588\u2588]]]]]]]]]]]]]]]]]]]]]]]]]]] 35% complete.... \u2588\u2588\u2588\u2588\u2588\u2588\u2588]]]]]]]]]]]]]]]] 60% complete.... \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588] 99% complete..... \ud83d\udeabERROR!\ud83d\udeab \ud83d\udcafTrue\ud83d\udcaf Daddies are irreplaceable I could never delete you Daddy!\ud83d\udc96 Send this to ten other \ud83d\udc6aDaddies\ud83d\udc6a who give you \ud83d\udca6cummies\ud83d\udca6 Or never get called \u2601\ufe0fsquishy\u2601\ufe0f again\u274c\u274c\ud83d\ude2c\ud83d\ude2c\u274c\u274c If you get 0 Back: no cummies for you \ud83d\udeab\ud83d\udeab\ud83d\udc7f 3 back: you're squishy\u2601\ufe0f\ud83d\udca6 5 back: you're daddy's kitten\ud83d\ude3d\ud83d\udc7c\ud83d\udca6 10+ back: Daddy\ud83d\ude1b\ud83d\ude1b\ud83d\udc95\ud83d\udc95\ud83d\udca6\ud83d\udc45\ud83d\udc45",
+        "creator": "{'user': 'ThatCrazyTiberius', 'chat': -1001114489005, 'chat_type': 'supergroup'}",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
     },
     "/dav": {
         "_content": "Dav on em \ud83d\ude24\ud83d\ude02\ud83d\udcb2\ud83d\udcaf",
@@ -152,7 +224,7 @@
         "variety": "TEXT"
     },
     "/deer": {
-        "_content": "deer anthro",
+        "_content": "deer rating:s",
         "creator": "",
         "hidden": true,
         "nsfw": false,
@@ -173,6 +245,38 @@
         "hidden": false,
         "nsfw": false,
         "protected": false,
+        "variety": "E621"
+    },
+    "/dickmeharder": {
+        "_content": "\ud83d\ude23\ud83d\ude23\ud83d\ude23\ud83d\ude23\ud83d\udca6\ud83d\udca6\ud83d\udca6\ud83d\udca6",
+        "creator": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
+    "/doggoSteam": {
+        "_content": "http://steamcommunity.com/id/mclucario/",
+        "creator": "{'user': 'yesthisiscario', 'chat': -1001180022417, 'chat_type': 'supergroup'}",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
+    "/e921": {
+        "_content": "-notarealtag",
+        "creator": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "E621"
+    },
+    "/e926": {
+        "_content": "rating:s",
+        "creator": "{'user': 'WyreYote', 'chat': -1001114489005, 'chat_type': 'supergroup'}",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
         "variety": "E621"
     },
     "/echo": {
@@ -239,6 +343,22 @@
         "protected": true,
         "variety": "TEXT"
     },
+    "/fennec": {
+        "_content": "fennec",
+        "creator": "{'user': 'socksthefennec', 'chat': -1001264849628, 'chat_type': 'supergroup'}",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "E621"
+    },
+    "/gay": {
+        "_content": "/mizu",
+        "creator": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "ALIAS"
+    },
     "/god": {
         "_content": "\ud83d\udc41\ud83d\udc45\ud83d\udc41",
         "creator": "",
@@ -256,7 +376,7 @@
         "variety": "TEXT"
     },
     "/help": {
-        "_content": "Available commands:\n/eval <expression> - does math and basic python code, use # for tabs\n/e926 <tags> - search e926\n/wolfram - query Wolfram Alpha\n\nA few of many macros:\n/echo <text> - echoes text\n/why - post random cursed image\n/roll <int> - rolls a number between 1 and x\n/GARFIELD - reply to a message with a garfield meme\n/emojify <input> - emojifies text, reply to a message with this to emojify that message instead of your input\n\n/macro <arguments> - macro editor\n\u2014> Send \"/macro\" to view modes/help.\n\u2014> Send \"/macro list\" for all macros and inline commands.",
+        "_content": "Available commands:\n/eval <expression> - does math and basic python code, use # for tabs\n/e621 <tags> - search e926\n/wolfram - query Wolfram Alpha\n\nA few of many macros:\n/echo <text> - echoes text\n/why - post random cursed image\n/roll <int> - rolls a number between 1 and x\n/GARFIELD - reply to a message with a garfield meme\n/emojify <input> - emojifies text, reply to a message with this to emojify that message instead of your input\n\n/macro <arguments> - macro editor\n\u2014> Send \"/macro\" to view modes/help.\n\u2014> Send \"/macro list\" for all macros and inline commands.",
         "creator": "",
         "hidden": false,
         "nsfw": false,
@@ -270,6 +390,22 @@
         "nsfw": false,
         "protected": true,
         "variety": "TEXT"
+    },
+    "/hi": {
+        "_content": "Fuck You",
+        "creator": "{'user': 'DigitalEeveelution', 'chat': -1001114489005, 'chat_type': 'supergroup'}",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
+    "/horse": {
+        "_content": "horse cock",
+        "creator": "{'user': 'alittlehusky', 'chat': -1001264849628, 'chat_type': 'supergroup'}",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "E621"
     },
     "/hotdog": {
         "_content": "https://i.imgur.com/MkDllYA.png",
@@ -303,6 +439,14 @@
         "protected": false,
         "variety": "TEXT"
     },
+    "/kemo": {
+        "_content": "kemo",
+        "creator": "{'user': 'WyreYote', 'chat': -1001103233378, 'chat_type': 'supergroup'}",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "E621"
+    },
     "/kms": {
         "_content": "https://www.youtube.com/watch?v=LY_WGL617nQ",
         "creator": "",
@@ -319,8 +463,16 @@
         "protected": false,
         "variety": "TEXT"
     },
+    "/lettuce": {
+        "_content": "#15 - Burger King Foot Lettuce\nThe last thing you'd want on your Burger King burger is someone's foot fungus, but as it turns out, that might be what you get. A 4channel uploaded a photo, anonymously, to the site, showcasing his feet in a plastic bin of lettuce with the statement \"This is the lettuce you eat at Burger King.\" Admittedly, he had shoes on. But that's even worse. The post went live at 11:38 PM on July 16 and a mere 20 minutes later, the Burger King in question was alerted to the rogue employee. At least, I hope he's rogue. How did it happen?",
+        "creator": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
     "/lioness": {
-        "_content": "female solo order:score",
+        "_content": "lion female solo order:score",
         "creator": "",
         "hidden": true,
         "nsfw": false,
@@ -333,6 +485,14 @@
         "hidden": false,
         "nsfw": false,
         "protected": false,
+        "variety": "TEXT"
+    },
+    "/loss": {
+        "_content": "shut the fuck up",
+        "creator": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
         "variety": "TEXT"
     },
     "/luck": {
@@ -367,6 +527,14 @@
         "protected": true,
         "variety": "E621"
     },
+    "/markov": {
+        "_content": "Markov is a worse bot than me :^)",
+        "creator": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "TEXT"
+    },
     "/maxlardo": {
         "_content": "M\u0346\u0343\u0314\u0301\u0342\u034b\u0304\u0336\u035c\u035c\u0321\u031e\u0320\u0354\u032e\u0318\u033b\u033a\u0347\u031f\u031f\u035a\u0317\u032a\u035a\u0320\u032bA\u0357\u0343\u031a\u0343\u0344\u0309\u0366\u0369\u035f\u0334\u035d\u0327\u0327\u033b\u0332\u0325\u0339\u0354\u0326\u034d\u032d\u0319\u0359\u0331\u033b\u0348X\u0311\u0351\u0314\u0366\u0352\u0300\u034c\u0346\u0300\u0306\u0312\u0352 \u031b\u0337\u031b\u0358\u035c\u031d\u0353\u032e\u031d\u032f\u0330\u034e \u036a \u0312\u0367\u0367\u031a\u030e\u0303\u036f\u036f\u0300\u034f\u0340\u0328\u0335\u0341\u0329\u0323\u0319\u031d\u0319\u033a\u034d\u035a\u0319\u0326\u0316\u0329\u032e\u0353\u0355\u0339L\u0313\u0308\u0313\u0357\u0300\u0305\u0352\u035b\u035d\u035f\u0340\u0340\u0324\u0332\u035a\u0349\u032a\u035a\u0317\u035a \u0350\u0369\u0312\u0305\u033e\u0352\u036d\u0313\u0357\u036b\u0350\u0313\u0313\u0363\u035b\u035f\u0361\u0321\u0340\u0489\u032b\u032c\u0324\u0345\u032e\u033c\u0320\u0324\u032e\u032c\u0332\u0345\u0319A\u0300\u030f\u0309\u0309\u036c\u0363\u0312\u0357\u030e\u0304\u0313\u035b\u034c\u030d\u031b\u0361\u031b\u0318\u032f\u0339\u034e\u0316\u0323\u0324\u031d\u0326  \u0313\u0308\u0344\u0343\u0352\u036e\u0310\u0307\u0357\u0305\u0346\u034a\u0311\u0338\u0315\u0355\u035a\u0359\u0330\u031f\u0356\u0331\u031e\u032e\u034e\u0354\u0332\u0355\u034dR\u0368\u0367\u030c\u0352\u0366\u0342\u030e\u0303\u0358\u0335\u0321\u0322\u0320\u032c\u0316\u032d\u0332\u032b\u032e\u031c\u0347\u033a\u0329\u034e \u0318\u034d\u0356\u034d\u0347 \u0352\u0368\u030c\u034b\u030e\u0364\u0350\u0363\u0313\u0351\u035f\u035e\u0336\u031d\u0353\u031d\u0317\u034e\u031e\u032f\u0316\u032d\u0359D\u0357\u030f\u0344\u033d\u0306\u0351\u035b \u0334\u0489\u0327\u0341\u0338\u031c\u0354\u032c\u0329\u032b\u0326\u031d\u033c \u0352\u0305\u0343\u0313\u0334\u0327\u0358\u0320\u031f\u032c\u032c\u031d\u0353 \u031c\u032b\u0331\u0349\u0331\u0359\u033aO \u030c\u035b\u035b\u0300\u0350\u0300\u030f\u0343\u034a\u0312\u0366\u0357\u035c\u0361\u035e\u0335\u032f\u0323\u0331\u0354\u034e\u0359\u0349\u0355\u0318\u032d\u032c\u031e\u0356\u031f\u0317\n\u0301\u0368\u0367\u0310\u0351\u0357\u0350\u0342\u0366\u036e\u0300\u0366\u035b\u0344\u0309\u0363\u035e\u0328\u0338\u0489\u035e\u034d\u032b\u0326\u0345\u0332\u0355\u0324\u0324\u0331\u0318\u032a\u0359\u031c\u0331\u0319\u034d\u0320\u0356",
         "creator": "",
@@ -392,7 +560,7 @@
         "variety": "TEXT"
     },
     "/mizu": {
-        "_content": "solo mizutsune",
+        "_content": "mizutsune rating:s",
         "creator": "",
         "hidden": false,
         "nsfw": false,
@@ -413,6 +581,14 @@
         "hidden": true,
         "nsfw": false,
         "protected": true,
+        "variety": "TEXT"
+    },
+    "/navyseal": {
+        "_content": "What the fuck did you just fucking say about me, you little bitch?\u00a0I\u2019ll have you know I graduated top of my class in the Navy Seals,and I\u2019ve been involved in numerous secret raids on Al-Quaeda, and I have over 300 confirmed kills.\n\nI am trained in\u00a0gorilla warfare\u00a0and I\u2019m the top sniper in the entire US armed forces.\u00a0You are nothing to me but just another target. I will wipe you the fuck out with precision the likes of which has never been seen before on this Earth, mark my fucking words.\n\nYou think you can get away with saying that shit to me over the Internet?\u00a0Think again, fucker.\u00a0As we speak I am contacting my secret network of spies across the USA\u00a0and your IP is being traced right now so you better prepare for the storm, maggot. The storm that wipes out the pathetic little thing you call your life. You\u2019re fucking dead, kid.\u00a0I can be anywhere, anytime, and I can kill you in over seven hundred ways, and that\u2019s just with my bare hands.\n\nNot only am I extensively trained in unarmed combat, but I have access to the entire arsenal of the United States Marine Corps\u00a0and I will use it to its full extent to wipe your miserable ass off the face of the continent, you little shit.If only you could have known what unholy retribution your little \u201cclever\u201d comment was about to bring down upon you, maybe you would have held your fucking tongue.\n\nBut you couldn\u2019t, you didn\u2019t, and now you\u2019re paying the price, you goddamn idiot.\u00a0I will shit fury all over you and you will drown in it.\n\nYou\u2019re fucking dead, kiddo.",
+        "creator": "{'user': 'ThatCrazyTiberius', 'chat': -1001114489005, 'chat_type': 'supergroup'}",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
         "variety": "TEXT"
     },
     "/none": {
@@ -463,6 +639,14 @@
         "protected": false,
         "variety": "TEXT"
     },
+    "/oof": {
+        "_content": "oof me harder \ud83d\ude23\ud83d\ude23\ud83d\ude23\ud83d\ude23\ud83d\udca6\ud83d\udca6\ud83d\udca6\ud83d\udca6\ud83d\udca6\ud83d\udca6",
+        "creator": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
     "/paginis": {
         "_content": "what",
         "creator": "",
@@ -475,7 +659,7 @@
         "_content": "'Dick me daddy%s! ahn~ Give me your cummies \ud83c\udf52\ud83c\udf46\ud83d\udc45\ud83d\udca6 \ud83d\ude0d\ud83d\ude29\ud83d\ude1c\ud83d\ude0f' % (' '*bool(THEIR_NAME)+THEIR_NAME,)",
         "creator": "",
         "hidden": false,
-        "nsfw": false,
+        "nsfw": true,
         "protected": true,
         "variety": "EVAL"
     },
@@ -483,7 +667,7 @@
         "_content": "yoshi macro",
         "creator": "",
         "hidden": false,
-        "nsfw": false,
+        "nsfw": true,
         "protected": false,
         "variety": "E621"
     },
@@ -510,6 +694,22 @@
         "nsfw": false,
         "protected": true,
         "variety": "EVAL"
+    },
+    "/scat": {
+        "_content": "Don't you fucking dare.",
+        "creator": "{'user': 'WyreYote', 'chat': -1001264849628, 'chat_type': 'supergroup'}",
+        "hidden": true,
+        "nsfw": false,
+        "protected": true,
+        "variety": "TEXT"
+    },
+    "/sergal": {
+        "_content": "sergal",
+        "creator": "{'user': 'alittlehusky', 'chat': -1001264849628, 'chat_type': 'supergroup'}",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "E621"
     },
     "/source": {
         "_content": "https://github.com/Muddeh-TK/yosho",
@@ -543,13 +743,21 @@
         "protected": true,
         "variety": "EVAL"
     },
-    "/toeshi": {
-        "_content": "https://static1.e621.net/data/9d/a7/9da7776fd8aa0c9a84a6be722f136e04.png",
+    "/test": {
+        "_content": "test",
+        "creator": "{'user': 'WyreYote', 'chat': -1001049775937, 'chat_type': 'supergroup'}",
+        "hidden": false,
+        "nsfw": false,
+        "protected": true,
+        "variety": "TEXT"
+    },
+    "/titanic": {
+        "_content": "o\uff48\u200a\u13cf\u0ae6\u03b3, \u1d9c\u1d43\u1db0'\u1d57 \u02b7\u1d43\u1da6\u1d57 \u1d57\u1d52 \u24e6\u24d0\u24e3\u24d2\u24d7 \u24dc\u24e8 \u24d5\u24d0\u24e5\u24de\u24e1\u24d8\u24e3\u24d4 M\u033a\u032d\u0339\u032d\u0318o\u033a\u031f\u031c\u031f\u0332v\u0340\u0359i\u0319\u0320\u0317\u0324\u032a\u0339\u0316e\u0337\u0355\u0353\u033a\u0348\u032f  \uff54 \uff49 \uff54 \uff41 \uff4e \uff49 \uff43\u3000 \uff4f \uff4e\u3000 \uff44 \uff56 \uff44\u3000\u307c\u679c\u3082\ud83d\udc4c",
         "creator": "",
         "hidden": true,
-        "nsfw": true,
+        "nsfw": false,
         "protected": false,
-        "variety": "PHOTO"
+        "variety": "TEXT"
     },
     "/toilet": {
         "_content": "https://soundcloud.com/bestdropsever/yoshis-toilet",
@@ -559,8 +767,24 @@
         "protected": true,
         "variety": "TEXT"
     },
+    "/uwu": {
+        "_content": "uwu",
+        "creator": "{'user': 'yesthisiscario', 'chat': -1001180022417, 'chat_type': 'supergroup'}",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
+    "/vore": {
+        "_content": "Nomf",
+        "creator": "",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "TEXT"
+    },
     "/whoIsGay": {
-        "_content": "MY_NAME + ' is gay'",
+        "_content": "x=''\nif THEIR_NAME == '':\n#x=MY_NAME\nelse:\n#x=THEIR_NAME\n#REPLY=False\nx",
         "creator": "",
         "hidden": true,
         "nsfw": false,
@@ -568,20 +792,12 @@
         "variety": "EVAL"
     },
     "/why": {
-        "_content": "~what_has_science_done ~where_is_your_god_now ~no ~nightmare_fuel order:score_asc",
+        "_content": "~what_has_science_done ~where_is_your_god_now ~nightmare_fuel -young ~why",
         "creator": "",
         "hidden": false,
         "nsfw": false,
         "protected": true,
         "variety": "E621"
-    },
-    "/windmillify": {
-        "_content": "\"\".join([x+\" \u5350\" for x in (~preceding).split(\" \")])",
-        "creator": "",
-        "hidden": false,
-        "nsfw": false,
-        "protected": false,
-        "variety": "EVAL"
     },
     "/yeet": {
         "_content": "yeet",
@@ -631,6 +847,14 @@
         "protected": false,
         "variety": "INLINE"
     },
+    "lol": {
+        "_content": "lol",
+        "creator": "{'user': 'Tpeec', 'chat': -1001114489005, 'chat_type': 'supergroup'}",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "EVAL"
+    },
     "loss1": {
         "_content": "\u2800\u28f4\u28f4\u2864  \n\u2800\u28e0\u2800\u28bf\u2807\u2847\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u28b0\u28b7\u2857  \n\u2800\u28b6\u28bd\u283f\u28d7\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u28fc\u2867\u2802\u2800\u2800\u28fc\u28f7\u2846  \n\u2800\u2800\u28fe\u28b6\u2810\u28f1\u2800\u2800\u2800\u2800\u2800\u28e4\u28dc\u28fb\u28e7\u28f2\u28e6\u2824\u28e7\u28ff\u2836  \n\u2800\u2880\u28ff\u28ff\u28c7\u2800\u2800\u2800\u2800\u2800\u2800\u281b\u283f\u28ff\u28ff\u28f7\u28e4\u28c4\u2879\u28ff\u28f7  \n\u2800\u28b8\u28ff\u28b8\u28ff\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2808\u2819\u28bf\u28ff\u28ff\u28ff\u28ff\u28ff  \n\u2800\u283f\u2803\u2808\u283f\u2806\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2839\u283f\u283f\u283f",
         "creator": "",
@@ -662,5 +886,13 @@
         "nsfw": false,
         "protected": true,
         "variety": "INLINE"
+    },
+    "{": {
+        "_content": "eval  \n{\n \n    \"short_name\": \"Log\",\n \n    \"author_name\": \"log\",\n \n    \"author_url\": \"www.thepupery.weebly.com\"\n \n}",
+        "creator": "{'user': 'Tpeec', 'chat': -1001130870428, 'chat_type': 'supergroup'}",
+        "hidden": false,
+        "nsfw": false,
+        "protected": false,
+        "variety": "EVAL"
     }
 }

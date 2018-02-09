@@ -13,7 +13,6 @@ ORDER = 0
 handlers = []
 
 
-# noinspection PyUnusedLocal
 def die(bot, update):
     """kills bot"""
     update.message.reply_text(text='KMS')
@@ -40,7 +39,6 @@ handlers.append([CommandHandler('leave', leave), {'mods': True, 'action': Ca.TYP
 
 
 # TODO make this command less horrid
-# noinspection PyUnusedLocal
 def set_global(bot, update, bot_globals):
     """sets or displays int/bool bot globals"""
     args = [a.strip() for a in clean(update.message.text).split('=')]
