@@ -17,7 +17,7 @@ def command(bot, update):
 
 # You may include init to be executed on plugin load. Include bot_globals as an argument if needed.
 def init(bot_globals):
-    bot_globals['logger'].info("Template plugin loaded.")  # Example usage of bot globals.
+    bot_globals['logger'].info("Template plugin initiated.")  # Example usage of bot globals.
 
 
 # Make sure to include a list of [handler, modifier dict] pairs if your plugin introduces new commands.

@@ -15,7 +15,7 @@ from telegram.ext import Updater
 from helpers import is_mod, db_pull
 
 TOKEN_DICT = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
-TELEGRAM_TOKEN = TOKEN_DICT['yosho_bot']
+TELEGRAM_TOKEN = TOKEN_DICT['yoshobeta_bot']
 WOLFRAM_TOKEN = TOKEN_DICT['wolfram']
 
 SFW_PATH = 'SFW.pkl'
@@ -143,6 +143,7 @@ def load_plugins():
     global PLUGINS
 
     def globals_sender(method):
+        @functools.wraps(method)
         def wrapper(*args, **kwargs):
             kwargs['bot_globals'] = globals()
             return method(*args, **kwargs)
@@ -179,14 +180,15 @@ def load_plugins():
 
                 updater.dispatcher.add_handler(h)
 
+        logger.info('loaded plugin "{}"'.format(n))
+
+    for n in sorted(PLUGINS.keys(), key=order):
         # if init method is present in plugin, execute on load
         if hasattr(PLUGINS[n], 'init') and callable(PLUGINS[n].init):
             if 'bot_globals' in inspect.signature(PLUGINS[n].init).parameters:
                 PLUGINS[n].init(bot_globals=globals())
             else:
                 PLUGINS[n].init()
-
-        logger.info('loaded plugin "{}"'.format(n))
 
 
 def error(bot, update, error):

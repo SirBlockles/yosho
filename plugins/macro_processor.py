@@ -15,7 +15,7 @@ from helpers import clean
 from helpers import is_mod, db_push, db_pull
 from plugins.macro import Macro, MacroSet
 
-ORDER = 1
+ORDER = 2
 
 MACROS_PATH = 'MACROS.json'
 db_pull(MACROS_PATH)
@@ -308,6 +308,7 @@ handlers.append([InlineQueryHandler(inline_stuff), None])
 
 # noinspection PyUnusedLocal
 def manual_flush(bot, update, bot_globals):
+    """flushes interpreters and macro edits"""
     flush(bot, update)
     update.message.reply_text(text='Cleared interpreters and pushed macro updates.')
 
@@ -316,6 +317,7 @@ handlers.append([CommandHandler("flush", manual_flush), {'mods': True, 'action':
 
 
 def call_macro(bot, update, bot_globals):  # process macros and invalid commands.
+    """processes macro calls"""
     message = update.message
     quoted = message.reply_to_message
     chat = update.message.chat
