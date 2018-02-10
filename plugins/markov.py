@@ -30,10 +30,14 @@ handlers = []
 
 def markov(bot, update):
     """generates sentences using a markov chain"""
+    if len(STATES) == 0:
+        update.message.reply_text(text='No markov states! Type something to contribute to /markov states.')
+        return
+
     def start():
         i = randint(1, len(STATES) - 1)
         while len(STATES[i]) == 1:
-            i += 1
+            i = randint(1, len(STATES) - 1)
         return i
 
     state_index = start()  # choose a random state to start on
