@@ -3,11 +3,7 @@ import pickle
 
 from telegram import ChatAction as Ca
 from telegram.ext import CommandHandler
-from helpers import db_push, db_pull
-
-ENABLED_PATH = 'ENABLED.pkl'
-db_pull(ENABLED_PATH)
-ENABLED = set(pickle.load(open(ENABLED_PATH, 'rb')))
+from helpers import db_push
 
 handlers = []
 

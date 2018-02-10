@@ -8,8 +8,8 @@ from asteval import Interpreter
 from telegram import ChatAction as Ca
 from telegram import InlineQueryResultArticle, InputTextMessageContent
 from telegram.error import TelegramError
-from telegram.ext import CommandHandler
-from telegram.ext import InlineQueryHandler, RegexHandler
+from telegram.ext import CommandHandler, InlineQueryHandler, MessageHandler
+from telegram.ext.filters import Filters
 
 from helpers import clean
 from helpers import is_mod, db_push, db_pull
@@ -146,7 +146,7 @@ def macro(bot, update, bot_globals):
         call_macro(bot, update, bot_globals)
         return
 
-    args = re.split('\s+', expr)
+    args = expr.split()
     mode = args[0]
     name = ''
 
@@ -356,7 +356,7 @@ def call_macro(bot, update, bot_globals):  # process macros and invalid commands
         err = "Macro error:\n\n"
 
         if command is None:
-            command = re.sub('@[@\w]+', '', re.split('\s+', message.text)[0])
+            command = re.sub('@[@\w]+', '', message.text.split()[0])
 
         if command in MACROS:
             variety = MACROS[command].variety
@@ -400,7 +400,7 @@ def call_macro(bot, update, bot_globals):  # process macros and invalid commands
     run()
 
 
-handlers.append([RegexHandler(r'/.*', call_macro), {'name': 'ALLOW_UNNAMED', 'level': logging.INFO}])
+handlers.append([MessageHandler(filters=Filters.command, callback=call_macro), {'name': 'ALLOW_UNNAMED'}])
 
 
 def flush(bot, update):

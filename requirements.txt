@@ -3,4 +3,7 @@ requests
 asteval
 stopit
 dropbox
+scipy
+nltk
+autocorrect
 pillow==4.0.0

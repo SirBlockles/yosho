@@ -1,6 +1,6 @@
 """yosho plugin:utility commands"""
 from telegram import ChatAction as Ca
-from telegram.ext import CommandHandler, RegexHandler
+from telegram.ext import CommandHandler, RegexHandler, MessageHandler
 
 from helpers import clean
 
@@ -33,12 +33,11 @@ def list_plugins(bot, update, bot_globals):
 
         if hasattr(p, 'handlers'):
             for h, m in p.handlers:
-                if isinstance(h, (CommandHandler, RegexHandler)):
+                if isinstance(h, (CommandHandler, RegexHandler, MessageHandler)):
                     desc = h.callback.__doc__
                     desc = ': ' + desc if desc else ''
-                    names = [h.callback.__name__] if isinstance(h, RegexHandler) else h.command
-                    text += '/{}{}\n'.format(', /'.join(names), desc)
-
+                    names = [h.callback.__name__] if isinstance(h, (RegexHandler, MessageHandler)) else h.command
+                    text += '{}{}\n'.format(('/' * isinstance(h, CommandHandler)) + ', /'.join(names), desc)
     else:
         text += 'Installed plugins:\n\n' + '\n'.join(plugins.keys())
 

@@ -15,7 +15,7 @@ from telegram.ext import Updater
 from helpers import is_mod, db_pull
 
 TOKEN_DICT = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
-TELEGRAM_TOKEN = TOKEN_DICT['yosho_bot']
+TELEGRAM_TOKEN = TOKEN_DICT['yoshobeta_bot']
 WOLFRAM_TOKEN = TOKEN_DICT['wolfram']
 
 SFW_PATH = 'SFW.pkl'
@@ -102,8 +102,9 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, admins=
         nsfw_check = not nsfw or (title in SFW.keys() and not SFW[title])
         if all((time_check, name_check, mod_check, admin_check, nsfw_check)):
 
-            logger.log(level, '{} command called from {} -> {{{}, {}}}, user: @{}, with message: "{}"'
-                       .format(method.__name__, chat.type, title, chat.id, message_user, message.text))
+            if level:
+                logger.log(level, '{} command called from {} -> {{{}, {}}}, user: @{}, with message: "{}"'
+                           .format(method.__name__, chat.type, title, chat.id, message_user, message.text))
 
             # flood detector
             start = time.time()
@@ -167,7 +168,9 @@ def load_plugins():
 
     for n in sorted_plugins:  # enforce plugin load order
         if hasattr(PLUGINS[n], 'handlers'):
-            for h, m in PLUGINS[n].handlers:  # register handlers
+            for args in PLUGINS[n].handlers:  # register handlers
+                h, m = args[:2]
+                g = args[2] if len(args) > 2 else 0
                 # wrap callback function with modifiers if present
                 if m:
                     h.callback = modifiers(h.callback, **m)
@@ -176,7 +179,7 @@ def load_plugins():
                 if 'bot_globals' in inspect.signature(h.callback).parameters:
                     h.callback = globals_sender(h.callback)
 
-                updater.dispatcher.add_handler(h)
+                updater.dispatcher.add_handler(h, group=g)
 
         logger.info('loaded plugin "{}"'.format(n))
 

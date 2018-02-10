@@ -15,7 +15,9 @@ def command(bot, update):
     update.message.reply_text(text="Template plugin reply.")
 
 
-# Make sure to include a list of [handler, modifier dict] pairs if your plugin introduces new commands.
+# Make sure to include a handler list containing sub lists
+# [handler, modifier dict, handler group number (optional, defaults to 0)]
+# if your plugin introduces new commands.
 
 # Modifier dict values may include:
 # age <bool>: Dictates if the bot should check if the command has expired or not. Defaults to True.
@@ -27,6 +29,7 @@ def command(bot, update):
 # nsfw <bool>: Only executes in chats not marked SFW. Defaults to False.
 # action <ChatAction>: Action to send to chat while processing command. Defaults to None.
 # level <logging.LEVEL aka int>: Console logging level to display when this command is processed. Defaults to INFO.
+# --> set to None to disable logging for this command.
 
 # NOTE: you may pass None instead of a modifier dict if you don't wish to use any modifiers.
 handlers.append([CommandHandler('template_command', command), {'action': Ca.TYPING}])
