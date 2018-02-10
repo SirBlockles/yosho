@@ -49,7 +49,7 @@ def markov(bot, update):
         else:
             return s.upper()
 
-    if len(STATES) == 0:
+    if len(STATES) <= 1:
         update.message.reply_text(text='No markov states! Type something to contribute to /markov!')
         return
 
