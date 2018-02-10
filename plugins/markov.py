@@ -33,8 +33,10 @@ def process_token(t):
         return t
 
     # acronym and contraction check
-    if all((c in string.ascii_uppercase for c in t)) or any((c in string.punctuation for c in t)):
+    if all((c in string.ascii_uppercase for c in t)):
         return t
+    elif any((c in string.punctuation for c in t)):
+        return t.lower()
 
     # known word check
     if t in KNOWN_WORDS:
@@ -67,6 +69,8 @@ def markov(bot, update):
         update.message.reply_text(text='No markov states! Type something to contribute to /markov!')
         return
 
+    output = []
+
     text = clean(update.message.text)
     if text:
         state = process_token(text)
@@ -75,11 +79,11 @@ def markov(bot, update):
             return
         else:
             state_index = STATES.index(state)
+            output.append(STATES[state_index])
     else:
         state_index = 0
 
     # generate text until hitting the next rest state or exceeding MAX_OUTPUT_STATES
-    output = []
     while (state_index != 0 or len(output) == 0) and len(output) < MAX_OUTPUT_STATES:
         branches, probabilities = find(TRANSITIONS.getrow(state_index))[1:]
 
