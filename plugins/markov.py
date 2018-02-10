@@ -116,6 +116,7 @@ def relations(bot, update):
     /links <state>: displays links between states
     /ends: displays end states
     /starts: displays start states
+    /mean: displays mean number of branches per state
     """
     text = update.message.text
 
@@ -127,7 +128,7 @@ def relations(bot, update):
         starts = find(TRANSITIONS.getrow(0))[1]
         output = ', '.join('"{}"'.format(STATES[s]) for i, s in enumerate(starts) if i < MAX_OUTPUT_STATES)
 
-    else:
+    elif text.startswith('/links'):
         state = process_token(clean(text))
         if state not in set(STATES):
             update.message.reply_text(text='"{}" is not in markov states.'.format(state))
@@ -138,10 +139,19 @@ def relations(bot, update):
         links = find(TRANSITIONS.getrow(state_index))[1]
         output = ', '.join('"{}"'.format(STATES[s]) for i, s in enumerate(links) if i < MAX_OUTPUT_STATES)
 
+    else:
+        mean = 0
+        for r in range(TRANSITIONS.shape[0]):
+            mean += len(find(TRANSITIONS.getrow(r))[0])
+        mean /= TRANSITIONS.shape[0]
+
+        update.message.reply_text(text='Mean number of branches per state: {}'.format(mean))
+        return
+
     update.message.reply_text(text='{{{}}}'.format(output))
 
 
-handlers.append([CommandHandler(['links', 'ends', 'starts'], relations), {'action': Ca.TYPING}])
+handlers.append([CommandHandler(['links', 'ends', 'starts', 'mean'], relations), {'action': Ca.TYPING}])
 
 
 def convergence(bot, update):
