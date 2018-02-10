@@ -1,11 +1,11 @@
 """yosho plugin:markov generator"""
 import string
-from random import randint, choice
-from numpy import logical_xor
+
 import stopit
 from autocorrect import spell
 from autocorrect.word import KNOWN_WORDS
 from nltk.tokenize import PunktSentenceTokenizer
+from numpy.random import choice
 from scipy.sparse import lil_matrix, hstack, vstack, find
 from telegram import ChatAction as Ca
 from telegram.ext import CommandHandler, MessageHandler
@@ -19,7 +19,7 @@ MAX_INPUT_SIZE = 256
 MAX_OUTPUT_STATES = 50
 ACCUMULATOR_TIMEOUT = 5
 
-# initiate STATES and TRANSITIONS with one member (stop state)
+# initiate STATES and TRANSITIONS with one member (rest state)
 STATES = [' ']
 TRANSITIONS = lil_matrix((1, 1), dtype=int)
 
@@ -30,54 +30,49 @@ handlers = []
 
 def markov(bot, update):
     """generates sentences using a markov chain"""
-    expr = clean(update.message.text)
 
     # joins together punctuation at ends of words: ['test', '.'] -> 'test.'
     def joiner(states):
         output = []
         for i, s in enumerate(states):
             if s not in RIGHT:
-                if i < len(states) - 1 and states[i + 1] in RIGHT:
+                if i < len(states) - 1 and all((c in RIGHT for c in states[i + 1])):
                     s += states[i+1]
 
                 output.append(s)
 
         return ' '.join(output)
 
-    def start():
-        i = randint(1, len(STATES) - 1)
-        while STATES[i] in set(string.punctuation):  # don't start on punctuation
-            i = randint(1, len(STATES) - 1)
-        return i
+    def capitals(s):
+        if len(s) > 1:
+            return s[0].upper() + s[1:]
+        else:
+            return s.upper()
 
     if len(STATES) == 0:
         update.message.reply_text(text='No markov states! Type something to contribute to /markov!')
         return
 
-    # choose a random state to start on or use state from command input
-    state_index = STATES.index(expr) if expr in set(STATES) else start()
-
-    # generate text until hitting the stop state or exceeding MAX_OUTPUT_STATES
+    # generate text until hitting the next rest state or exceeding MAX_OUTPUT_STATES
+    state_index = 0
     output = []
-    while state_index != 0 and len(output) < MAX_OUTPUT_STATES:
+    while (state_index != 0 or len(output) == 0) and len(output) < MAX_OUTPUT_STATES:
+        branches, probabilities = find(TRANSITIONS.getrow(state_index))[1:]
+        transition_sum = sum(probabilities)
+        probabilities = tuple(i/transition_sum for i in probabilities)
+
+        state_index = choice(branches, p=probabilities)
         output.append(STATES[state_index])
 
-        # find most probable next state(s)
-        indices, values = find(TRANSITIONS.getrow(state_index))[1:]
-        maxima = tuple(indices[i] for i, v in enumerate(values) if v == max(values))
-
-        # chain branching
-        state_index = choice(maxima)
-
-    # add trailing punctuation
     if len(output) == MAX_OUTPUT_STATES:
-        output += '...'
-    elif not output[-1] in RIGHT:
-        output += '.'
+        output += ['...']
 
     # capitalize sentences
     tokenizer = PunktSentenceTokenizer()
-    reply = ' '.join((s.capitalize() for s in tokenizer.tokenize(joiner(output))))
+    reply = ' '.join((capitals(s) for s in tokenizer.tokenize(joiner(output).strip())))
+
+    if not reply[-1] in string.punctuation:
+        reply += '.'
 
     update.message.reply_text(text=reply)
 
@@ -190,8 +185,9 @@ def accumulator(bot, update):
             # increment transition matrix values
             for i, t in enumerate(tokens):
                 state = STATES.index(t)
-                next_state = STATES.index(tokens[i+1]) if i < len(tokens) - 1 else 0  # stop state at end of sentence
-                TRANSITIONS[0, state] += 1
+                next_state = STATES.index(tokens[i+1]) if i < len(tokens) - 1 else 0  # rest state at end of sentence
+                if i == 0:
+                    TRANSITIONS[0, state] += 1  # rest state at start of sentence
                 TRANSITIONS[state, next_state] += 1
 
 
