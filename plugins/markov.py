@@ -1,7 +1,6 @@
 """yosho plugin:markov generator"""
 import string
 
-import stopit
 from autocorrect import spell
 from autocorrect.word import KNOWN_WORDS
 from nltk.tokenize import PunktSentenceTokenizer
@@ -28,9 +27,24 @@ RIGHT = set("!.?~:;,%")
 handlers = []
 
 
+def process_token(t):
+    # punctuation check
+    if t in string.punctuation:
+        return t
+
+    # acronym and contraction check
+    if all((c in string.ascii_uppercase for c in t)) or any((c in string.punctuation for c in t)):
+        return t
+
+    # known word check
+    if t in KNOWN_WORDS:
+        return t.lower()
+
+    return spell(t).lower()
+
+
 def markov(bot, update):
     """generates sentences using a markov chain"""
-
     # joins together punctuation at ends of words: ['test', '.'] -> 'test.'
     def joiner(states):
         output = []
@@ -53,14 +67,27 @@ def markov(bot, update):
         update.message.reply_text(text='No markov states! Type something to contribute to /markov!')
         return
 
+    text = clean(update.message.text)
+    if text:
+        state = process_token(text)
+        if state not in set(STATES):
+            update.message.reply_text(text='"{}" is not in markov states.'.format(state))
+            return
+        else:
+            state_index = STATES.index(state)
+    else:
+        state_index = 0
+
     # generate text until hitting the next rest state or exceeding MAX_OUTPUT_STATES
-    state_index = 0
     output = []
     while (state_index != 0 or len(output) == 0) and len(output) < MAX_OUTPUT_STATES:
         branches, probabilities = find(TRANSITIONS.getrow(state_index))[1:]
+
+        # normalization of probabilities
         transition_sum = sum(probabilities)
         probabilities = tuple(i/transition_sum for i in probabilities)
 
+        # choose branch with weighted random choice
         state_index = choice(branches, p=probabilities)
         output.append(STATES[state_index])
 
@@ -80,11 +107,43 @@ def markov(bot, update):
 handlers.append([CommandHandler('markov', markov), {'action': Ca.TYPING, 'name': True}])
 
 
+def relations(bot, update):
+    """
+    /links <state>: displays links between states
+    /ends: displays end states
+    /starts: displays start states
+    """
+    text = update.message.text
+
+    if text.startswith('/ends'):
+        ends = find(TRANSITIONS.getcol(0))[0]
+        output = ', '.join('"{}"'.format(STATES[s]) for i, s in enumerate(ends) if i < MAX_OUTPUT_STATES)
+
+    elif text.startswith('/starts'):
+        starts = find(TRANSITIONS.getrow(0))[1]
+        output = ', '.join('"{}"'.format(STATES[s]) for i, s in enumerate(starts) if i < MAX_OUTPUT_STATES)
+
+    else:
+        state = process_token(clean(text))
+        if state not in set(STATES):
+            update.message.reply_text(text='"{}" is not in markov states.'.format(state))
+            return
+        else:
+            state_index = STATES.index(state)
+
+        links = find(TRANSITIONS.getrow(state_index))[1]
+        output = ', '.join('"{}"'.format(STATES[s]) for i, s in enumerate(links) if i < MAX_OUTPUT_STATES)
+
+    update.message.reply_text(text='{{{}}}'.format(output))
+
+
+handlers.append([CommandHandler(['links', 'ends', 'starts'], relations), {'action': Ca.TYPING}])
+
+
 def convergence(bot, update):
     """
     /converge <state> <steps>: number of states a starting state converges to
     /diverge <state> <steps>: displays if a starting state diverges at least once
-
     """
     expr = clean(update.message.text).split()
 
@@ -92,7 +151,7 @@ def convergence(bot, update):
         update.message.reply_text(text='Syntax is /converge <state> <optional steps int>')
         return
 
-    state = expr[0]
+    state = process_token(expr[0])
     if state not in set(STATES):
         update.message.reply_text(text='"{}" is not in markov states.'.format(state))
         return
@@ -151,7 +210,7 @@ def accumulator(bot, update):
     """markov state accumulator"""
     global STATES, TRANSITIONS
 
-    # splits off punctuation at ends of words: 'test.' -> ['test', '.']
+    # splits off punctuation at ends of tokens: 'test.' -> ['test', '.']
     def splitter(text):
         tokens = []
         for t in text.split():
@@ -164,50 +223,34 @@ def accumulator(bot, update):
 
         return tokens
 
-    def process_token(t):
-        # punctuation check
-        if t in string.punctuation:
-            return t
-
-        # acronym and contraction check
-        if all((c in string.ascii_uppercase for c in t)) or any((c in string.punctuation for c in t)):
-            return t
-
-        # known word check
-        if t in KNOWN_WORDS:
-            return t.lower()
-
-        return spell(t).lower()
-
     if len(update.message.text) > MAX_INPUT_SIZE:
         return
 
     tokenizer = PunktSentenceTokenizer()
     for s in tokenizer.tokenize(update.message.text):
-        with stopit.ThreadingTimeout(ACCUMULATOR_TIMEOUT):
-            tokens = splitter(s)
-            # add new states
-            STATES += list(set(tokens) - set(STATES))
+        tokens = splitter(s)
+        # add new states
+        STATES += list(set(tokens) - set(STATES))
 
-            # scale transition matrix accordingly
-            if len(STATES) > TRANSITIONS.shape[0]:
-                difference = len(STATES) - TRANSITIONS.shape[0]
+        # scale transition matrix accordingly
+        if len(STATES) > TRANSITIONS.shape[0]:
+            difference = len(STATES) - TRANSITIONS.shape[0]
 
-                v_pad = lil_matrix((difference, TRANSITIONS.shape[0]), dtype=int)
-                h_pad = lil_matrix((len(STATES), difference), dtype=int)
+            v_pad = lil_matrix((difference, TRANSITIONS.shape[0]), dtype=int)
+            h_pad = lil_matrix((len(STATES), difference), dtype=int)
 
-                TRANSITIONS = vstack([TRANSITIONS, v_pad])
-                TRANSITIONS = hstack([TRANSITIONS, h_pad])
+            TRANSITIONS = vstack([TRANSITIONS, v_pad])
+            TRANSITIONS = hstack([TRANSITIONS, h_pad])
 
-                TRANSITIONS = lil_matrix(TRANSITIONS)
+            TRANSITIONS = lil_matrix(TRANSITIONS)
 
-            # increment transition matrix values
-            for i, t in enumerate(tokens):
-                state = STATES.index(t)
-                next_state = STATES.index(tokens[i+1]) if i < len(tokens) - 1 else 0  # rest state at end of sentence
-                if i == 0:
-                    TRANSITIONS[0, state] += 1  # rest state at start of sentence
-                TRANSITIONS[state, next_state] += 1
+        # increment transition matrix values
+        for i, t in enumerate(tokens):
+            state = STATES.index(t)
+            next_state = STATES.index(tokens[i+1]) if i < len(tokens) - 1 else 0  # rest state at end of sentence
+            if i == 0:
+                TRANSITIONS[0, state] += 1  # rest state at start of sentence
+            TRANSITIONS[state, next_state] += 1
 
 
 handlers.append([MessageHandler(callback=accumulator, filters=(Filters.text & (~Filters.command))), None])
