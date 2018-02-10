@@ -44,4 +44,4 @@ def list_plugins(bot, update, bot_globals):
     update.message.reply_text(text=text)
 
 
-handlers.append([CommandHandler('plugin', list_plugins), {'action': Ca.TYPING}])
+handlers.append([CommandHandler(['plugin', 'plugins'], list_plugins), {'action': Ca.TYPING}])

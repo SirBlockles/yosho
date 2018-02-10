@@ -70,7 +70,9 @@ def set_global(bot, update, bot_globals):
         update.message.reply_text(text='Globals syntax error.\n\nProper usage is /global <global> = <value>')
 
 
-handlers.append([CommandHandler("global", set_global), {'mods': True, 'action': Ca.TYPING, 'level': logging.DEBUG}])
+handlers.append([CommandHandler(['global', 'globals'], set_global), {'mods': True,
+                                                                     'action': Ca.TYPING,
+                                                                     'level': logging.DEBUG}])
 
 
 def delete(bot, update):

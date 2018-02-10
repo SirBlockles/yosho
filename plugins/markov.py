@@ -1,13 +1,12 @@
 """yosho plugin:markov generator"""
 import string
-from random import randint
-
+from random import randint, choice
 import stopit
 from autocorrect import spell
 from autocorrect.word import KNOWN_WORDS
 from nltk.tokenize import PunktSentenceTokenizer
 from scipy import dtype
-from scipy.sparse import lil_matrix, csr_matrix, hstack, vstack
+from scipy.sparse import lil_matrix, hstack, vstack, find
 from telegram import ChatAction as Ca
 from telegram.ext import CommandHandler, MessageHandler
 from telegram.ext.filters import Filters
@@ -22,41 +21,52 @@ ACCUMULATOR_TIMEOUT = 5
 STATES = [' ']
 TRANSITIONS = lil_matrix((1, 1), dtype=dtype(int))
 
+RIGHT = set("!.?~:;,%")
+
 handlers = []
 
 
 def markov(bot, update):
     """generates sentences using a markov chain"""
+    def joiner(states):
+        output = []
+        for i, s in enumerate(states):
+            if s not in RIGHT:
+                if i < len(states) - 1 and states[i + 1] in RIGHT:
+                    s += states[i+1]
+                output.append(s)
+
+        return ' '.join(output)
+
     if len(STATES) == 0:
         update.message.reply_text(text='No markov states! Type something to contribute /markov!')
         return
 
     def start():
         i = randint(1, len(STATES) - 1)
-        while len(STATES[i]) == 1:
+        while STATES[i] in set(string.punctuation):  # don't start on punctuation
             i = randint(1, len(STATES) - 1)
         return i
 
     state_index = start()  # choose a random state to start on
-    output = ''
-    count = 0
+    output = []
 
     # generate text until hitting the stop state or exceeding MAX_OUTPUT_STATES
-    while state_index != 0 and count < MAX_OUTPUT_STATES:
-        output += ' ' + STATES[state_index]
+    while state_index != 0 and len(output) < MAX_OUTPUT_STATES:
+        output.append(STATES[state_index])
 
-        row = csr_matrix(TRANSITIONS.getrow(state_index))
-        state_index = row.indices[row.data.argmax()] if row.nnz else 0
+        indices, values = find(TRANSITIONS.getrow(state_index))[1:]
+        maxima = tuple(indices[i] for i, v in enumerate(values) if v == max(values))
 
-        count += 1
+        state_index = choice(maxima)  # chain branching
 
-    if count == MAX_OUTPUT_STATES:
+    if len(output) == MAX_OUTPUT_STATES:
         output += '...'
     elif not output[len(output) - 1] in {'.', '?', '!'}:
         output += '.'
 
     tokenizer = PunktSentenceTokenizer()
-    reply = ' '.join((s.capitalize() for s in tokenizer.tokenize(output.strip())))  # capitalize sentences
+    reply = ' '.join((s.capitalize() for s in tokenizer.tokenize(joiner(output))))  # capitalize sentences
 
     update.message.reply_text(text=reply)
 
@@ -94,36 +104,38 @@ def accumulator(bot, update):
     if len(update.message.text) > MAX_INPUT_SIZE:
         return
 
-    with stopit.ThreadingTimeout(ACCUMULATOR_TIMEOUT):
-        tokens = [process_token(t) for t in update.message.text.split()]
+    tokenizer = PunktSentenceTokenizer()
+    for s in tokenizer.tokenize(update.message.text):
+        with stopit.ThreadingTimeout(ACCUMULATOR_TIMEOUT):
+            tokens = []
+            for t in s.split():
+                last = t[::-1][0]
 
-        temp = []
-        for t in tokens:
-            if len(t) > 1 and t.endswith('.'):
-                temp.append(t.rstrip('.'))
-                temp.append('.')
-            else:
-                temp.append(t)
-        tokens = temp
+                if last in RIGHT:
+                    tokens.append(process_token(t.rstrip(last)))
+                    tokens.append(last)
 
-        STATES += list(set(tokens) - set(STATES))
+                else:
+                    tokens.append(process_token(t))
 
-        if len(STATES) > TRANSITIONS.shape[0]:  # scale transition matrix accordingly
-            difference = len(STATES) - TRANSITIONS.shape[0]
+            STATES += list(set(tokens) - set(STATES))
 
-            v_pad = lil_matrix((difference, TRANSITIONS.shape[0]), dtype=dtype(int))
-            h_pad = lil_matrix((len(STATES), difference), dtype=dtype(int))
+            if len(STATES) > TRANSITIONS.shape[0]:  # scale transition matrix accordingly
+                difference = len(STATES) - TRANSITIONS.shape[0]
 
-            TRANSITIONS = vstack([TRANSITIONS, v_pad])
-            TRANSITIONS = hstack([TRANSITIONS, h_pad])
+                v_pad = lil_matrix((difference, TRANSITIONS.shape[0]), dtype=dtype(int))
+                h_pad = lil_matrix((len(STATES), difference), dtype=dtype(int))
 
-            TRANSITIONS = lil_matrix(TRANSITIONS)
+                TRANSITIONS = vstack([TRANSITIONS, v_pad])
+                TRANSITIONS = hstack([TRANSITIONS, h_pad])
 
-        for i, t in enumerate(tokens):  # increment transition matrix values
-            state = STATES.index(t)
-            next_state = STATES.index(tokens[i+1]) if i < len(tokens) - 1 else 0
-            TRANSITIONS[0, state] += 1
-            TRANSITIONS[state, next_state] += 1
+                TRANSITIONS = lil_matrix(TRANSITIONS)
+
+            for i, t in enumerate(tokens):  # increment transition matrix values
+                state = STATES.index(t)
+                next_state = STATES.index(tokens[i+1]) if i < len(tokens) - 1 else 0
+                TRANSITIONS[0, state] += 1
+                TRANSITIONS[state, next_state] += 1
 
 
 handlers.append([MessageHandler(callback=accumulator, filters=(Filters.text & (~Filters.command))), None])
