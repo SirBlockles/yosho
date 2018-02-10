@@ -28,7 +28,7 @@ handlers = []
 def markov(bot, update):
     """generates sentences using a markov chain"""
     if len(STATES) == 0:
-        update.message.reply_text(text='No markov states! Type something to contribute to /markov states.')
+        update.message.reply_text(text='No markov states! Type something to contribute /markov!')
         return
 
     def start():
