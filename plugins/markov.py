@@ -11,7 +11,7 @@ from telegram import ChatAction as Ca
 from telegram.ext import CommandHandler, MessageHandler
 from telegram.ext.filters import Filters
 
-from helpers import clean
+from helpers import clean, add_s
 
 ORDER = 0
 
@@ -118,8 +118,8 @@ def convergence(bot, update):
     transitions **= steps
     converge = len(find(transitions.getrow(state_index))[1])
 
-    update.message.reply_text(text='State "{}" converges to {} possible final states after {} steps.'
-                              .format(state, converge, steps))
+    update.message.reply_text(text='State "{}" converges to {} possible final state{} after {} step{}.'
+                              .format(state, converge, add_s(converge), steps, add_s(steps)))
 
 
 handlers.append([CommandHandler('converge', convergence), {'action': Ca.TYPING}])
