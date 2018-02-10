@@ -93,6 +93,7 @@ def markov(bot, update):
 
         # choose branch with weighted random choice
         state_index = choice(branches, p=probabilities)
+
         output.append(STATES[state_index])
 
     if len(output) == MAX_OUTPUT_STATES:
@@ -123,10 +124,12 @@ def relations(bot, update):
     if text.startswith('/ends'):
         ends = find(TRANSITIONS.getcol(0))[0]
         output = ', '.join('"{}"'.format(STATES[s]) for i, s in enumerate(ends) if i < MAX_OUTPUT_STATES)
+        percent = round((len(ends) / TRANSITIONS.shape[0]) * 100)
 
     elif text.startswith('/starts'):
         starts = find(TRANSITIONS.getrow(0))[1]
         output = ', '.join('"{}"'.format(STATES[s]) for i, s in enumerate(starts) if i < MAX_OUTPUT_STATES)
+        percent = round((len(starts) / TRANSITIONS.shape[0]) * 100)
 
     elif text.startswith('/links'):
         state = process_token(clean(text))
@@ -138,6 +141,7 @@ def relations(bot, update):
 
         links = find(TRANSITIONS.getrow(state_index))[1]
         output = ', '.join('"{}"'.format(STATES[s]) for i, s in enumerate(links) if i < MAX_OUTPUT_STATES)
+        percent = round((len(links) / TRANSITIONS.shape[0]) * 100)
 
     else:
         mean = 0
@@ -148,7 +152,8 @@ def relations(bot, update):
         update.message.reply_text(text='Mean number of branches per state: {}'.format(mean))
         return
 
-    update.message.reply_text(text='{{{}}}'.format(output))
+    update.message.reply_text(text='{}% of states: {{{}}}\n(Displays up to first {} applicable states.)'
+                              .format(percent, output, MAX_OUTPUT_STATES))
 
 
 handlers.append([CommandHandler(['links', 'ends', 'starts', 'mean'], relations), {'action': Ca.TYPING}])
