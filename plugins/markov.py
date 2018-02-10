@@ -8,7 +8,7 @@ from autocorrect import spell
 from autocorrect.word import KNOWN_WORDS
 from nltk.tokenize import PunktSentenceTokenizer
 from scipy import dtype
-from scipy.sparse import lil_matrix, csr_matrix, hstack, vstack
+from scipy.sparse import lil_matrix, hstack, vstack
 from telegram import ChatAction as Ca
 from telegram.ext import CommandHandler, MessageHandler
 from telegram.ext.filters import Filters
@@ -30,18 +30,25 @@ handlers = []
 
 def markov(bot, update):
     """generates sentences using a markov chain"""
-    state_index = randint(1, len(STATES) - 1)  # choose a random state to start on
+    def start():
+        i = randint(1, len(STATES) - 1)
+        while len(STATES[i]) == 1:
+            i += 1
+        return i
+
+    state_index = start()  # choose a random state to start on
     output = ''
     count = 0
-    previous = []
 
     # generate text until hitting the stop state or exceeding MAX_OUTPUT_STATES
-    while state_index != 0 and count < MAX_OUTPUT_STATES or state_index in previous:
+    while state_index != 0 and count < MAX_OUTPUT_STATES:
+
         current = STATES[state_index]
         output += (' ' * (not any((c in string.punctuation for c in current)))) + current
-        row = csr_matrix(TRANSITIONS.getrow(state_index))
-        previous.append(state_index)
-        state_index = row.indices[row.data.argmax()] if row.nnz else 0
+
+        row = TRANSITIONS.getrow(state_index).toarray().tolist()[0]
+        state_index = row.index(max(row))
+
         count += 1
 
     if count == MAX_OUTPUT_STATES:
