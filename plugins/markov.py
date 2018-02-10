@@ -18,8 +18,6 @@ MAX_INPUT_SIZE = 256
 MAX_OUTPUT_STATES = 50
 ACCUMULATOR_TIMEOUT = 5
 
-ACRONYMS = set(string.ascii_uppercase + string.punctuation)
-
 # initiate STATES and TRANSITIONS with one member (stop state)
 STATES = [' ']
 TRANSITIONS = lil_matrix((1, 1), dtype=dtype(int))
@@ -79,13 +77,16 @@ def accumulator(bot, update):
     global STATES, TRANSITIONS
 
     def process_token(t):
-        if t in string.punctuation:  # punctuation check
+        # punctuation check
+        if t in string.punctuation:
             return t
 
-        if all((c in ACRONYMS for c in t)):  # acronym check
+        # acronym and contraction check
+        if all((c in string.ascii_uppercase for c in t)) or any((c in string.punctuation for c in t)):
             return t
 
-        if t in KNOWN_WORDS:  # known word check
+        # known word check
+        if t in KNOWN_WORDS:
             return t.lower()
 
         return spell(t).lower()
@@ -94,29 +95,35 @@ def accumulator(bot, update):
         return
 
     with stopit.ThreadingTimeout(ACCUMULATOR_TIMEOUT):
+        tokens = [process_token(t) for t in update.message.text.split()]
 
-        tokenizer = PunktSentenceTokenizer()
-        for s in tokenizer.tokenize(update.message.text):
-            tokens = tuple(process_token(t) for t in s.split())
+        temp = []
+        for t in tokens:
+            if len(t) > 1 and t.endswith('.'):
+                temp.append(t.rstrip('.'))
+                temp.append('.')
+            else:
+                temp.append(t)
+        tokens = temp
 
-            STATES = [' '] + sorted(set(STATES).union(set(tokens)).difference({' '}))  # add new tokens to STATES
+        STATES += list(set(tokens) - set(STATES))
 
-            if len(STATES) > TRANSITIONS.shape[0]:  # scale transition matrix accordingly
-                difference = len(STATES) - TRANSITIONS.shape[0]
+        if len(STATES) > TRANSITIONS.shape[0]:  # scale transition matrix accordingly
+            difference = len(STATES) - TRANSITIONS.shape[0]
 
-                v_pad = lil_matrix((difference, TRANSITIONS.shape[0]), dtype=dtype(int))
-                h_pad = lil_matrix((len(STATES), difference), dtype=dtype(int))
+            v_pad = lil_matrix((difference, TRANSITIONS.shape[0]), dtype=dtype(int))
+            h_pad = lil_matrix((len(STATES), difference), dtype=dtype(int))
 
-                TRANSITIONS = vstack([TRANSITIONS, v_pad])
-                TRANSITIONS = hstack([TRANSITIONS, h_pad])
+            TRANSITIONS = vstack([TRANSITIONS, v_pad])
+            TRANSITIONS = hstack([TRANSITIONS, h_pad])
 
-                TRANSITIONS = lil_matrix(TRANSITIONS)
+            TRANSITIONS = lil_matrix(TRANSITIONS)
 
-            for i, t in enumerate(tokens):  # increment transition matrix values
-                state = STATES.index(t)
-                next_state = STATES.index(tokens[i+1]) if i < len(tokens) - 1 else 0
-                TRANSITIONS[0, state] += 1
-                TRANSITIONS[state, next_state] += 1
+        for i, t in enumerate(tokens):  # increment transition matrix values
+            state = STATES.index(t)
+            next_state = STATES.index(tokens[i+1]) if i < len(tokens) - 1 else 0
+            TRANSITIONS[0, state] += 1
+            TRANSITIONS[state, next_state] += 1
 
 
 handlers.append([MessageHandler(callback=accumulator, filters=(Filters.text & (~Filters.command))), None])
