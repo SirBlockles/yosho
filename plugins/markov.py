@@ -96,7 +96,7 @@ def accumulator(bot, update):
         for s in tokenizer.tokenize(update.message.text):
             tokens = tuple(process_token(t) for t in findall('\w+|[^\w\s]+', s))
 
-            STATES = sorted(set(STATES).union(set(tokens)))  # add new tokens to STATES
+            STATES = [' '] + sorted(set(STATES).union(set(tokens)).difference({' '}))  # add new tokens to STATES
 
             if len(STATES) > TRANSITIONS.shape[0]:  # scale transition matrix accordingly
                 difference = len(STATES) - TRANSITIONS.shape[0]
