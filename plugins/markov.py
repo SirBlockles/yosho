@@ -1,7 +1,6 @@
 """yosho plugin:markov generator"""
 import string
 from random import randint
-from re import findall
 
 import stopit
 from autocorrect import spell
@@ -98,7 +97,7 @@ def accumulator(bot, update):
 
         tokenizer = PunktSentenceTokenizer()
         for s in tokenizer.tokenize(update.message.text):
-            tokens = tuple(process_token(t) for t in findall('\w+|[^\w\s]+', s))
+            tokens = tuple(process_token(t) for t in s.split())
 
             STATES = [' '] + sorted(set(STATES).union(set(tokens)).difference({' '}))  # add new tokens to STATES
 
