@@ -8,7 +8,7 @@ from autocorrect import spell
 from autocorrect.word import KNOWN_WORDS
 from nltk.tokenize import PunktSentenceTokenizer
 from scipy import dtype
-from scipy.sparse import lil_matrix, hstack, vstack
+from scipy.sparse import lil_matrix, csr_matrix, hstack, vstack
 from telegram import ChatAction as Ca
 from telegram.ext import CommandHandler, MessageHandler
 from telegram.ext.filters import Filters
@@ -42,12 +42,10 @@ def markov(bot, update):
 
     # generate text until hitting the stop state or exceeding MAX_OUTPUT_STATES
     while state_index != 0 and count < MAX_OUTPUT_STATES:
+        output += ' ' + STATES[state_index]
 
-        current = STATES[state_index]
-        output += (' ' * (not any((c in string.punctuation for c in current)))) + current
-
-        row = TRANSITIONS.getrow(state_index).toarray().tolist()[0]
-        state_index = row.index(max(row))
+        row = csr_matrix(TRANSITIONS.getrow(state_index))
+        state_index = row.indices[row.data.argmax()] if row.nnz else 0
 
         count += 1
 
@@ -65,12 +63,12 @@ def markov(bot, update):
 handlers.append([CommandHandler('markov', markov), {'action': Ca.TYPING, 'name': True}])
 
 
-def markov_count(bot, update):
+def markov_states(bot, update):
     """prints current number of distinct markov states"""
     update.message.reply_text(text='Number of markov generator states: {}'.format(len(STATES)))
 
 
-handlers.append([CommandHandler('markov_count', markov_count), {'action': Ca.TYPING}])
+handlers.append([CommandHandler('markov_states', markov_states), {'action': Ca.TYPING}])
 
 
 def accumulator(bot, update):
