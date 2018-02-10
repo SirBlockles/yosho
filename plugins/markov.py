@@ -32,14 +32,14 @@ def process_token(t):
     if t in string.punctuation:
         return t
 
-    # acronym and contraction check
-    if all((c in string.ascii_uppercase for c in t)):
-        return t
-    elif any((c in string.punctuation for c in t)):
+    # known word check
+    if t.lower() in KNOWN_WORDS:
         return t.lower()
 
-    # known word check
-    if t in KNOWN_WORDS:
+    # acronym and contraction check
+    if all((c in set(string.ascii_uppercase) for c in t)):
+        return t
+    elif any((c in set(string.punctuation) for c in t)):
         return t.lower()
 
     return spell(t).lower()
