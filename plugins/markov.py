@@ -81,7 +81,11 @@ handlers.append([CommandHandler('markov', markov), {'action': Ca.TYPING, 'name':
 
 
 def convergence(bot, update):
-    """number of states a starting state converges to"""
+    """
+    /converge <state> <steps>: number of states a starting state converges to
+    /diverge <state> <steps>: displays if a starting state diverges at least once
+
+    """
     expr = clean(update.message.text).split()
 
     if not expr:
@@ -110,14 +114,29 @@ def convergence(bot, update):
             if v == max(values) and r > 0:
                 transitions[r, indices[i]] = True
 
-    transitions **= steps
-    converge = len(find(transitions.getrow(state_index))[1])
+    if update.message.text.startswith('/converge'):
+        transitions **= steps
+        converge = len(find(transitions.getrow(state_index))[1])
 
-    update.message.reply_text(text='State "{}" converges to {} possible final state{} after {} step{}.'
-                              .format(state, converge, add_s(converge), steps, add_s(steps)))
+        update.message.reply_text(text='State "{}" converges to {} possible final state{} after {} step{}.'
+                                  .format(state, converge, add_s(converge), steps, add_s(steps)))
+    else:
+        copy = transitions.copy()
+        for s in range(steps + 1):
+            branches = find(transitions.getrow(state_index))[1]
+            if len(branches) > 1:
+                update.message.reply_text(text='State "{}" diverges at {} step{} where it has {} possible branches.'
+                                          .format(state, s, add_s(s), len(branches)))
+                return
+
+            if s != steps:
+                transitions *= copy
+
+        update.message.reply_text(text="""State "{}" doesn't diverge within {} step{}."""
+                                  .format(state, steps, add_s(steps)))
 
 
-handlers.append([CommandHandler('converge', convergence), {'action': Ca.TYPING}])
+handlers.append([CommandHandler(['converge', 'diverge'], convergence), {'action': Ca.TYPING}])
 
 
 def markov_states(bot, update):
@@ -125,7 +144,7 @@ def markov_states(bot, update):
     update.message.reply_text(text='Number of markov generator states: {}'.format(len(STATES)))
 
 
-handlers.append([CommandHandler('markov_states', markov_states), {'action': Ca.TYPING}])
+handlers.append([CommandHandler('states', markov_states), {'action': Ca.TYPING}])
 
 
 def accumulator(bot, update):
