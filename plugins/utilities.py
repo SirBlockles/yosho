@@ -34,14 +34,26 @@ def list_plugins(bot, update, bot_globals):
         if hasattr(p, 'handlers'):
             for h, m in p.handlers:
                 if isinstance(h, (CommandHandler, RegexHandler, MessageHandler)):
-                    desc = h.callback.__doc__
-                    desc = ': ' + desc if desc else ''
-                    names = [h.callback.__name__] if isinstance(h, (RegexHandler, MessageHandler)) else h.command
-                    text += '{}{}\n'.format(('/' * isinstance(h, CommandHandler)) + ', /'.join(names), desc)
+                    desc = h.callback.__doc__.strip()
+                    desc = desc if desc else ''
+
+                    if isinstance(h, CommandHandler) and len(h.command) == 1:
+                        name = '/' + h.command[0]
+                        if desc:
+                            name += ': '
+                    else:
+                        name = h.callback.__name__
+                        if desc:
+                            if isinstance(h, CommandHandler):
+                                name += ':\n'
+                            else:
+                                name += ': '
+
+                    text += '{}{}\n\n'.format(name, desc)
     else:
         text += 'Installed plugins:\n\n' + '\n'.join(plugins.keys())
 
-    update.message.reply_text(text=text)
+    update.message.reply_text(text=text.strip())
 
 
 handlers.append([CommandHandler(['plugin', 'plugins'], list_plugins), {'action': Ca.TYPING}])

@@ -26,6 +26,9 @@ RIGHT = set("!.?~:;,%")
 
 handlers = []
 
+# word exceptions
+WORDS = KNOWN_WORDS | {"i'm", "floofy", "hentai"}
+
 
 def process_token(t):
     # punctuation check
@@ -33,7 +36,7 @@ def process_token(t):
         return t
 
     # known word check
-    if t.lower() in KNOWN_WORDS:
+    if t.lower() in WORDS:
         return t.lower()
 
     # acronym and contraction check
@@ -114,11 +117,11 @@ handlers.append([CommandHandler('markov', markov), {'action': Ca.TYPING, 'name':
 
 def relations(bot, update):
     """
-    /links <state>: displays links between states
-    /ends: displays end states
-    /starts: displays start states
-    /mean: displays mean number of branches per state
-    """
+/links <state>: displays links between states
+/ends: displays end states
+/starts: displays start states
+/mean: displays mean number of branches per state
+"""
     text = update.message.text
 
     if text.startswith('/ends'):
@@ -161,9 +164,9 @@ handlers.append([CommandHandler(['links', 'ends', 'starts', 'mean'], relations),
 
 def convergence(bot, update):
     """
-    /converge <state> <steps>: number of states a starting state converges to
-    /diverge <state> <steps>: displays if a starting state diverges at least once
-    """
+/converge <state> <steps>: number of states a starting state converges to
+/diverge <state> <steps>: displays if a starting state diverges at least once
+"""
     expr = clean(update.message.text).split()
 
     if not expr:
