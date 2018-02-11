@@ -28,7 +28,7 @@ handlers = []
 
 # word exceptions
 WORDS = KNOWN_WORDS | {"floofy", "hentai", "binch", "wtf", "afaik", "iirc", "lol", "scat", "brek", "yosho", 'yoshi',
-                       'str8', 'b&'}
+                       'str8', 'b&', 'cyoot'}
 
 
 def process_token(t):
