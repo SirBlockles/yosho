@@ -18,6 +18,9 @@ db_pull = lambda name: db.files_download_to_file(name, '/' + name)
 db_push = lambda name: db.files_upload(open(name, 'rb').read(), '/' + name, mode=WriteMode('overwrite'))
 db_make = lambda name: db.files_upload(open(name, 'rb').read(), '/' + name, mode=WriteMode('add'))
 add_s = lambda n: 's' if n != 1 else ''
+re_url = lambda s: re.sub(r'(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|'
+                          r'(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:\'".,<>?«»“”‘'
+                          r'’]))', '', s)
 
 
 def build_menu(buttons, n_cols, header_buttons=None, footer_buttons=None):

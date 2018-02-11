@@ -10,7 +10,7 @@ from telegram import ChatAction as Ca
 from telegram.ext import CommandHandler, MessageHandler
 from telegram.ext.filters import Filters
 
-from helpers import clean, add_s
+from helpers import clean, add_s, re_url
 
 ORDER = 0
 
@@ -27,7 +27,7 @@ RIGHT = set("!.?~:;,%")
 handlers = []
 
 # word exceptions
-WORDS = KNOWN_WORDS | {"i'm", "floofy", "hentai"}
+WORDS = KNOWN_WORDS | {"i'm", "floofy", "hentai", "binch", "wtf", "afaik", "iirc", "lol", "scat"}
 
 
 def process_token(t):
@@ -109,7 +109,7 @@ def markov(bot, update):
     if not reply[-1] in string.punctuation:
         reply += '.'
 
-    update.message.reply_text(text=reply)
+    update.message.reply_text(text=reply, disable_web_page_preview=True)
 
 
 handlers.append([CommandHandler('markov', markov), {'action': Ca.TYPING, 'name': True}])
@@ -156,7 +156,7 @@ def relations(bot, update):
         return
 
     update.message.reply_text(text='{}% of states: {{{}}}\n(Displays up to first {} applicable states.)'
-                              .format(percent, output, MAX_OUTPUT_STATES))
+                              .format(percent, output, MAX_OUTPUT_STATES), disable_web_page_preview=True)
 
 
 handlers.append([CommandHandler(['links', 'ends', 'starts', 'mean'], relations), {'action': Ca.TYPING}])
@@ -167,7 +167,7 @@ def convergence(bot, update):
 /converge <state> <steps>: number of states a starting state converges to
 /diverge <state> <steps>: displays if a starting state diverges at least once
 """
-    expr = clean(update.message.text).split()
+    expr = clean(re_url(update.message.text)).split()
 
     if not expr:
         update.message.reply_text(text='Syntax is /converge <state> <optional steps int>')
