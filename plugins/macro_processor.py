@@ -312,7 +312,7 @@ handlers.append([InlineQueryHandler(inline_stuff), None])
 
 def manual_flush(bot, update, bot_globals):
     """flushes interpreters and macro edits"""
-    flush(bot, update)
+    flush(bot, None)
     update.message.reply_text(text='Cleared interpreters and pushed macro updates.')
 
 
@@ -403,12 +403,12 @@ def call_macro(bot, update, bot_globals):  # process macros and invalid commands
 handlers.append([MessageHandler(filters=Filters.command, callback=call_macro), {'name': 'ALLOW_UNNAMED'}])
 
 
-def flush(bot, update):
+def flush(bot, job):
     global INTERPRETERS
     INTERPRETERS = {}
     MacroSet.dump(MACROS, open(MACROS_PATH, 'w+'))
     db_push(MACROS_PATH)
 
 
-def init(bot_globals=None):
+def init(bot_globals):
     bot_globals['jobs'].run_repeating(flush, interval=bot_globals['FLUSH_INTERVAL'])

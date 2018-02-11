@@ -1,4 +1,5 @@
 """yosho plugin:markov generator"""
+import pickle
 import string
 
 from autocorrect import spell
@@ -10,17 +11,18 @@ from telegram import ChatAction as Ca
 from telegram.ext import CommandHandler, MessageHandler
 from telegram.ext.filters import Filters
 
-from helpers import clean, add_s, re_url, re_name
+from helpers import db_push, db_pull, clean, add_s, re_url, re_name
 
 ORDER = 0
+
+MARKOV_PATH = 'MARKOV.pkl'
 
 MAX_INPUT_SIZE = 256
 MAX_OUTPUT_STATES = 50
 ACCUMULATOR_TIMEOUT = 5
 
-# initiate STATES and TRANSITIONS with one member (rest state)
-STATES = [' ']
-TRANSITIONS = lil_matrix((1, 1), dtype=int)
+db_pull(MARKOV_PATH)
+STATES, TRANSITIONS = pickle.load(open(MARKOV_PATH, 'rb'))
 
 RIGHT = set("!.?~:;,%")
 
@@ -48,6 +50,17 @@ def process_token(t):
         return t.lower()
 
     return spell(t).lower()
+
+
+def reset(bot, update):
+    """reset markov states"""
+    global STATES, TRANSITIONS
+    # initiate STATES and TRANSITIONS with one member (absorbing state)
+    STATES = [' ']
+    TRANSITIONS = lil_matrix((1, 1), dtype=int)
+    pickle.dump([STATES, TRANSITIONS], open(MARKOV_PATH, 'wb+'))
+    db_push(MARKOV_PATH)
+    update.message.reply_text(text='Reset markov states.')
 
 
 def markov(bot, update):
@@ -88,7 +101,7 @@ def markov(bot, update):
     else:
         state_index = 0
 
-    # generate text until hitting the next rest state or exceeding MAX_OUTPUT_STATES
+    # generate text until hitting the next absorbing state or exceeding MAX_OUTPUT_STATES
     while (state_index != 0 or len(output) == 0) and len(output) < MAX_OUTPUT_STATES:
         branches, probabilities = find(TRANSITIONS.getrow(state_index))[1:]
 
@@ -271,10 +284,19 @@ def accumulator(bot, update):
         # increment transition matrix values
         for i, t in enumerate(tokens):
             state = STATES.index(t)
-            next_state = STATES.index(tokens[i+1]) if i < len(tokens) - 1 else 0  # rest state at end of sentence
+            next_state = STATES.index(tokens[i+1]) if i < len(tokens) - 1 else 0  # absorbing state at end of sentence
             if i == 0:
-                TRANSITIONS[0, state] += 1  # rest state at start of sentence
+                TRANSITIONS[0, state] += 1  # absorbing state at start of sentence
             TRANSITIONS[state, next_state] += 1
 
 
 handlers.append([MessageHandler(callback=accumulator, filters=(Filters.text & (~Filters.command))), None])
+
+
+def flush(bot, job):
+    pickle.dump([STATES, TRANSITIONS], open(MARKOV_PATH, 'wb+'))
+    db_push(MARKOV_PATH)
+
+
+def init(bot_globals):
+    bot_globals['jobs'].run_repeating(flush, interval=bot_globals['FLUSH_INTERVAL'])
