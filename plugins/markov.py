@@ -33,7 +33,8 @@ WORDS = KNOWN_WORDS | {"floofy", "hentai", "binch", "wtf", "afaik", "iirc", "lol
 
 def process_token(t):
     # punctuation and capitalization check
-    if t in set(string.punctuation) | {'I', "I'm", "I've", "I'd", "I'd've", "i", "i'm", "i've", "i'd", "i'd've"}:
+    if t in set(string.punctuation) | {'I', "I'm", "I've", "I'd", "I'd've", "I'll",
+                                       "i", "i'm", "i've", "i'd", "i'd've", "i'll"}:
         return t.capitalize()
 
     # known word check
