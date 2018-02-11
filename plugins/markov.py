@@ -27,13 +27,12 @@ RIGHT = set("!.?~:;,%")
 handlers = []
 
 # word exceptions
-WORDS = KNOWN_WORDS | {"i'm", "floofy", "hentai", "binch", "wtf", "afaik", "iirc", "lol", "scat", "brek", "yosho",
-                       'yoshi'}
+WORDS = KNOWN_WORDS | {"floofy", "hentai", "binch", "wtf", "afaik", "iirc", "lol", "scat", "brek", "yosho", 'yoshi'}
 
 
 def process_token(t):
-    # punctuation check
-    if t in string.punctuation:
+    # punctuation and capitalization check
+    if t in set(string.punctuation) | {'I', "I'm", "I've", "I'd", "I'd've"}:
         return t
 
     # known word check
