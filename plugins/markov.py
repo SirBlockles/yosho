@@ -10,7 +10,7 @@ from telegram import ChatAction as Ca
 from telegram.ext import CommandHandler, MessageHandler
 from telegram.ext.filters import Filters
 
-from helpers import clean, add_s, re_url
+from helpers import clean, add_s, re_url, re_name
 
 ORDER = 0
 
@@ -168,7 +168,7 @@ def convergence(bot, update):
 /converge <state> <steps>: number of states a starting state converges to
 /diverge <state> <steps>: displays if a starting state diverges at least once
 """
-    expr = clean(re_url(update.message.text)).split()
+    expr = clean(update.message.text).split()
 
     if not expr:
         update.message.reply_text(text='Syntax is /converge <state> <optional steps int>')
@@ -250,7 +250,7 @@ def accumulator(bot, update):
         return
 
     tokenizer = PunktSentenceTokenizer()
-    for s in tokenizer.tokenize(update.message.text):
+    for s in tokenizer.tokenize(re_name(re_url(update.message.text))):
         tokens = splitter(s)
         # add new states
         STATES += list(set(tokens) - set(STATES))
