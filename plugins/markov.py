@@ -27,7 +27,7 @@ RIGHT = set("!.?~:;,%")
 handlers = []
 
 # word exceptions
-WORDS = KNOWN_WORDS | {"i'm", "floofy", "hentai", "binch", "wtf", "afaik", "iirc", "lol", "scat"}
+WORDS = KNOWN_WORDS | {"i'm", "floofy", "hentai", "binch", "wtf", "afaik", "iirc", "lol", "scat", "brek"}
 
 
 def process_token(t):
