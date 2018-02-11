@@ -63,6 +63,9 @@ def reset(bot, update):
     update.message.reply_text(text='Reset markov states.')
 
 
+handlers.append([CommandHandler('reset', reset), {'action': Ca.TYPING, 'mods': True}])
+
+
 def markov(bot, update):
     """generates sentences using a markov chain"""
     # joins together punctuation at ends of words: ['test', '.'] -> 'test.'
