@@ -29,7 +29,7 @@ handlers = []
 
 # word exceptions
 WORDS = KNOWN_WORDS | {"floofy", "hentai", "binch", "wtf", "afaik", "iirc", "lol", "scat", "brek", "yosho", "yoshi",
-                       "str8", "b&", "cyoot", "lmao", "vore", "we'd", "we're", "we've"}
+                       "str8", "b&", "cyoot", "lmao", "vore", "we'd", "we're", "we've", "tbh", "tbf"}
 
 
 def process_token(token):
@@ -135,7 +135,7 @@ def markov(bot, update):
             return
         else:
             state_index = STATES.index(state)
-            output.append(' '.join(text.split()[:-1] + [STATES[state]]))
+            output.append(' '.join(text.split()[:-1] + [STATES[state_index]]))
     else:
         state_index = 0
 
