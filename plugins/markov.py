@@ -285,8 +285,6 @@ def accumulator(bot, update):
     global STATES, TRANSITIONS
 
     # splits off punctuation at ends of tokens: 'test.' -> ['test', '.']
-    right = set('!.?~:;,%')
-
     def splitter(text):
         tokens = []
         for t in text.split():
