@@ -62,20 +62,6 @@ def process_token(token):
     return spell(token).lower()
 
 
-def reset(bot, update):
-    """reset markov states"""
-    global STATES, TRANSITIONS
-    # initiate STATES and TRANSITIONS with one member (absorbing state)
-    STATES = [' ']
-    TRANSITIONS = lil_matrix((1, 1), dtype=int)
-    pickle.dump([STATES, TRANSITIONS], open(MARKOV_PATH, 'wb+'))
-    db_push(MARKOV_PATH)
-    update.message.reply_text(text='Reset markov states.')
-
-
-handlers.append([CommandHandler('reset', reset), {'action': Ca.TYPING, 'mods': True}])
-
-
 def markov(bot, update):
     """generates sentences using a markov chain"""
 
@@ -232,7 +218,7 @@ def relations(bot, update):
 
 
 handlers.append([CommandHandler(['ends', 'starts', 'after', 'before', 'mean', 'states'], relations),
-                 {'action': Ca.TYPING}])
+                 {'action': Ca.TYPING, 'mods': True}])
 
 
 def convergence(bot, update):
@@ -291,7 +277,7 @@ def convergence(bot, update):
                                   .format(state, steps, add_s(steps)))
 
 
-handlers.append([CommandHandler(['converge', 'diverge'], convergence), {'action': Ca.TYPING}])
+handlers.append([CommandHandler(['converge', 'diverge'], convergence), {'action': Ca.TYPING, 'mods': True}])
 
 
 def merge(bot, update):
@@ -339,7 +325,6 @@ def delete(bot, update):
 
     expr = clean(update.message.text)
     state = expr.split()[0]
-
     state = process_token(state)
 
     if state not in STATES:
@@ -369,6 +354,44 @@ def insert(bot, update):
 
 
 handlers.append([CommandHandler('insert', insert), {'action': Ca.TYPING, 'mods': True}])
+
+
+def rename(bot, update):
+    """rename markov state"""
+    expr = clean(update.message.text)
+    states = expr.split()
+
+    if len(states) != 2:
+        update.message.reply_text(text='Proper syntax is /rename <state> <state>')
+        return
+
+    states = [process_token(s) for s in states]
+
+    if states[0] not in STATES:
+        update.message.reply_text(text='State not found in markov states.')
+        return
+
+    ind = STATES.index(states[0])
+    STATES[ind] = states[1]
+
+    update.message.reply_text(text='Renamed {} to {}.'.format(*states))
+
+
+handlers.append([CommandHandler('rename', rename), {'action': Ca.TYPING, 'mods': True}])
+
+
+def reset(bot, update):
+    """reset markov states"""
+    global STATES, TRANSITIONS
+    # initiate STATES and TRANSITIONS with one member (absorbing state)
+    STATES = [' ']
+    TRANSITIONS = lil_matrix((1, 1), dtype=int)
+    pickle.dump([STATES, TRANSITIONS], open(MARKOV_PATH, 'wb+'))
+    db_push(MARKOV_PATH)
+    update.message.reply_text(text='Reset markov states.')
+
+
+handlers.append([CommandHandler('reset', reset), {'action': Ca.TYPING, 'mods': True}])
 
 
 def accumulator(bot, update, insert=None):
