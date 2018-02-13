@@ -361,12 +361,7 @@ def insert(bot, update):
     """/insert <state>: insert new state in markov states"""
     expr = clean(update.message.text)
     state = expr.split()[0]
-
     state = process_token(state)
-
-    if state not in STATES:
-        update.message.reply_text(text='Input state not found in markov states.')
-        return
 
     accumulator(bot, update, insert=state)
 
