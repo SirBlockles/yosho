@@ -210,7 +210,7 @@ def relations(bot, update):
     links = (s for s in find(data)[1])
     sort = sorted(enumerate(links), key=lambda s: data[0, s[0]], reverse=True)
     percent = round((len(sort) / TRANSITIONS.shape[0]) * 100)
-    output = ' ,'.join(STATES[s[1]] for s in sort[:MAX_OUTPUT_STATES])
+    output = ' ,'.join('"{}"'.format(STATES[s[1]]) for s in sort[:MAX_OUTPUT_STATES])
 
     update.message.reply_text(text='{}% of states: {{{}}}\n(Displays {} most probable states.)'
                               .format(percent, output, MAX_OUTPUT_STATES), disable_web_page_preview=True)
@@ -289,7 +289,7 @@ def accumulator(bot, update):
     sentence_tokenizer = PunktSentenceTokenizer()
     for s in sentence_tokenizer.tokenize(re_name(re_url(update.message.text))):
         word_tokenizer = WordPunctTokenizer()
-        tokens = [process_token(s) for s in word_tokenizer.tokenize(s)]
+        tokens = [process_token(t) for t in word_tokenizer.tokenize(s) if t]
 
         # add new states
         STATES += list(set(tokens) - set(STATES))
