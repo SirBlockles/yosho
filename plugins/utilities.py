@@ -35,14 +35,14 @@ def list_plugins(bot, update, bot_globals):
         admins_list = [x.user.username for x in bot.getChatAdministrators(chat_id=message.chat_id,
                                                                           message_id=message.message_id)]
 
-    def scope(handler):
-        if handler[1]:
-            if 'mods' in p.handlers[1].keys() and handler[1]['mods'] and not is_mod(message_user):
+    def scope(modifiers):
+        if modifiers:
+            if 'mods' in modifiers.keys() and modifiers['mods'] and not is_mod(message_user):
                 return False
 
             admin = message_user in admins_list or is_mod(message_user)
 
-            if 'admins' in handler[1].keys() and handler[1]['admins'] and not admin:
+            if 'admins' in modifiers.keys() and modifiers['admins'] and not admin:
                 return False
 
         return True
@@ -74,6 +74,7 @@ def list_plugins(bot, update, bot_globals):
                                 name += ': '
 
                     text += '{}{}\n\n'.format(name, desc)
+
     else:
         text += 'Installed plugins:\n\n' + '\n'.join(plugins.keys())
 
