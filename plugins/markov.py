@@ -179,14 +179,6 @@ def relations(bot, update):
 /mean: displays mean number of branches per state
 /states: displays total number of states
 """
-    def get_state():
-        state = process_token(clean(text))
-        if state not in set(STATES):
-            update.message.reply_text(text='"{}" is not in markov states.'.format(state))
-            return
-        else:
-            return STATES.index(state)
-
     text = update.message.text
 
     if text.startswith('/ends'):
@@ -196,10 +188,24 @@ def relations(bot, update):
         data = TRANSITIONS.getrow(0)
 
     elif text.startswith('/before'):
-        data = TRANSITIONS.getcol(get_state()).T
+        state = process_token(clean(text))
+        if state not in set(STATES):
+            update.message.reply_text(text='"{}" is not in markov states.'.format(state))
+            return
+        else:
+            state_index = STATES.index(state)
+
+        data = TRANSITIONS.getcol(state_index).T
 
     elif text.startswith('/after'):
-        data = TRANSITIONS.getrow(get_state())
+        state = process_token(clean(text))
+        if state not in set(STATES):
+            update.message.reply_text(text='"{}" is not in markov states.'.format(state))
+            return
+        else:
+            state_index = STATES.index(state)
+
+        data = TRANSITIONS.getrow(state_index)
 
     elif text.startswith('/mean'):
         mean = len(find(TRANSITIONS)[0])/TRANSITIONS.shape[0]
@@ -219,7 +225,7 @@ def relations(bot, update):
                               .format(percent, output, MAX_OUTPUT_STATES), disable_web_page_preview=True)
 
 
-handlers.append([CommandHandler(['links', 'ends', 'after', 'before', 'mean', 'states'], relations),
+handlers.append([CommandHandler(['links', 'ends', 'starts', 'after', 'before', 'mean', 'states'], relations),
                  {'action': Ca.TYPING}])
 
 
