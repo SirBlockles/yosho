@@ -1,6 +1,7 @@
 """yosho plugin:markov generator"""
 import pickle
 import string
+import emoji
 
 from autocorrect import spell
 from autocorrect.word import KNOWN_WORDS
@@ -32,6 +33,9 @@ WORDS = KNOWN_WORDS | {"floofy", "hentai", "binch", "wtf", "afaik", "iirc", "lol
 
 
 def process_token(t):
+    if any(c in emoji.EMOJI_UNICODE for c in t):
+        return t
+
     # kludgy "I'm" spelling error exceptions
     if t in {"im", "iM", "Im", "IM"}:
         return "I'm"
@@ -46,9 +50,9 @@ def process_token(t):
         return t.lower()
 
     # acronym and contraction check
-    if all((c in set(string.ascii_uppercase) for c in t)):
+    if all(c in set(string.ascii_uppercase) for c in t):
         return t
-    elif any((c in set(string.punctuation) for c in t)):
+    elif any(c in set(string.punctuation) for c in t):
         return t.lower()
 
     return spell(t).lower()
