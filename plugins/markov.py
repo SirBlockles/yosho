@@ -288,11 +288,12 @@ def accumulator(bot, update):
     def splitter(text):
         tokens = []
         for t in text.split():
-            if t[-1] in string.punctuation and len(t) > 1:
+            no_split = all(c in string.punctuation for c in t) or any(c in emoji.EMOJI_UNICODE for c in t)
+            if t[-1] in string.punctuation and len(t) > 1 and not no_split:
                 tokens.append(process_token(t.rstrip(t[-1])))
                 tokens.append(t[-1])
 
-            if t[0] in string.punctuation and len(t) > 1:
+            if t[0] in string.punctuation and len(t) > 1 and not no_split:
                 tokens.append(t[0])
                 tokens.append(process_token(t.lstrip(t[0])))
 
@@ -306,7 +307,7 @@ def accumulator(bot, update):
 
     sentence_tokenizer = PunktSentenceTokenizer()
     for s in sentence_tokenizer.tokenize(re_name(re_url(update.message.text))):
-        tokens = [t if any(c in emoji.EMOJI_UNICODE for c in t) else process_token(t) for t in splitter(s)]
+        tokens = splitter(s)
 
         # add new states
         STATES += list(set(tokens) - set(STATES))
