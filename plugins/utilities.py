@@ -35,40 +35,40 @@ def list_plugins(bot, update, bot_globals):
         admins_list = [x.user.username for x in bot.getChatAdministrators(chat_id=message.chat_id,
                                                                           message_id=message.message_id)]
 
-    def scope(p):
-        if p.handlers[1]:
-            if 'mods' in p.handlers[1].keys() and p.handlers[1]['mods'] and not is_mod(message_user):
+    def scope(handler):
+        if handler[1]:
+            if 'mods' in p.handlers[1].keys() and handler[1]['mods'] and not is_mod(message_user):
                 return False
 
             admin = message_user in admins_list or is_mod(message_user)
 
-            if 'admins' in p.handlers[1].keys() and p.handlers[1]['admins'] and not admin:
+            if 'admins' in handler[1].keys() and handler[1]['admins'] and not admin:
                 return False
 
         return True
 
     text = ''
     name = clean(update.message.text)
-    plugins = {k: p for k, p in bot_globals['PLUGINS'].items() if scope(p)}
+    plugins = bot_globals['PLUGINS']
 
     if name in plugins:
         p = plugins[name]
         text += name + ':\n\n'
 
         if hasattr(p, 'handlers'):
-            for h, m in p.handlers:
-                if isinstance(h, (CommandHandler, RegexHandler, MessageHandler)):
-                    desc = h.callback.__doc__.strip()
+            for l in p.handlers:
+                if isinstance(l[0], (CommandHandler, RegexHandler, MessageHandler)) and scope(l[1]):
+                    desc = l[0].callback.__doc__.strip()
                     desc = desc if desc else ''
 
-                    if isinstance(h, CommandHandler) and len(h.command) == 1:
-                        name = '/' + h.command[0]
+                    if isinstance(l[0], CommandHandler) and len(l[0].command) == 1:
+                        name = '/' + l[0].command[0]
                         if desc:
                             name += ': '
                     else:
-                        name = h.callback.__name__
+                        name = l[0].callback.__name__
                         if desc:
-                            if isinstance(h, CommandHandler):
+                            if isinstance(l[0], CommandHandler):
                                 name += ':\n'
                             else:
                                 name += ': '
