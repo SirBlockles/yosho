@@ -5,5 +5,6 @@ stopit
 dropbox
 scipy
 nltk
+emoji
 autocorrect
 pillow==4.0.0

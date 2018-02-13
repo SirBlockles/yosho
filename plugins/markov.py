@@ -330,10 +330,53 @@ def merge(bot, update):
     update.message.reply_text(text='Merged state {} into state {}.'.format(*states))
 
 
-handlers.append([CommandHandler(['merge'], merge), {'action': Ca.TYPING}])
+handlers.append([CommandHandler(['merge'], merge), {'action': Ca.TYPING, 'mods': True}])
 
 
-def accumulator(bot, update):
+def delete(bot, update):
+    """/delete_state <state>: delete state"""
+    global TRANSITIONS, STATES
+
+    expr = clean(update.message.text)
+    state = expr.split()[0]
+
+    state = process_token(state)
+
+    if state not in STATES:
+        update.message.reply_text(text='Input state not found in markov states.')
+        return
+
+    ind = STATES.index(state)
+    del STATES[ind]
+    keep = [c for c in range(TRANSITIONS.shape[0]) if c != ind]
+    TRANSITIONS = TRANSITIONS[keep, :][:, keep]
+
+    update.message.reply_text(text='Deleted {}.'.format(state))
+
+
+handlers.append([CommandHandler(['delete'], delete), {'action': Ca.TYPING, 'mods': True}])
+
+
+def insert(bot, update):
+    """/insert <state>: insert new state in markov states"""
+    expr = clean(update.message.text)
+    state = expr.split()[0]
+
+    state = process_token(state)
+
+    if state not in STATES:
+        update.message.reply_text(text='Input state not found in markov states.')
+        return
+
+    accumulator(bot, update, insert=state)
+
+    update.message.reply_text(text='Inserted {} into markov states.'.format(state))
+
+
+handlers.append([CommandHandler(['insert'], insert), {'action': Ca.TYPING, 'mods': True}])
+
+
+def accumulator(bot, update, insert=None):
     """markov state accumulator"""
     global STATES, TRANSITIONS
 
@@ -372,11 +415,13 @@ def accumulator(bot, update):
 
         return tokens
 
-    if len(update.message.text) > MAX_INPUT_SIZE:
+    text = insert if insert else update.message.text
+
+    if len(text) > MAX_INPUT_SIZE:
         return
 
     sentence_tokenizer = PunktSentenceTokenizer()
-    for s in sentence_tokenizer.tokenize(re_name(re_url(update.message.text))):
+    for s in sentence_tokenizer.tokenize(re_name(re_url(text))):
         tokens = splitter(s)
 
         # add new states
@@ -395,14 +440,19 @@ def accumulator(bot, update):
             TRANSITIONS = lil_matrix(TRANSITIONS)
 
         # increment transition matrix values
-        for i, t in enumerate(tokens):
-            state = STATES.index(t)
+        if not insert:
+            for i, t in enumerate(tokens):
+                state = STATES.index(t)
 
-            next_state = STATES.index(tokens[i+1]) if i < len(tokens) - 1 else 0  # absorbing state at end of sentence
-            if i == 0:
-                TRANSITIONS[0, state] += 1  # absorbing state at start of sentence
+                # absorbing state at end of sentence
+                next_state = STATES.index(tokens[i+1]) if i < len(tokens) - 1 else 0
 
-            TRANSITIONS[state, next_state] += 1  # transition state
+                # absorbing state at start of sentence
+                if i == 0:
+                    TRANSITIONS[0, state] += 1
+
+                # transition state
+                TRANSITIONS[state, next_state] += 1
 
 
 handlers.append([MessageHandler(callback=accumulator, filters=(Filters.text & (~Filters.command))), None])
