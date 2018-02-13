@@ -289,7 +289,7 @@ def accumulator(bot, update):
     sentence_tokenizer = PunktSentenceTokenizer()
     for s in sentence_tokenizer.tokenize(re_name(re_url(update.message.text))):
         word_tokenizer = WordPunctTokenizer()
-        tokens = word_tokenizer.tokenize(s)
+        tokens = [process_token(s) for s in word_tokenizer.tokenize(s)]
 
         # add new states
         STATES += list(set(tokens) - set(STATES))
