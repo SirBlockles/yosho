@@ -30,13 +30,17 @@ handlers = []
 # word exceptions
 WORDS = KNOWN_WORDS | {"floofy", "hentai", "binch", "wtf", "afaik", "iirc", "lol", "scat", "brek", "yosho", "yoshi",
                        "str8", "b&", "cyoot", "lmao", "vore", "we'd", "we're", "we've", "tbh", "tbf", "uwu", "af",
-                       "nsfw"}
+                       "nsfw", "ecks"}
 
-REPLACE = {"im": "I'm", "hes": "he's", "shes": "she's", "youre": "you're", "youll": "you'll"}
+REPLACE = {"im": "I'm", "ive": "I've", "id": "I'd", "idve": "I'd've", "hes": "he's", "shes": "she's",
+           "youre": "you're", "youll": "you'll", "thats": "that's", "xd": "xD"}
 
 
 def process_token(token):
-    # kludgy "I'm" spelling error exceptions
+    if any(c in emoji.EMOJI_UNICODE for c in token):
+        return token.lower()
+
+    # Contraction spelling error exceptions
     if token.lower() in REPLACE:
         return REPLACE[token.lower()]
 
@@ -77,7 +81,7 @@ def markov(bot, update):
 
     # joins together punctuation at ends of words and auto-completes parenthesis: ['"', 'test', '.'] -> '"test."'
     # tries its best
-    snap = (tuple(r'''[{(*'"'''), tuple(r''']})*'"'''))
+    snap = (('[', '{', '(', '*', "'", '"'), (']', '}', ')', '*', "'", '"'))
     right = set('!.?~:;,%')
     left = set()
 
@@ -105,7 +109,7 @@ def markov(bot, update):
                     output[ind] += t
                     output[i] = ''
 
-        output = (t for t in output if t)
+        output = (t for t in output if t != '')
 
         for c in snaps[0]:
             completion = snap[1][snap[0].index(c)]
@@ -116,7 +120,7 @@ def markov(bot, update):
         snaps[0] = [snap[1][snap[0].index(s)] for s in snaps[0]]
         snaps[1] = [snap[0][snap[1].index(s)] for s in snaps[1]]
 
-        return ''.join(snaps[1]) + ' '.join(output) + ''.join(snaps[0])
+        return ''.join(snaps[1]).strip() + ' '.join(output).strip() + ''.join(snaps[0]).strip()
 
     def capitals(s):
         if len(s) > 1:
@@ -289,6 +293,10 @@ def convergence(bot, update):
 handlers.append([CommandHandler(['converge', 'diverge'], convergence), {'action': Ca.TYPING}])
 
 
+def merge_states(bot, update):
+    """/merge <state> -> <state>: merge one state onto another."""
+
+
 def accumulator(bot, update):
     """markov state accumulator"""
     global STATES, TRANSITIONS
@@ -298,7 +306,7 @@ def accumulator(bot, update):
         tokens = []
         for t in text.split():
             has_emojis = any(c in emoji.EMOJI_UNICODE for c in t)
-            no_split = has_emojis or all(c in string.punctuation for c in t)
+            no_split = has_emojis or all(c in string.punctuation for c in t) or t[0] in {';', ':'}
 
             if t[-1] in string.punctuation and len(t) > 1 and not no_split:
                 tokens.append(process_token(t.rstrip(t[-1])))
@@ -309,7 +317,7 @@ def accumulator(bot, update):
                 tokens.append(process_token(t.lstrip(t[0])))
 
             elif has_emojis:
-                tokens.append(t)
+                tokens.append(t.lower())
 
             else:
                 tokens.append(process_token(t))
