@@ -342,10 +342,10 @@ def accumulator(bot, update):
         tokens = []
         for t in text.split():
             has_emojis = any(c in emoji.EMOJI_UNICODE for c in t)
-            no_split = has_emojis or any(c in string.ascii_letters for c in t) or t[0] in {';', ':'}
+            no_split = has_emojis or any(c not in string.ascii_letters for c in t[:-1][::-1][:-1])
 
-            start = t[0] in string.punctuation and len(t) > 1 and not no_split
-            end = t[-1] in string.punctuation and len(t) > 1 and not no_split
+            start = t[0] in set(string.punctuation) - {';', ':'} and len(t) > 1 and not no_split
+            end = t[-1] in set(string.punctuation) and len(t) > 1 and not no_split
 
             if start and end:
                 tokens.append(t[0])
