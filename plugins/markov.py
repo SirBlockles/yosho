@@ -30,7 +30,7 @@ handlers = []
 # word exceptions
 WORDS = KNOWN_WORDS | {"floofy", "hentai", "binch", "wtf", "afaik", "iirc", "lol", "scat", "brek", "yosho", "yoshi",
                        "str8", "b&", "cyoot", "lmao", "vore", "we'd", "we're", "we've", "tbh", "tbf", "uwu", "af",
-                       "nsfw", "ecks"}
+                       "nsfw", "ecks", "wyre", "awoo"}
 
 REPLACE = {"im": "I'm", "ive": "I've", "id": "I'd", "idve": "I'd've", "hes": "he's", "arent": "aren't", "shes": "she's",
            "youre": "you're", "youll": "you'll", "thats": "that's", "xd": "xD", "dont": "don't", "youd": "you'd"}
@@ -135,6 +135,11 @@ def markov(bot, update):
     # generate text until hitting the next absorbing state or exceeding MAX_OUTPUT_STATES
     while (state_index != 0 or len(output) == 0) and len(output) < MAX_OUTPUT_STATES:
         branches, probabilities = find(TRANSITIONS.getrow(state_index))[1:]
+
+        # don't post one word responses if longer responses are possible
+        if len(branches) > 1 and branches[0] == 0:
+            branches = branches[1:]
+            probabilities = probabilities[1:]
 
         # normalization of probabilities
         transition_sum = sum(probabilities)
@@ -341,7 +346,7 @@ def insert(bot, update):
     """insert new state in markov states"""
     expr = clean(update.message.text)
     state = expr.split()[0]
-    state = process_token(state)
+    state = state
 
     accumulator(bot, update, insert=state)
 
