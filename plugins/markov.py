@@ -225,7 +225,7 @@ def relations(bot, update):
                               .format(percent, output, MAX_OUTPUT_STATES), disable_web_page_preview=True)
 
 
-handlers.append([CommandHandler(['links', 'ends', 'starts', 'after', 'before', 'mean', 'states'], relations),
+handlers.append([CommandHandler(['ends', 'starts', 'after', 'before', 'mean', 'states'], relations),
                  {'action': Ca.TYPING}])
 
 
