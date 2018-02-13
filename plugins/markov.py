@@ -120,7 +120,7 @@ def markov(bot, update):
         else:
             return s.upper()
 
-    if len(STATES) <= 1:
+    if len(STATES) == 1:
         update.message.reply_text(text='No markov states! Type something to contribute to /markov!')
         return
 
@@ -128,13 +128,13 @@ def markov(bot, update):
 
     text = clean(update.message.text)
     if text:
-        state = process_token(text)
+        state = process_token(text.split()[-1])
         if state not in set(STATES):
             update.message.reply_text(text='"{}" is not in markov states.'.format(state))
             return
         else:
             state_index = STATES.index(state)
-            output.append(STATES[state_index])
+            output.append(' '.join(text.split()[:-1] + [STATES[state]]))
     else:
         state_index = 0
 
