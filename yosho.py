@@ -15,7 +15,7 @@ from telegram.ext import Updater
 from helpers import is_mod, db_pull
 
 TOKEN_DICT = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
-TELEGRAM_TOKEN = TOKEN_DICT['yoshobeta_bot']
+TELEGRAM_TOKEN = TOKEN_DICT['yosho_bot']
 WOLFRAM_TOKEN = TOKEN_DICT['wolfram']
 
 SFW_PATH = 'SFW.pkl'
@@ -43,6 +43,8 @@ logger = logging.getLogger(__name__)
 last_commands = dict()
 
 PLUGINS = dict()
+
+MODIFIED = dict()
 
 
 # load globals from GLOBALS variable/GLOBALS.pkl file.
@@ -114,11 +116,6 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, admins=
                     if elapsed < FLOOD_TIMEOUT:
                         if bot.username in admins_list:
                             bot.deleteMessage(chat_id=message.chat_id, message_id=message.message_id)
-                        else:
-                            bot.send_message(chat_id=message.chat_id, reply_to_message_id=message.message_id,
-                                             text="There's a {} second cooldown between commands!\n"
-                                                  "Mod me for automatic flood deletion.".format(FLOOD_TIMEOUT))
-
                             logger.debug("flood detector couldn't delete command")
 
                         logger.info('message canceled by flood detector: ' + str(elapsed))

@@ -400,7 +400,8 @@ def call_macro(bot, update, bot_globals):  # process macros and invalid commands
     run()
 
 
-handlers.append([MessageHandler(filters=Filters.command, callback=call_macro), {'name': 'ALLOW_UNNAMED'}])
+handlers.append([MessageHandler(filters=Filters.command, callback=call_macro), {'name': 'ALLOW_UNNAMED',
+                                                                                'action': Ca.TYPING}])
 
 
 def flush(bot, job):

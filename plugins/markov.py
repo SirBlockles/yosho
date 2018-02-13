@@ -33,7 +33,7 @@ WORDS = KNOWN_WORDS | {"floofy", "hentai", "binch", "wtf", "afaik", "iirc", "lol
                        "nsfw", "ecks"}
 
 REPLACE = {"im": "I'm", "ive": "I've", "id": "I'd", "idve": "I'd've", "hes": "he's", "arent": "aren't", "shes": "she's",
-           "youre": "you're", "youll": "you'll", "thats": "that's", "xd": "xD"}
+           "youre": "you're", "youll": "you'll", "thats": "that's", "xd": "xD", "dont": "don't", "youd": "you'd"}
 
 
 def process_token(token):
@@ -253,10 +253,8 @@ def convergence(bot, update):
         transitions[v, y[i]] = True
     transitions = transitions.asformat('csr')
 
-    print('test')
-
     if update.message.text.startswith('/converge'):
-        transitions **= 2
+        transitions **= steps
         converge = len(find(transitions.getrow(state_index))[1])
 
         update.message.reply_text(text='State "{}" converges to {} possible final state{} after {} step{}.'
@@ -291,8 +289,6 @@ def merge(bot, update):
         update.message.reply_text(text='Proper syntax is /merge <state> <state>')
         return
 
-    states = [process_token(s) for s in states]
-
     if any(s not in STATES for s in states):
         update.message.reply_text(text='One or both input states not found in markov states.')
         return
@@ -325,7 +321,6 @@ def delete(bot, update):
 
     expr = clean(update.message.text)
     state = expr.split()[0]
-    state = process_token(state)
 
     if state not in STATES:
         update.message.reply_text(text='Input state not found in markov states.')
