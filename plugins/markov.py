@@ -29,9 +29,10 @@ handlers = []
 
 # word exceptions
 WORDS = KNOWN_WORDS | {"floofy", "hentai", "binch", "wtf", "afaik", "iirc", "lol", "scat", "brek", "yosho", "yoshi",
-                       "str8", "b&", "cyoot", "lmao", "vore", "we'd", "we're", "we've", "tbh", "tbf"}
+                       "str8", "b&", "cyoot", "lmao", "vore", "we'd", "we're", "we've", "tbh", "tbf", "uwu", "af",
+                       "nsfw"}
 
-REPLACE = {"im": "I'm", "hes": "he's", "shes": "she's"}
+REPLACE = {"im": "I'm", "hes": "he's", "shes": "she's", "youre": "you're", "youll": "you'll"}
 
 
 def process_token(token):
