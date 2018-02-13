@@ -288,7 +288,9 @@ def accumulator(bot, update):
     def splitter(text):
         tokens = []
         for t in text.split():
-            no_split = all(c in string.punctuation for c in t) or any(c in emoji.EMOJI_UNICODE for c in t)
+            has_emojis = any(c in emoji.EMOJI_UNICODE for c in t)
+            no_split = has_emojis or all(c in string.punctuation for c in t)
+
             if t[-1] in string.punctuation and len(t) > 1 and not no_split:
                 tokens.append(process_token(t.rstrip(t[-1])))
                 tokens.append(t[-1])
@@ -296,6 +298,9 @@ def accumulator(bot, update):
             if t[0] in string.punctuation and len(t) > 1 and not no_split:
                 tokens.append(t[0])
                 tokens.append(process_token(t.lstrip(t[0])))
+
+            elif has_emojis:
+                tokens.append(t)
 
             else:
                 tokens.append(process_token(t))
