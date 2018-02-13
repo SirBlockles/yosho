@@ -32,7 +32,7 @@ WORDS = KNOWN_WORDS | {"floofy", "hentai", "binch", "wtf", "afaik", "iirc", "lol
                        "str8", "b&", "cyoot", "lmao", "vore", "we'd", "we're", "we've", "tbh", "tbf", "uwu", "af",
                        "nsfw", "ecks"}
 
-REPLACE = {"im": "I'm", "ive": "I've", "id": "I'd", "idve": "I'd've", "hes": "he's", "shes": "she's",
+REPLACE = {"im": "I'm", "ive": "I've", "id": "I'd", "idve": "I'd've", "hes": "he's", "arent": "aren't", "shes": "she's",
            "youre": "you're", "youll": "you'll", "thats": "that's", "xd": "xD"}
 
 
@@ -120,7 +120,7 @@ def markov(bot, update):
         snaps[0] = [snap[1][snap[0].index(s)] for s in snaps[0]]
         snaps[1] = [snap[0][snap[1].index(s)] for s in snaps[1]]
 
-        return ''.join(snaps[1]).strip() + ' '.join(output).strip() + ''.join(snaps[0]).strip()
+        return ''.join(snaps[1]) + ' '.join(output).strip() + ''.join(snaps[0])
 
     def capitals(s):
         if len(s) > 1:
@@ -157,7 +157,8 @@ def markov(bot, update):
         # choose branch with weighted random choice
         state_index = choice(branches, p=probabilities)
 
-        output.append(STATES[state_index])
+        if state_index != 0:
+            output.append(STATES[state_index])
 
     if len(output) == MAX_OUTPUT_STATES:
         output += ['...']
@@ -293,8 +294,43 @@ def convergence(bot, update):
 handlers.append([CommandHandler(['converge', 'diverge'], convergence), {'action': Ca.TYPING}])
 
 
-def merge_states(bot, update):
-    """/merge <state> -> <state>: merge one state onto another."""
+def merge(bot, update):
+    """/merge <state> <state>: merge first state into second"""
+    global TRANSITIONS, STATES
+
+    expr = clean(update.message.text)
+    states = expr.split()
+
+    if len(states) != 2:
+        update.message.reply_text(text='Proper syntax is /merge <state> <state>')
+        return
+
+    states = [process_token(s) for s in states]
+
+    if any(s not in STATES for s in states):
+        update.message.reply_text(text='One or both input states not found in markov states.')
+        return
+
+    ind = STATES.index(states[0])
+    del STATES[ind]
+
+    keep = [c for c in range(TRANSITIONS.shape[0]) if c != ind]
+
+    row = TRANSITIONS.getrow(ind)[:, keep]
+    col = TRANSITIONS.getcol(ind)[keep, :]
+    loop = TRANSITIONS[ind, ind]
+
+    TRANSITIONS = TRANSITIONS[keep, :][:, keep]
+
+    ind = STATES.index(states[1])
+    TRANSITIONS[ind, :] += row
+    TRANSITIONS[:, ind] += col
+    TRANSITIONS[ind, ind] += loop
+
+    update.message.reply_text(text='Merged state {} into state {}.'.format(*states))
+
+
+handlers.append([CommandHandler(['merge'], merge), {'action': Ca.TYPING}])
 
 
 def accumulator(bot, update):
@@ -306,7 +342,7 @@ def accumulator(bot, update):
         tokens = []
         for t in text.split():
             has_emojis = any(c in emoji.EMOJI_UNICODE for c in t)
-            no_split = has_emojis or all(c in string.punctuation for c in t) or t[0] in {';', ':'}
+            no_split = has_emojis or any(c in string.ascii_letters for c in t) or t[0] in {';', ':'}
 
             if t[-1] in string.punctuation and len(t) > 1 and not no_split:
                 tokens.append(process_token(t.rstrip(t[-1])))
