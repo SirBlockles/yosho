@@ -31,11 +31,13 @@ handlers = []
 WORDS = KNOWN_WORDS | {"floofy", "hentai", "binch", "wtf", "afaik", "iirc", "lol", "scat", "brek", "yosho", "yoshi",
                        "str8", "b&", "cyoot", "lmao", "vore", "we'd", "we're", "we've", "tbh", "tbf"}
 
+REPLACE = {"im": "I'm", "hes": "he's", "shes": "she's"}
+
 
 def process_token(token):
     # kludgy "I'm" spelling error exceptions
-    if token in {"im", "iM", "Im", "IM"}:
-        return "I'm"
+    if token.lower() in REPLACE:
+        return REPLACE[token.lower()]
 
     # punctuation and capitalization check
     if token in set(string.punctuation) | {'I', "I'm", "I've", "I'd", "I'd've", "I'll",
