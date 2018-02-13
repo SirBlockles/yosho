@@ -365,7 +365,7 @@ def rename(bot, update):
         update.message.reply_text(text='Proper syntax is /rename <state> <state>')
         return
 
-    states = [process_token(s) for s in states]
+    states = [process_token(states[0]), states[1]]
 
     if states[0] not in STATES:
         update.message.reply_text(text='State not found in markov states.')
