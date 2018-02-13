@@ -1,11 +1,11 @@
 """yosho plugin:markov generator"""
 import pickle
 import string
-import emoji
 
+import emoji
 from autocorrect import spell
 from autocorrect.word import KNOWN_WORDS
-from nltk.tokenize import PunktSentenceTokenizer, WordPunctTokenizer
+from nltk.tokenize import PunktSentenceTokenizer
 from numpy.random import choice
 from scipy.sparse import lil_matrix, hstack, vstack, find
 from telegram import ChatAction as Ca
@@ -32,30 +32,27 @@ WORDS = KNOWN_WORDS | {"floofy", "hentai", "binch", "wtf", "afaik", "iirc", "lol
                        "str8", "b&", "cyoot", "lmao", "vore", "we'd", "we're", "we've"}
 
 
-def process_token(t):
-    if any(c in emoji.EMOJI_UNICODE for c in t):
-        return t
-
+def process_token(token):
     # kludgy "I'm" spelling error exceptions
-    if t in {"im", "iM", "Im", "IM"}:
+    if token in {"im", "iM", "Im", "IM"}:
         return "I'm"
 
     # punctuation and capitalization check
-    if t in set(string.punctuation) | {'I', "I'm", "I've", "I'd", "I'd've", "I'll",
+    if token in set(string.punctuation) | {'I', "I'm", "I've", "I'd", "I'd've", "I'll",
                                        "i", "i'm", "i've", "i'd", "i'd've", "i'll"}:
-        return t.capitalize()
+        return token.capitalize()
 
     # known word check
-    if t.lower() in WORDS:
-        return t.lower()
+    if token.lower() in WORDS:
+        return token.lower()
 
     # acronym and contraction check
-    if all(c in set(string.ascii_uppercase) for c in t):
-        return t
-    elif any(c in set(string.punctuation) for c in t):
-        return t.lower()
+    if all(c in set(string.ascii_uppercase) for c in token):
+        return token
+    elif any(c in set(string.punctuation) for c in token):
+        return token.lower()
 
-    return spell(t).lower()
+    return spell(token).lower()
 
 
 def reset(bot, update):
@@ -287,13 +284,31 @@ def accumulator(bot, update):
     """markov state accumulator"""
     global STATES, TRANSITIONS
 
+    # splits off punctuation at ends of tokens: 'test.' -> ['test', '.']
+    right = set('!.?~:;,%')
+
+    def splitter(text):
+        tokens = []
+        for t in text.split():
+            if t[-1] in string.punctuation and len(t) > 1:
+                tokens.append(process_token(t.rstrip(t[-1])))
+                tokens.append(t[-1])
+
+            if t[0] in string.punctuation and len(t) > 1:
+                tokens.append(t[0])
+                tokens.append(process_token(t.lstrip(t[0])))
+
+            else:
+                tokens.append(process_token(t))
+
+        return tokens
+
     if len(update.message.text) > MAX_INPUT_SIZE:
         return
 
     sentence_tokenizer = PunktSentenceTokenizer()
     for s in sentence_tokenizer.tokenize(re_name(re_url(update.message.text))):
-        word_tokenizer = WordPunctTokenizer()
-        tokens = [process_token(t) for t in word_tokenizer.tokenize(s) if t]
+        tokens = [t if any(c in emoji.EMOJI_UNICODE for c in t) else process_token(t) for t in splitter(s)]
 
         # add new states
         STATES += list(set(tokens) - set(STATES))
