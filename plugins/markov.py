@@ -4,7 +4,7 @@ import string
 
 from autocorrect import spell
 from autocorrect.word import KNOWN_WORDS
-from nltk.tokenize import PunktSentenceTokenizer
+from nltk.tokenize import PunktSentenceTokenizer, WordPunctTokenizer
 from numpy.random import choice
 from scipy.sparse import lil_matrix, hstack, vstack, find
 from telegram import ChatAction as Ca
@@ -24,8 +24,6 @@ ACCUMULATOR_TIMEOUT = 5
 db_pull(MARKOV_PATH)
 STATES, TRANSITIONS = pickle.load(open(MARKOV_PATH, 'rb'))
 
-RIGHT = set("!.?~:;,%")
-
 handlers = []
 
 # word exceptions
@@ -34,6 +32,10 @@ WORDS = KNOWN_WORDS | {"floofy", "hentai", "binch", "wtf", "afaik", "iirc", "lol
 
 
 def process_token(t):
+    # kludgy "I'm" spelling error exceptions
+    if t in {"im", "iM", "Im", "IM"}:
+        return "I'm"
+
     # punctuation and capitalization check
     if t in set(string.punctuation) | {'I', "I'm", "I've", "I'd", "I'd've", "I'll",
                                        "i", "i'm", "i've", "i'd", "i'd've", "i'll"}:
@@ -68,17 +70,48 @@ handlers.append([CommandHandler('reset', reset), {'action': Ca.TYPING, 'mods': T
 
 def markov(bot, update):
     """generates sentences using a markov chain"""
-    # joins together punctuation at ends of words: ['test', '.'] -> 'test.'
-    def joiner(states):
-        output = []
-        for i, s in enumerate(states):
-            if s not in RIGHT:
-                if i < len(states) - 1 and all((c in RIGHT for c in states[i + 1])):
-                    s += states[i+1]
 
-                output.append(s)
+    # joins together punctuation at ends of words and auto-completes parenthesis: ['"', 'test', '.'] -> '"test."'
+    # tries its best
+    snap = (tuple(r'''[{(*'"'''), tuple(r''']})*'"'''))
+    right = set('!.?~:;,%')
+    left = set()
 
-        return ' '.join(output)
+    def joiner(tokens):
+        snaps = [[], []]
+        output = tokens.copy()
+        for i, t in enumerate(tokens):
+            if t in set(snap[0]) or t in left:
+                if i < len(tokens) - 1:
+                    if t not in left:
+                        snaps[0] += [t]
+                    ind = i + 1
+                    while not output[ind]:
+                        ind += 1
+                    output[ind] = t + tokens[i + 1]
+                    output[i] = ''
+
+            if t in set(snap[1]) or t in right:
+                if i > 0:
+                    if t not in right:
+                        snaps[1] += [t]
+                    ind = i - 1
+                    while not output[ind]:
+                        ind -= 1
+                    output[ind] += t
+                    output[i] = ''
+
+        output = (t for t in output if t)
+
+        for c in snaps[0]:
+            if c in snaps[1]:
+                snaps[0].remove(c)
+                snaps[1].remove(c)
+
+        snaps[0] = [snap[1][snap[0].index(s)] for s in snaps[0]]
+        snaps[1] = [snap[0][snap[1].index(s)] for s in snaps[1]]
+
+        return ''.join(snaps[1]) + ' '.join(output) + ''.join(snaps[0])
 
     def capitals(s):
         if len(s) > 1:
@@ -135,49 +168,55 @@ handlers.append([CommandHandler('markov', markov), {'action': Ca.TYPING, 'name':
 
 def relations(bot, update):
     """
-/links <state>: displays links between states
+/after <state>: displays states proceeding a state
+/before <state>: displays states preceding a state
 /ends: displays end states
 /starts: displays start states
 /mean: displays mean number of branches per state
+/states: displays total number of states
 """
-    text = update.message.text
-
-    if text.startswith('/ends'):
-        ends = find(TRANSITIONS.getcol(0))[0]
-        output = ', '.join('"{}"'.format(STATES[s]) for i, s in enumerate(ends) if i < MAX_OUTPUT_STATES)
-        percent = round((len(ends) / TRANSITIONS.shape[0]) * 100)
-
-    elif text.startswith('/starts'):
-        starts = find(TRANSITIONS.getrow(0))[1]
-        output = ', '.join('"{}"'.format(STATES[s]) for i, s in enumerate(starts) if i < MAX_OUTPUT_STATES)
-        percent = round((len(starts) / TRANSITIONS.shape[0]) * 100)
-
-    elif text.startswith('/links'):
+    def get_state():
         state = process_token(clean(text))
         if state not in set(STATES):
             update.message.reply_text(text='"{}" is not in markov states.'.format(state))
             return
         else:
-            state_index = STATES.index(state)
+            return STATES.index(state)
 
-        links = find(TRANSITIONS.getrow(state_index))[1]
-        output = ', '.join('"{}"'.format(STATES[s]) for i, s in enumerate(links) if i < MAX_OUTPUT_STATES)
-        percent = round((len(links) / TRANSITIONS.shape[0]) * 100)
+    text = update.message.text
 
-    else:
-        mean = 0
-        for r in range(TRANSITIONS.shape[0]):
-            mean += len(find(TRANSITIONS.getrow(r))[0])
-        mean /= TRANSITIONS.shape[0]
+    if text.startswith('/ends'):
+        data = TRANSITIONS.getcol(0).T
 
+    elif text.startswith('/starts'):
+        data = TRANSITIONS.getrow(0)
+
+    elif text.startswith('/before'):
+        data = TRANSITIONS.getcol(get_state()).T
+
+    elif text.startswith('/after'):
+        data = TRANSITIONS.getrow(get_state())
+
+    elif text.startswith('/mean'):
+        mean = len(find(TRANSITIONS)[0])/TRANSITIONS.shape[0]
         update.message.reply_text(text='Mean number of branches per state: {}'.format(mean))
         return
 
-    update.message.reply_text(text='{}% of states: {{{}}}\n(Displays up to first {} applicable states.)'
+    else:
+        update.message.reply_text(text='Number of markov generator states: {}'.format(len(STATES)))
+        return
+
+    links = (s for s in find(data)[1])
+    sort = sorted(enumerate(links), key=lambda s: data[0, s[0]], reverse=True)
+    percent = round((len(sort) / TRANSITIONS.shape[0]) * 100)
+    output = ' ,'.join(STATES[s[1]] for s in sort[:MAX_OUTPUT_STATES])
+
+    update.message.reply_text(text='{}% of states: {{{}}}\n(Displays {} most probable states.)'
                               .format(percent, output, MAX_OUTPUT_STATES), disable_web_page_preview=True)
 
 
-handlers.append([CommandHandler(['links', 'ends', 'starts', 'mean'], relations), {'action': Ca.TYPING}])
+handlers.append([CommandHandler(['links', 'ends', 'after', 'before', 'mean', 'states'], relations),
+                 {'action': Ca.TYPING}])
 
 
 def convergence(bot, update):
@@ -198,23 +237,24 @@ def convergence(bot, update):
     else:
         state_index = STATES.index(state)
 
-    if len(expr) > 1 and expr[1].isnumeric() and int(expr[1]) < MAX_OUTPUT_STATES:
+    if len(expr) > 1 and expr[1].isnumeric() and int(expr[1]) < 10:
         steps = int(expr[1])
     else:
-        steps = MAX_OUTPUT_STATES
+        steps = 10
 
     # create and populate boolean translation matrix
     shape = TRANSITIONS.shape
     transitions = lil_matrix(shape, dtype=bool)
 
-    for r in range(shape[0]):
-        indices, values = find(TRANSITIONS.getrow(r))[1:]
-        for i, v in enumerate(values):
-            if v == max(values) and r > 0:
-                transitions[r, indices[i]] = True
+    x, y = find(TRANSITIONS)[:2]
+    for i, v in enumerate(x):
+        transitions[v, y[i]] = True
+    transitions = transitions.asformat('csr')
+
+    print('test')
 
     if update.message.text.startswith('/converge'):
-        transitions **= steps
+        transitions **= 2
         converge = len(find(transitions.getrow(state_index))[1])
 
         update.message.reply_text(text='State "{}" converges to {} possible final state{} after {} step{}.'
@@ -238,37 +278,18 @@ def convergence(bot, update):
 handlers.append([CommandHandler(['converge', 'diverge'], convergence), {'action': Ca.TYPING}])
 
 
-def markov_states(bot, update):
-    """current number of distinct markov states"""
-    update.message.reply_text(text='Number of markov generator states: {}'.format(len(STATES)))
-
-
-handlers.append([CommandHandler('states', markov_states), {'action': Ca.TYPING}])
-
-
 def accumulator(bot, update):
     """markov state accumulator"""
     global STATES, TRANSITIONS
 
-    # splits off punctuation at ends of tokens: 'test.' -> ['test', '.']
-    def splitter(text):
-        tokens = []
-        for t in text.split():
-            if t[-1] in RIGHT:
-                tokens.append(process_token(t.rstrip(t[-1])))
-                tokens.append(t[-1])
-
-            else:
-                tokens.append(process_token(t))
-
-        return tokens
-
     if len(update.message.text) > MAX_INPUT_SIZE:
         return
 
-    tokenizer = PunktSentenceTokenizer()
-    for s in tokenizer.tokenize(re_name(re_url(update.message.text))):
-        tokens = splitter(s)
+    sentence_tokenizer = PunktSentenceTokenizer()
+    for s in sentence_tokenizer.tokenize(re_name(re_url(update.message.text))):
+        word_tokenizer = WordPunctTokenizer()
+        tokens = word_tokenizer.tokenize(s)
+
         # add new states
         STATES += list(set(tokens) - set(STATES))
 
@@ -287,10 +308,12 @@ def accumulator(bot, update):
         # increment transition matrix values
         for i, t in enumerate(tokens):
             state = STATES.index(t)
+
             next_state = STATES.index(tokens[i+1]) if i < len(tokens) - 1 else 0  # absorbing state at end of sentence
             if i == 0:
                 TRANSITIONS[0, state] += 1  # absorbing state at start of sentence
-            TRANSITIONS[state, next_state] += 1
+
+            TRANSITIONS[state, next_state] += 1  # transition state
 
 
 handlers.append([MessageHandler(callback=accumulator, filters=(Filters.text & (~Filters.command))), None])
