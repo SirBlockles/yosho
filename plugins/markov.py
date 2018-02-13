@@ -104,9 +104,10 @@ def markov(bot, update):
         output = (t for t in output if t)
 
         for c in snaps[0]:
-            if c in snaps[1]:
+            completion = snap[1][snap[0].index(c)]
+            if completion in snaps[1]:
                 snaps[0].remove(c)
-                snaps[1].remove(c)
+                snaps[1].remove(completion)
 
         snaps[0] = [snap[1][snap[0].index(s)] for s in snaps[0]]
         snaps[1] = [snap[0][snap[1].index(s)] for s in snaps[1]]
