@@ -295,7 +295,7 @@ handlers.append([CommandHandler(['converge', 'diverge'], convergence), {'action'
 
 
 def merge(bot, update):
-    """/merge <state> <state>: merge first state into second"""
+    """<state> <state>: merge first state into second"""
     global TRANSITIONS, STATES
 
     expr = clean(update.message.text)
@@ -330,11 +330,11 @@ def merge(bot, update):
     update.message.reply_text(text='Merged state {} into state {}.'.format(*states))
 
 
-handlers.append([CommandHandler(['merge'], merge), {'action': Ca.TYPING, 'mods': True}])
+handlers.append([CommandHandler('merge', merge), {'action': Ca.TYPING, 'mods': True}])
 
 
 def delete(bot, update):
-    """/delete_state <state>: delete state"""
+    """delete a state"""
     global TRANSITIONS, STATES
 
     expr = clean(update.message.text)
@@ -354,11 +354,11 @@ def delete(bot, update):
     update.message.reply_text(text='Deleted {}.'.format(state))
 
 
-handlers.append([CommandHandler(['delete'], delete), {'action': Ca.TYPING, 'mods': True}])
+handlers.append([CommandHandler('delete', delete), {'action': Ca.TYPING, 'mods': True}])
 
 
 def insert(bot, update):
-    """/insert <state>: insert new state in markov states"""
+    """insert new state in markov states"""
     expr = clean(update.message.text)
     state = expr.split()[0]
     state = process_token(state)
@@ -368,7 +368,7 @@ def insert(bot, update):
     update.message.reply_text(text='Inserted {} into markov states.'.format(state))
 
 
-handlers.append([CommandHandler(['insert'], insert), {'action': Ca.TYPING, 'mods': True}])
+handlers.append([CommandHandler('insert', insert), {'action': Ca.TYPING, 'mods': True}])
 
 
 def accumulator(bot, update, insert=None):

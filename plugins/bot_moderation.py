@@ -75,7 +75,7 @@ handlers.append([CommandHandler(['global', 'globals'], set_global), {'mods': Tru
                                                                      'level': logging.DEBUG}])
 
 
-def delete(bot, update):
+def delet_this(bot, update):
     """delet this"""
     quoted = update.message.reply_to_message
     if quoted:
@@ -85,4 +85,4 @@ def delete(bot, update):
             return
 
 
-handlers.append([CommandHandler("delete", delete), {'flood': False, 'mods': True}])
+handlers.append([CommandHandler("delet_this", delet_this), {'flood': False, 'mods': True}])
