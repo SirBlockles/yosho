@@ -179,6 +179,7 @@ def relations(bot, update):
 /mean: displays mean number of branches per state
 /deviation: displays standard deviation of branches per state
 /states: displays total number of states
+/singleton: displays probability of a singleton being an end state
 """
     text = update.message.text
 
@@ -226,6 +227,20 @@ def relations(bot, update):
         update.message.reply_text(text='Standard deviation of branches per state: {}'.format(deviation))
         return
 
+    elif text.startswith('/singleton'):
+        singletons = 0
+        stop_singletons = 0
+
+        for r in range(TRANSITIONS.shape[0]):
+            row = TRANSITIONS.getrow(r)[1]
+            if len(row) == 1:
+                singletons += 1
+                if row[0] == 0:
+                    stop_singletons += 1
+
+        update.message.reply_text(text='Probability of a singleton being an end state: {}'
+                                  .format(stop_singletons/singletons))
+
     else:
         update.message.reply_text(text='Number of markov generator states: {}'.format(len(STATES)))
         return
@@ -239,8 +254,8 @@ def relations(bot, update):
                               .format(percent, output, MAX_OUTPUT_STATES), disable_web_page_preview=True)
 
 
-handlers.append([CommandHandler(['ends', 'starts', 'after', 'before', 'mean', 'deviation', 'states'], relations),
-                 {'action': Ca.TYPING, 'mods': True}])
+handlers.append([CommandHandler(['ends', 'starts', 'after', 'before', 'mean', 'deviation', 'states', 'singleton'],
+                                relations), {'action': Ca.TYPING, 'mods': True}])
 
 
 def convergence(bot, update):
