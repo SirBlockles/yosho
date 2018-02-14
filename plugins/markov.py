@@ -241,6 +241,7 @@ def relations(bot, update):
 
         update.message.reply_text(text='Probability of a singleton being an end state: {}'
                                   .format(stop_singletons/singletons))
+        return
 
     else:
         update.message.reply_text(text='Number of markov generator states: {}'.format(len(STATES)))
