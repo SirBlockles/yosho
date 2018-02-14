@@ -1,6 +1,7 @@
 """yosho plugin:markov generator"""
 import pickle
 import string
+import time
 from math import sqrt
 
 import emoji
@@ -65,8 +66,13 @@ def process_token(token):
     return spell(token).lower()
 
 
-def markov(bot, update):
+def markov(bot, update, bot_globals, seed=None):
     """generates sentences using a markov chain"""
+    def no_flood(u):
+        bot_globals['last_commands'][u] = time.time() - bot_globals['MESSAGE_TIMEOUT'] * 2
+
+    message = update.message
+    message_user = message.from_user.username if message.from_user.username is not None else message.from_user.name
 
     # joins together punctuation at ends of words and auto-completes parenthesis: ['"', 'test', '.'] -> '"test."'
     # tries its best
@@ -123,7 +129,12 @@ def markov(bot, update):
 
     output = []
 
-    text = clean(update.message.text)
+    if seed is None:
+        text = clean(update.message.text)
+    else:
+        no_flood(message_user)
+        text = seed
+
     if text:
         state = process_token(text.split()[-1])
         if state not in set(STATES):
@@ -233,7 +244,6 @@ def relations(bot, update):
 
         for r in range(TRANSITIONS.shape[0]):
             row = find(TRANSITIONS.getrow(r))[1]
-            print(row)
             if len(row) == 1:
                 singletons += 1
                 if row[0] == 0:

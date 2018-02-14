@@ -3,8 +3,8 @@ import json
 
 
 class Macro:
-    _varieties = ('TEXT', 'EVAL', 'PHOTO', 'INLINE', 'E621', 'ALIAS')
-    TEXT, EVAL, PHOTO, INLINE, E621, ALIAS = _varieties
+    _varieties = ('TEXT', 'EVAL', 'PHOTO', 'INLINE', 'E621', 'ALIAS', 'MARKOV')
+    TEXT, EVAL, PHOTO, INLINE, E621, ALIAS, MARKOV = _varieties
 
     def __init__(self, name, variety, content, creator='', hidden=False, protected=False, nsfw=False):
         self.name = str(name)

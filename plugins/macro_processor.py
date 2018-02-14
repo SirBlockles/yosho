@@ -127,6 +127,7 @@ def macro(bot, update, bot_globals):
              'photo': 'macro',
              'e621': 'macro',
              'alias': 'macro',
+             'markov': 'markov',
              'remove': 'write',
              'hide': 'write',
              'protect': 'write',
@@ -387,6 +388,14 @@ def call_macro(bot, update, bot_globals):  # process macros and invalid commands
                 else:
                     update.message.reply_text(err + "e621 plugin isn't installed.")
 
+            elif variety == Macro.MARKOV:
+                if 'markov generator' in bot_globals['PLUGINS'].keys():
+                    bot.sendChatAction(chat_id=message.chat_id, action=Ca.UPLOAD_PHOTO)
+                    bot_globals['PLUGINS']['markov generator'].markov(bot, update, bot_globals, seed=
+                    '{}{}'.format(content, (bool(clean(message.text)) * ' ') + clean(message.text)))
+                else:
+                    update.message.reply_text(err + "Markov generator plugin isn't installed.")
+
             elif variety == Macro.INLINE:
                 quoted = None
                 known(err + "That's an inline macro! Try @yosho_bot " + command)
@@ -400,8 +409,7 @@ def call_macro(bot, update, bot_globals):  # process macros and invalid commands
     run()
 
 
-handlers.append([MessageHandler(filters=Filters.command, callback=call_macro), {'name': 'ALLOW_UNNAMED',
-                                                                                'action': Ca.TYPING}])
+handlers.append([MessageHandler(filters=Filters.command, callback=call_macro), {'name': 'ALLOW_UNNAMED'}])
 
 
 def flush(bot, job):
