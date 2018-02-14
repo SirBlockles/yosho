@@ -143,6 +143,11 @@ def markov(bot, update):
             branches = branches[1:]
             probabilities = probabilities[1:]
 
+        # don't repeat the same thing twice in a row
+        for i, b in enumerate(branches):
+            if b == state_index and STATES[b]:
+                probabilities[i] = 0
+
         # normalization of probabilities
         transition_sum = sum(probabilities)
         probabilities = tuple(i/transition_sum for i in probabilities)
@@ -348,7 +353,6 @@ def insert(bot, update):
     """insert new state in markov states"""
     expr = clean(update.message.text)
     state = expr.split()[0]
-    state = state
 
     accumulator(bot, update, insert=state)
 
