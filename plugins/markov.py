@@ -232,7 +232,8 @@ def relations(bot, update):
         stop_singletons = 0
 
         for r in range(TRANSITIONS.shape[0]):
-            row = TRANSITIONS.getrow(r)[1]
+            row = find(TRANSITIONS.getrow(r))[1]
+            print(row)
             if len(row) == 1:
                 singletons += 1
                 if row[0] == 0:
