@@ -1,6 +1,7 @@
 """yosho plugin:markov generator"""
 import pickle
 import string
+from math import sqrt
 
 import emoji
 from autocorrect import spell
@@ -176,6 +177,7 @@ def relations(bot, update):
 /ends: displays end states
 /starts: displays start states
 /mean: displays mean number of branches per state
+/deviation: displays standard deviation of branches per state
 /states: displays total number of states
 """
     text = update.message.text
@@ -211,6 +213,19 @@ def relations(bot, update):
         update.message.reply_text(text='Mean number of branches per state: {}'.format(mean))
         return
 
+    elif text.startswith('/deviation'):
+        mean = len(find(TRANSITIONS)[0]) / TRANSITIONS.shape[0]
+        deviation = 0
+
+        for r in range(TRANSITIONS.shape[0]):
+            deviation += (len(find(TRANSITIONS.getrow(r))[0]) - mean)**2
+
+        deviation /= TRANSITIONS.shape[0]
+        deviation = sqrt(deviation)
+
+        update.message.reply_text(text='Standard deviation of branches per state: {}'.format(deviation))
+        return
+
     else:
         update.message.reply_text(text='Number of markov generator states: {}'.format(len(STATES)))
         return
@@ -224,7 +239,7 @@ def relations(bot, update):
                               .format(percent, output, MAX_OUTPUT_STATES), disable_web_page_preview=True)
 
 
-handlers.append([CommandHandler(['ends', 'starts', 'after', 'before', 'mean', 'states'], relations),
+handlers.append([CommandHandler(['ends', 'starts', 'after', 'before', 'mean', 'deviation', 'states'], relations),
                  {'action': Ca.TYPING, 'mods': True}])
 
 
@@ -348,7 +363,6 @@ def insert(bot, update):
     """insert new state in markov states"""
     expr = clean(update.message.text)
     state = expr.split()[0]
-    state = state
 
     accumulator(bot, update, insert=state)
 
