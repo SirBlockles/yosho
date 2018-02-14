@@ -241,7 +241,7 @@ def relations(bot, update):
 
         update.message.reply_text(text='Probability of a state being a singleton: {}\n'
                                        'Probability of a singleton being an end state singleton: {}\n'
-                                       'Probability of a state being an end state singleton.'
+                                       'Probability of a state being an end state singleton: {}'
                                   .format(singletons/TRANSITIONS.shape[0],
                                           stop_singletons/singletons,
                                           stop_singletons/TRANSITIONS.shape[0]))
