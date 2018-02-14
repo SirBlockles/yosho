@@ -127,7 +127,7 @@ def macro(bot, update, bot_globals):
              'photo': 'macro',
              'e621': 'macro',
              'alias': 'macro',
-             'markov': 'markov',
+             'markov': 'macro',
              'remove': 'write',
              'hide': 'write',
              'protect': 'write',
