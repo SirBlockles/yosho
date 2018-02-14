@@ -240,8 +240,11 @@ def relations(bot, update):
                     stop_singletons += 1
 
         update.message.reply_text(text='Probability of a state being a singleton: {}\n'
-                                       'Probability of a singleton being an end state: {}'
-                                  .format(singletons/TRANSITIONS.shape[0], stop_singletons/singletons))
+                                       'Probability of a singleton being an end state singleton: {}\n'
+                                       'Probability of a state being an end state singleton.'
+                                  .format(singletons/TRANSITIONS.shape[0],
+                                          stop_singletons/singletons,
+                                          stop_singletons/TRANSITIONS.shape[0]))
         return
 
     else:
