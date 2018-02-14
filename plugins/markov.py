@@ -19,6 +19,7 @@ ORDER = 0
 MARKOV_PATH = 'MARKOV.pkl'
 
 MAX_INPUT_SIZE = 256
+MIN_OUTPUT_STATES = 4
 MAX_OUTPUT_STATES = 50
 ACCUMULATOR_TIMEOUT = 5
 
@@ -30,10 +31,11 @@ handlers = []
 # word exceptions
 WORDS = KNOWN_WORDS | {"floofy", "hentai", "binch", "wtf", "afaik", "iirc", "lol", "scat", "brek", "yosho", "yoshi",
                        "str8", "b&", "cyoot", "lmao", "vore", "we'd", "we're", "we've", "tbh", "tbf", "uwu", "af",
-                       "nsfw", "ecks", "wyre", "awoo"}
+                       "nsfw", "ecks", "wyre", "awoo", "owo"}
 
 REPLACE = {"im": "I'm", "ive": "I've", "id": "I'd", "idve": "I'd've", "hes": "he's", "arent": "aren't", "shes": "she's",
-           "youre": "you're", "youll": "you'll", "thats": "that's", "xd": "xD", "dont": "don't", "youd": "you'd"}
+           "youre": "you're", "youll": "you'll", "thats": "that's", "xd": "xD", "dont": "don't", "youd": "you'd",
+           "whats": "what's"}
 
 
 def process_token(token):
@@ -136,8 +138,8 @@ def markov(bot, update):
     while (state_index != 0 or len(output) == 0) and len(output) < MAX_OUTPUT_STATES:
         branches, probabilities = find(TRANSITIONS.getrow(state_index))[1:]
 
-        # don't post one word responses if longer responses are possible
-        if len(branches) > 1 and branches[0] == 0:
+        # don't post short responses if longer responses are possible
+        if len(branches) > 1 and branches[0] == 0 and len(output) < MIN_OUTPUT_STATES:
             branches = branches[1:]
             probabilities = probabilities[1:]
 
@@ -314,7 +316,7 @@ def merge(bot, update):
     TRANSITIONS[:, ind] += col
     TRANSITIONS[ind, ind] += loop
 
-    update.message.reply_text(text='Merged state {} into state {}.'.format(*states))
+    update.message.reply_text(text='Merged state "{}" into state "{}".'.format(*states))
 
 
 handlers.append([CommandHandler('merge', merge), {'action': Ca.TYPING, 'mods': True}])
@@ -350,7 +352,7 @@ def insert(bot, update):
 
     accumulator(bot, update, insert=state)
 
-    update.message.reply_text(text='Inserted {} into markov states.'.format(state))
+    update.message.reply_text(text='Inserted "{}" into markov states.'.format(state))
 
 
 handlers.append([CommandHandler('insert', insert), {'action': Ca.TYPING, 'mods': True}])
@@ -374,7 +376,7 @@ def rename(bot, update):
     ind = STATES.index(states[0])
     STATES[ind] = states[1]
 
-    update.message.reply_text(text='Renamed {} to {}.'.format(*states))
+    update.message.reply_text(text='Renamed "{}" to "{}".'.format(*states))
 
 
 handlers.append([CommandHandler('rename', rename), {'action': Ca.TYPING, 'mods': True}])
