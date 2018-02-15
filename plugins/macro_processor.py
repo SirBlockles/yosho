@@ -93,7 +93,7 @@ def evaluate(bot, update, bot_globals, cmd=None, symbols=None):
             plot_kwargs = interp.symtable['PLOT_KWARGS'] if 'PLOT_KWARGS' in interp.symtable.keys() and \
                                                             isinstance(interp.symtable['PLOT_KWARGS'], dict) else dict()
 
-            if plot_type in {'plot', 'scatter', 'contour', 'hist', 'contourf'}:
+            if plot_type in {'plot', 'scatter', 'contour', 'hist', 'contourf', 'imshow'}:
                 try:
                     getattr(plt, plot_type)(*plot_args, **plot_kwargs)
                     plt.savefig('temp.png')
