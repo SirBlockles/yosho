@@ -46,7 +46,6 @@ def evaluate(bot, update, bot_globals, cmd=None, symbols=None):
     message_user = user.username if user.username is not None else user.name
 
     err = 'Invalid input:\n\n'
-    result = err
 
     expr = (cmd if cmd else clean(update.message.text)).replace('#', '\t')
 
@@ -82,7 +81,7 @@ def evaluate(bot, update, bot_globals, cmd=None, symbols=None):
 
     interp.symtable = {**interp.symtable, **symbols}
 
-    with stopit.ThreadingTimeout(EVAL_TIMEOUT) as ctx:
+    with stopit.ThreadingTimeout(EVAL_TIMEOUT):
         out = interp(expr)
         if 'PLOT_TYPE' in interp.symtable.keys() and isinstance(interp.symtable['PLOT_TYPE'], str):
             plot_type = interp.symtable['PLOT_TYPE']
@@ -118,39 +117,35 @@ def evaluate(bot, update, bot_globals, cmd=None, symbols=None):
                               Interpreter().symtable.keys() and k not in symbols.keys()}
         bot_globals['logger'].debug('Saved interpreter "{}": {}'.format(name, INTERPRETERS[name]))
 
-    if ctx.state == ctx.TIMED_OUT:
-        result += 'Timed out.'
+    errors = set([e.get_error()[0] for e in interp.error])
+
+    if errors:
+        update.message.reply_text(text=err + ' ,'.join(errors))
 
     else:
-        if out is None:
-            result = 'Code returned nothing.'
-        elif len(str(out)) > EVAL_MAX_OUTPUT:
-            result = str(out)[:EVAL_MAX_OUTPUT] + '...'
-        else:
-            result = str(out)
+        if len(str(out)) > EVAL_MAX_OUTPUT:
+            out = str(out)[:EVAL_MAX_OUTPUT] + '...'
 
-    if result == '':
-        result = err + 'Code returned nothing.\nMaybe missing input?'
+        if out in {None, ''} and 'PLOT_TYPE' not in interp.symtable.keys():
+            out = err + 'Code returned nothing.'
 
-    if 'PLOT_TYPE' in interp.symtable.keys():
-        if reply:
-            if out is None:
-                result = ''
-            if quoted is None:
-                update.message.reply_photo(photo=open('temp.png', 'rb'), caption=result)
+        if 'PLOT_TYPE' in interp.symtable.keys():
+            if reply:
+                if quoted is None:
+                    update.message.reply_photo(photo=open('temp.png', 'rb'), caption=out)
+                else:
+                    quoted.reply_photo(photo=open('temp.png', 'rb'), caption=out)
             else:
-                quoted.reply_photo(photo=open('temp.png', 'rb'), caption=result)
-        else:
-            bot.send_photo(photo=open('temp.png', 'rb'), caption=out, chat_id=update.message.chat.id)
+                bot.send_photo(photo=open('temp.png', 'rb'), caption=out, chat_id=update.message.chat.id)
 
-    else:
-        if reply:
-            if quoted is None:
-                update.message.reply_text(text=result)
-            else:
-                quoted.reply_text(text=result)
         else:
-            bot.send_message(text=result, chat_id=update.message.chat.id)
+            if reply:
+                if quoted is None:
+                    update.message.reply_text(text=out)
+                else:
+                    quoted.reply_text(text=out)
+            else:
+                bot.send_message(text=out, chat_id=update.message.chat.id)
 
 
 handlers.append([CommandHandler("eval", evaluate), {'action': Ca.TYPING}])
