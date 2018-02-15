@@ -295,11 +295,8 @@ def relations(bot, update, bot_globals):
     elif text.startswith('/network'):
         net = nx.DiGraph()
         count = 50
-        size = 500
 
         p_sorted = sorted(range(TRANSITIONS.shape[0]), key=lambda r: sum(find(TRANSITIONS.getcol(r)[2])))[:count]
-
-        sizes = [((p_sorted.index(v)/(count*2))+.5)*size for v in range(len(p_sorted))]
 
         for r in p_sorted:
             row = find(TRANSITIONS.getrow(r))
@@ -309,9 +306,9 @@ def relations(bot, update, bot_globals):
 
         pos = nx.circular_layout(net)
 
-        plt.figure(0, figsize=(50, 50))
+        plt.figure(0, figsize=(80, 80))
 
-        nx.draw_networkx_nodes(net, pos, node_size=sizes)
+        nx.draw_networkx_nodes(net, pos, node_size=300)
         nx.draw_networkx_edges(net, pos)
         nx.draw_networkx_labels(net, pos, font_size=8)
 
