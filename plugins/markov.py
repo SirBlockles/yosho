@@ -296,7 +296,7 @@ def relations(bot, update, bot_globals):
         net = nx.DiGraph()
         count = 50
 
-        p_sorted = sorted(range(TRANSITIONS.shape[0]), key=lambda r: sum(find(TRANSITIONS.getcol(r)[2])))[:count]
+        p_sorted = sorted(range(TRANSITIONS.shape[0]), key=lambda r: len(find(TRANSITIONS.getcol(r)[0])))[:count]
 
         for r in p_sorted:
             row = find(TRANSITIONS.getrow(r))
