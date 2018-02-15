@@ -28,6 +28,7 @@ MACROS = MacroSet.load(open(MACROS_PATH, 'rb'))
 
 EVAL_MEMORY = True
 EVAL_TIMEOUT = 1
+MOD_TIMEOUT = 60
 EVAL_MAX_OUTPUT = 256
 EVAL_MAX_INPUT = 1000
 
@@ -81,7 +82,8 @@ def evaluate(bot, update, bot_globals, cmd=None, symbols=None):
 
     interp.symtable = {**interp.symtable, **symbols}
 
-    with stopit.ThreadingTimeout(EVAL_TIMEOUT):
+    timeout = MOD_TIMEOUT if is_mod(message_user) else EVAL_TIMEOUT
+    with stopit.ThreadingTimeout(timeout):
         result = interp(expr)
         str_result = str(result)
         if 'PLOT_TYPE' in interp.symtable.keys() and isinstance(interp.symtable['PLOT_TYPE'], str):
