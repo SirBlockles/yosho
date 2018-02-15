@@ -82,7 +82,8 @@ def evaluate(bot, update, bot_globals, cmd=None, symbols=None):
     interp.symtable = {**interp.symtable, **symbols}
 
     with stopit.ThreadingTimeout(EVAL_TIMEOUT):
-        out = str(interp(expr))
+        result = interp(expr)
+        str_result = str(result)
         if 'PLOT_TYPE' in interp.symtable.keys() and isinstance(interp.symtable['PLOT_TYPE'], str):
             plot_type = interp.symtable['PLOT_TYPE']
             plot_args = interp.symtable['PLOT_ARGS'] if 'PLOT_ARGS' in interp.symtable.keys() and \
@@ -98,15 +99,15 @@ def evaluate(bot, update, bot_globals, cmd=None, symbols=None):
 
                 except Exception as e:
                     del interp.symtable['PLOT_TYPE']
-                    out = err + 'Error in pyplot: ' + e.__class__.__name__
+                    str_result = err + 'Error in pyplot: ' + e.__class__.__name__
 
             else:
                 del interp.symtable['PLOT_TYPE']
-                out = err + 'Unsupported plot type.'
+                str_result = err + 'Unsupported plot type.'
 
         elif 'PLOT_TYPE' in interp.symtable.keys():
             del interp.symtable['PLOT_TYPE']
-            out = err + 'Plot type must be a string.'
+            str_result = err + 'Plot type must be a string.'
 
     reply = interp.symtable['REPLY']
 
@@ -123,29 +124,29 @@ def evaluate(bot, update, bot_globals, cmd=None, symbols=None):
         update.message.reply_text(text=err + ' ,'.join(errors))
 
     else:
-        if len(out) > EVAL_MAX_OUTPUT:
-            out = out[:EVAL_MAX_OUTPUT] + '...'
-
-        elif out in {None, ''} and 'PLOT_TYPE' not in interp.symtable.keys():
-            out = err + 'Code returned nothing.'
+        if len(str_result) > EVAL_MAX_OUTPUT:
+            str_result = str_result[:EVAL_MAX_OUTPUT] + '...'
 
         if 'PLOT_TYPE' in interp.symtable.keys():
+            if result is None:
+                str_result = ''
+
             if reply:
                 if quoted is None:
-                    update.message.reply_photo(photo=open('temp.png', 'rb'), caption=out)
+                    update.message.reply_photo(photo=open('temp.png', 'rb'), caption=str_result)
                 else:
-                    quoted.reply_photo(photo=open('temp.png', 'rb'), caption=out)
+                    quoted.reply_photo(photo=open('temp.png', 'rb'), caption=str_result)
             else:
-                bot.send_photo(photo=open('temp.png', 'rb'), caption=out, chat_id=update.message.chat.id)
+                bot.send_photo(photo=open('temp.png', 'rb'), caption=str_result, chat_id=update.message.chat.id)
 
         else:
             if reply:
                 if quoted is None:
-                    update.message.reply_text(text=out)
+                    update.message.reply_text(text=str_result)
                 else:
-                    quoted.reply_text(text=out)
+                    quoted.reply_text(text=str_result)
             else:
-                bot.send_message(text=out, chat_id=update.message.chat.id)
+                bot.send_message(text=str_result, chat_id=update.message.chat.id)
 
 
 handlers.append([CommandHandler("eval", evaluate), {'action': Ca.TYPING}])
