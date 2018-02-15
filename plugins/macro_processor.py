@@ -28,7 +28,7 @@ MACROS = MacroSet.load(open(MACROS_PATH, 'rb'))
 
 EVAL_MEMORY = True
 EVAL_TIMEOUT = 1
-MOD_TIMEOUT = 60
+MOD_TIMEOUT = 60*2
 EVAL_MAX_OUTPUT = 256
 EVAL_MAX_INPUT = 1000
 
@@ -61,7 +61,7 @@ def evaluate(bot, update, bot_globals, cmd=None, symbols=None):
         return
 
     name = update.message.from_user.name
-    interp = Interpreter()
+    interp = Interpreter(max_time=100000)
     if EVAL_MEMORY and name in INTERPRETERS.keys():
         interp.symtable = {**INTERPRETERS[name], **Interpreter().symtable}
         bot_globals['logger'].debug('Loaded interpreter "{}": {}'.format(name, INTERPRETERS[name]))
@@ -93,7 +93,7 @@ def evaluate(bot, update, bot_globals, cmd=None, symbols=None):
             plot_kwargs = interp.symtable['PLOT_KWARGS'] if 'PLOT_KWARGS' in interp.symtable.keys() and \
                                                             isinstance(interp.symtable['PLOT_KWARGS'], dict) else dict()
 
-            if plot_type in {'plot', 'scatter', 'contour', 'hist', 'contourf', 'matshow'}:
+            if plot_type in {'plot', 'scatter', 'contour', 'hist', 'contourf'}:
                 try:
                     getattr(plt, plot_type)(*plot_args, **plot_kwargs)
                     plt.savefig('temp.png')
