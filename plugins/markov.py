@@ -198,7 +198,7 @@ def relations(bot, update, bot_globals):
 /states: displays total number of states
 /singleton: displays probability of a singleton being an end state
 /distribution: plot distribution of branch counts
-/network: graphs 1000 most probable states and their connections **SLOW**
+/network: graphs 50 most probable states and their connections **SLOW**
 """
     text = update.message.text
 
@@ -294,8 +294,8 @@ def relations(bot, update, bot_globals):
 
     elif text.startswith('/network'):
         net = nx.DiGraph()
-        count = 1000
-        size = 2000
+        count = 50
+        size = 500
 
         p_sorted = sorted(range(TRANSITIONS.shape[0]), key=lambda r: sum(find(TRANSITIONS.getcol(r)[2])))[:count]
 
@@ -307,9 +307,9 @@ def relations(bot, update, bot_globals):
                 if c in p_sorted:
                     net.add_edge(STATES[r], STATES[c], weight=row[2][i])
 
-        pos = nx.spring_layout(net, k=.4)
+        pos = nx.circular_layout(net)
 
-        plt.figure(0, figsize=(100, 100))
+        plt.figure(0, figsize=(50, 50))
 
         nx.draw_networkx_nodes(net, pos, node_size=sizes)
         nx.draw_networkx_edges(net, pos)
