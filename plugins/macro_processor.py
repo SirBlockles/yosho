@@ -82,7 +82,7 @@ def evaluate(bot, update, bot_globals, cmd=None, symbols=None):
     interp.symtable = {**interp.symtable, **symbols}
 
     with stopit.ThreadingTimeout(EVAL_TIMEOUT):
-        out = interp(expr)
+        out = str(interp(expr))
         if 'PLOT_TYPE' in interp.symtable.keys() and isinstance(interp.symtable['PLOT_TYPE'], str):
             plot_type = interp.symtable['PLOT_TYPE']
             plot_args = interp.symtable['PLOT_ARGS'] if 'PLOT_ARGS' in interp.symtable.keys() and \
@@ -123,14 +123,11 @@ def evaluate(bot, update, bot_globals, cmd=None, symbols=None):
         update.message.reply_text(text=err + ' ,'.join(errors))
 
     else:
-        if len(str(out)) > EVAL_MAX_OUTPUT:
-            out = str(out)[:EVAL_MAX_OUTPUT] + '...'
+        if len(out) > EVAL_MAX_OUTPUT:
+            out = out[:EVAL_MAX_OUTPUT] + '...'
 
         elif out in {None, ''} and 'PLOT_TYPE' not in interp.symtable.keys():
             out = err + 'Code returned nothing.'
-
-        else:
-            out = str(out)
 
         if 'PLOT_TYPE' in interp.symtable.keys():
             if reply:
