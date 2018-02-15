@@ -126,8 +126,11 @@ def evaluate(bot, update, bot_globals, cmd=None, symbols=None):
         if len(str(out)) > EVAL_MAX_OUTPUT:
             out = str(out)[:EVAL_MAX_OUTPUT] + '...'
 
-        if out in {None, ''} and 'PLOT_TYPE' not in interp.symtable.keys():
+        elif out in {None, ''} and 'PLOT_TYPE' not in interp.symtable.keys():
             out = err + 'Code returned nothing.'
+
+        else:
+            out = str(out)
 
         if 'PLOT_TYPE' in interp.symtable.keys():
             if reply:
