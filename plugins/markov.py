@@ -5,6 +5,7 @@ import time
 from math import sqrt
 
 import emoji
+import matplotlib
 from autocorrect import spell
 from autocorrect.word import KNOWN_WORDS
 from nltk.tokenize import PunktSentenceTokenizer
@@ -15,6 +16,11 @@ from telegram.ext import CommandHandler, MessageHandler
 from telegram.ext.filters import Filters
 
 from helpers import db_push, db_pull, clean, add_s, re_url, re_name
+
+matplotlib.use('Agg')
+
+import networkx as nx
+import matplotlib.pyplot as plt
 
 ORDER = 0
 
@@ -33,11 +39,11 @@ handlers = []
 # word exceptions
 WORDS = KNOWN_WORDS | {"floofy", "hentai", "binch", "wtf", "afaik", "iirc", "lol", "scat", "brek", "yosho", "yoshi",
                        "str8", "b&", "cyoot", "lmao", "vore", "we'd", "we're", "we've", "tbh", "tbf", "uwu", "af",
-                       "nsfw", "ecks", "wyre", "awoo"}
+                       "nsfw", "ecks", "wyre", "awoo", "thot", "jackyl"}
 
 REPLACE = {"im": "I'm", "ive": "I've", "id": "I'd", "idve": "I'd've", "hes": "he's", "arent": "aren't", "shes": "she's",
            "youre": "you're", "youll": "you'll", "thats": "that's", "xd": "xD", "dont": "don't", "youd": "you'd",
-           "whats": "what's", "owo": "OwO", "uwu": "UwU"}
+           "whats": "what's", "owo": "OwO", "uwu": "UwU", "theyre": "they're"}
 
 
 def process_token(token):
@@ -181,7 +187,7 @@ def markov(bot, update, bot_globals, seed=None):
 handlers.append([CommandHandler('markov', markov), {'action': Ca.TYPING, 'name': True}])
 
 
-def relations(bot, update):
+def relations(bot, update, bot_globals):
     """
 /after <state>: displays states proceeding a state
 /before <state>: displays states preceding a state
@@ -191,6 +197,8 @@ def relations(bot, update):
 /deviation: displays standard deviation of branches per state
 /states: displays total number of states
 /singleton: displays probability of a singleton being an end state
+/distribution: plot distribution of branch counts
+/network: graphs 1000 most probable states and their connections **SLOW**
 """
     text = update.message.text
 
@@ -257,6 +265,65 @@ def relations(bot, update):
                                           stop_singletons/TRANSITIONS.shape[0]))
         return
 
+    elif text.startswith('/distribution'):
+        distribution = [0]*TRANSITIONS.shape[0]
+
+        for r in range(1, TRANSITIONS.shape[0]):
+            b = len(find(TRANSITIONS.getrow(r))[1])
+            distribution[b] += 1
+
+        distribution_sum = sum(distribution)
+
+        last = 0
+        for i, v in enumerate(distribution):
+            if v:
+                last = i
+
+        distribution = [v / distribution_sum for v in distribution[:last]]
+
+        plt.figure(0, figsize=None)
+
+        plt.plot(distribution)
+        plt.ylabel('probability')
+        plt.xlabel('# branches')
+        plt.savefig('temp.png')
+        plt.clf()
+
+        update.message.reply_photo(photo=open('temp.png', 'rb'), timeout=bot_globals['IMAGE_SEND_TIMEOUT'])
+        return
+
+    elif text.startswith('/network'):
+        net = nx.DiGraph()
+        count = 1000
+        size = 2000
+
+        p_sorted = sorted(range(TRANSITIONS.shape[0]), key=lambda r: sum(find(TRANSITIONS.getcol(r)[2])))[:count]
+
+        sizes = [((p_sorted.index(v)/(count*2))+.5)*size for v in range(len(p_sorted))]
+
+        for r in p_sorted:
+            row = find(TRANSITIONS.getrow(r))
+            for i, c in enumerate(row[1]):
+                if c in p_sorted:
+                    net.add_edge(STATES[r], STATES[c], weight=row[2][i])
+
+        pos = nx.spring_layout(net, k=.4)
+
+        plt.figure(0, figsize=(100, 100))
+
+        nx.draw_networkx_nodes(net, pos, node_size=sizes)
+        nx.draw_networkx_edges(net, pos)
+        nx.draw_networkx_labels(net, pos, font_size=8)
+
+        plt.title("Markov Network")
+        plt.axis('off')
+
+        plt.savefig('network.svg')
+        plt.clf()
+
+        update.message.reply_document(document=open('network.svg', 'rb'), filename='network.svg')
+        return
+
     else:
         update.message.reply_text(text='Number of markov generator states: {}'.format(len(STATES)))
         return
@@ -266,11 +333,12 @@ def relations(bot, update):
     percent = round((len(sort) / TRANSITIONS.shape[0]) * 100)
     output = ' ,'.join('"{}"'.format(STATES[s[1]]) for s in sort[:MAX_OUTPUT_STATES])
 
-    update.message.reply_text(text='{}% of states: {{{}}}\n(Displays {} most probable states.)'
-                              .format(percent, output, MAX_OUTPUT_STATES), disable_web_page_preview=True)
+    update.message.reply_text(text='{}, {}% of states: {{{}}}\n(Displays {} most probable states.)'
+                              .format(len(data), percent, output, MAX_OUTPUT_STATES), disable_web_page_preview=True)
 
 
-handlers.append([CommandHandler(['ends', 'starts', 'after', 'before', 'mean', 'deviation', 'states', 'singleton'],
+handlers.append([CommandHandler(['ends', 'starts', 'after', 'before', 'mean', 'deviation', 'states', 'singleton',
+                                 'distribution', 'network'],
                                 relations), {'action': Ca.TYPING, 'mods': True}])
 
 

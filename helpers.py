@@ -24,9 +24,6 @@ re_url = lambda s: re.sub(r'(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-
 re_name = lambda s: re.sub('@\w+', '', s)
 
 
-
-
-
 def build_menu(buttons, n_cols, header_buttons=None, footer_buttons=None):
     menu = [buttons[i:i + n_cols] for i in range(0, len(buttons), n_cols)]
     if header_buttons:

@@ -5,6 +5,8 @@ stopit
 dropbox
 scipy
 nltk
-emoji
 autocorrect
+matplotlib
+networkx
+emoji
 pillow==4.0.0
