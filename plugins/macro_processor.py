@@ -3,6 +3,7 @@ import logging
 import re
 import time
 
+import matplotlib
 import stopit
 from asteval import Interpreter
 from telegram import ChatAction as Ca
@@ -14,6 +15,10 @@ from telegram.ext.filters import Filters
 from helpers import clean
 from helpers import is_mod, db_push, db_pull
 from macro import Macro, MacroSet
+
+matplotlib.use('Agg')
+
+import matplotlib.pyplot as plt
 
 ORDER = 2
 
@@ -31,7 +36,8 @@ handlers = []
 
 
 def evaluate(bot, update, bot_globals, cmd=None, symbols=None):
-    """safely evaluates simple python code"""
+    """safely evaluates simple python code and generates plots"""
+
     def no_flood(u):
         bot_globals['last_commands'][u] = time.time() - bot_globals['MESSAGE_TIMEOUT'] * 2
 
@@ -78,16 +84,43 @@ def evaluate(bot, update, bot_globals, cmd=None, symbols=None):
 
     with stopit.ThreadingTimeout(EVAL_TIMEOUT) as ctx:
         out = interp(expr)
+        if 'PLOT_TYPE' in interp.symtable.keys() and isinstance(interp.symtable['PLOT_TYPE'], str):
+            plot_type = interp.symtable['PLOT_TYPE']
+            plot_args = interp.symtable['PLOT_ARGS'] if 'PLOT_ARGS' in interp.symtable.keys() and \
+                                                        isinstance(interp.symtable['PLOT_ARGS'], tuple) else tuple()
+            plot_kwargs = interp.symtable['PLOT_KWARGS'] if 'PLOT_KWARGS' in interp.symtable.keys() and \
+                                                            isinstance(interp.symtable['PLOT_KWARGS'], dict) else dict()
+
+            if plot_type in {'plot', 'scatter', 'contour', 'hist'}:
+                try:
+                    getattr(plt, plot_type)(*plot_args, **plot_kwargs)
+                    plt.savefig('temp.png')
+                    plt.clf()
+
+                except Exception as e:
+                    del interp.symtable['PLOT_TYPE']
+                    out = err + 'Error in pyplot: ' + e.__class__.__name__
+
+            else:
+                del interp.symtable['PLOT_TYPE']
+                out = err + 'Unsupported plot type.'
+
+        elif 'PLOT_TYPE' in interp.symtable.keys():
+            del interp.symtable['PLOT_TYPE']
+            out = err + 'Plot type must be a string.'
 
     reply = interp.symtable['REPLY']
 
-    if EVAL_MEMORY and cmd is None:
+    if EVAL_MEMORY and cmd is None and not any(p in set(interp.symtable.keys()) for p in ('PLOT_TYPE',
+                                                                                          'PLOT_ARGS',
+                                                                                          'PLOT_KWARGS')):
         INTERPRETERS[name] = {k: v for k, v in interp.symtable.items() if k not in
                               Interpreter().symtable.keys() and k not in symbols.keys()}
         bot_globals['logger'].debug('Saved interpreter "{}": {}'.format(name, INTERPRETERS[name]))
 
     if ctx.state == ctx.TIMED_OUT:
         result += 'Timed out.'
+
     else:
         if out is None:
             result = 'Code returned nothing.'
@@ -95,16 +128,29 @@ def evaluate(bot, update, bot_globals, cmd=None, symbols=None):
             result = str(out)[:EVAL_MAX_OUTPUT] + '...'
         else:
             result = str(out)
+
     if result == '':
         result = err + 'Code returned nothing.\nMaybe missing input?'
 
-    if reply:
-        if quoted is None:
-            update.message.reply_text(text=result)
+    if 'PLOT_TYPE' in interp.symtable.keys():
+        if reply:
+            if out is None:
+                result = ''
+            if quoted is None:
+                update.message.reply_photo(photo=open('temp.png', 'rb'), caption=result)
+            else:
+                quoted.reply_photo(photo=open('temp.png', 'rb'), caption=result)
         else:
-            quoted.reply_text(text=result)
+            bot.send_photo(photo=open('temp.png', 'rb'), caption=out, chat_id=update.message.chat.id)
+
     else:
-        bot.send_message(text=result, chat_id=update.message.chat.id)
+        if reply:
+            if quoted is None:
+                update.message.reply_text(text=result)
+            else:
+                quoted.reply_text(text=result)
+        else:
+            bot.send_message(text=result, chat_id=update.message.chat.id)
 
 
 handlers.append([CommandHandler("eval", evaluate), {'action': Ca.TYPING}])
@@ -311,7 +357,7 @@ def inline_stuff(bot, update, bot_globals):
 handlers.append([InlineQueryHandler(inline_stuff), None])
 
 
-def manual_flush(bot, update, bot_globals):
+def manual_flush(bot, update):
     """flushes interpreters and macro edits"""
     flush(bot, None)
     update.message.reply_text(text='Cleared interpreters and pushed macro updates.')
