@@ -331,7 +331,7 @@ def relations(bot, update, bot_globals):
     output = ' ,'.join('"{}"'.format(STATES[s[1]]) for s in sort[:MAX_OUTPUT_STATES])
 
     update.message.reply_text(text='{}, {}% of states: {{{}}}\n(Displays {} most probable states.)'
-                              .format(len(data), percent, output, MAX_OUTPUT_STATES), disable_web_page_preview=True)
+                              .format(len(links), percent, output, MAX_OUTPUT_STATES), disable_web_page_preview=True)
 
 
 handlers.append([CommandHandler(['ends', 'starts', 'after', 'before', 'mean', 'deviation', 'states', 'singleton',
