@@ -390,7 +390,7 @@ def call_macro(bot, update, bot_globals):  # process macros and invalid commands
 
             elif variety == Macro.MARKOV:
                 if 'markov generator' in bot_globals['PLUGINS'].keys():
-                    bot.sendChatAction(chat_id=message.chat_id, action=Ca.UPLOAD_PHOTO)
+                    bot.sendChatAction(chat_id=message.chat_id, action=Ca.TYPING)
                     bot_globals['PLUGINS']['markov generator'].markov(bot, update, bot_globals, seed=
                     '{}{}'.format(content, (bool(clean(message.text)) * ' ') + clean(message.text)))
                 else:
