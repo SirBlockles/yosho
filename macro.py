@@ -3,7 +3,6 @@ import json
 
 
 class Macro:
-    __slots__ = {'name', 'variety', '_content', 'creator', 'hidden', 'protected', 'nsfw'}
     _varieties = ('TEXT', 'EVAL', 'PHOTO', 'INLINE', 'E621', 'ALIAS', 'MARKOV')
     TEXT, EVAL, PHOTO, INLINE, E621, ALIAS, MARKOV = _varieties
 
@@ -33,7 +32,6 @@ class Macro:
 
 
 class MacroSet:
-    __slots__ = {'_macros'}
 
     def subset(self, match=None, search=None, variety=None, hidden=False, protected=None, nsfw=None, filt=None):
         convert = lambda s: None if s == 'None' else s == 'True'
