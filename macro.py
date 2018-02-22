@@ -32,10 +32,7 @@ class Macro:
 
 
 class MacroSet:
-<<<<<<< HEAD
 
-=======
->>>>>>> parent of 7cf4565... macro update
     def subset(self, match=None, search=None, variety=None, hidden=False, protected=None, nsfw=None, filt=None):
         convert = lambda s: None if s == 'None' else s == 'True'
 

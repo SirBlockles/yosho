@@ -11,7 +11,7 @@ from telegram import InlineQueryResultArticle, InputTextMessageContent
 from telegram.error import TelegramError
 from telegram.ext import CommandHandler, InlineQueryHandler, MessageHandler
 from telegram.ext.filters import Filters
-
+from datetime import datetime
 from helpers import clean
 from helpers import is_mod, db_push, db_pull
 from macro import Macro, MacroSet
@@ -78,7 +78,8 @@ def evaluate(bot, update, bot_globals, cmd=None, symbols=None):
                              'THEIR_NAME': them,
                              'PRECEDING': preceding,
                              'GROUP': (chat.title if chat.username is None else '@' + chat.username),
-                             'REPLY': True}}
+                             'REPLY': True,
+                             'TIME': str(datetime.timetuple())}}
 
     interp.symtable = {**interp.symtable, **symbols}
 
