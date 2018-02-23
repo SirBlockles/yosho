@@ -49,7 +49,7 @@ def evaluate(bot, update, bot_globals, cmd=None, symbols=None):
 
     err = 'Invalid input:\n\n'
 
-    expr = (cmd if cmd else clean(update.message.text)).replace('#', '\t')
+    expr = cmd if cmd else clean(update.message.text)
 
     if expr == '':
         update.message.text = '/eval_info' + bot.name.lower()
