@@ -28,10 +28,10 @@ db_pull(MACROS_PATH)
 MACROS = MacroSet.load(open(MACROS_PATH, 'rb'))
 
 EVAL_MEMORY = True
-EVAL_TIMEOUT = 1
+EVAL_TIMEOUT = 6
 MOD_TIMEOUT = 60*2
 EVAL_MAX_OUTPUT = 256
-EVAL_MAX_INPUT = 1000
+EVAL_MAX_INPUT = 10000
 
 INTERPRETERS = {}
 handlers = []
@@ -87,7 +87,7 @@ def evaluate(bot, update, bot_globals, cmd=None, symbols=None):
     timeout = MOD_TIMEOUT if is_mod(message_user) else EVAL_TIMEOUT
     with stopit.ThreadingTimeout(timeout):
         result = interp(expr)
-        str_result = str(result)
+        str_result = str(result).strip()
         if 'PLOT_TYPE' in interp.symtable.keys() and isinstance(interp.symtable['PLOT_TYPE'], str):
             plot_type = interp.symtable['PLOT_TYPE']
             plot_args = interp.symtable['PLOT_ARGS'] if 'PLOT_ARGS' in interp.symtable.keys() and \
@@ -144,6 +144,9 @@ def evaluate(bot, update, bot_globals, cmd=None, symbols=None):
                 bot.send_photo(photo=open('temp.png', 'rb'), caption=str_result, chat_id=update.message.chat.id)
 
         else:
+            if not str_result:
+                str_result = 'None'
+
             if reply:
                 if quoted is None:
                     update.message.reply_text(text=str_result)
