@@ -100,7 +100,7 @@ def evaluate(bot, update, bot_globals, cmd=None, symbols=None):
             if plot_type in {'plot', 'scatter', 'contour', 'hist', 'contourf'}:
                 try:
                     getattr(plt, plot_type)(*plot_args, **plot_kwargs)
-                    plt.savefig('temp.png')
+                    plt.savefig('temp.jpeg')
                     plt.clf()
 
                 except Exception as e:
