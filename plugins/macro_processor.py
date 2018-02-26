@@ -7,6 +7,7 @@ from datetime import datetime
 import matplotlib
 import stopit
 from asteval import Interpreter
+from scipy.special import gamma
 from telegram import ChatAction as Ca
 from telegram import InlineQueryResultArticle, InputTextMessageContent
 from telegram.error import TelegramError
@@ -29,7 +30,7 @@ MACROS = MacroSet.load(open(MACROS_PATH, 'rb'))
 
 EVAL_MEMORY = True
 EVAL_TIMEOUT = 6
-MOD_TIMEOUT = 60*2
+MOD_TIMEOUT = 60 * 2
 EVAL_MAX_OUTPUT = 256
 EVAL_MAX_INPUT = 10000
 
@@ -80,7 +81,8 @@ def evaluate(bot, update, bot_globals, cmd=None, symbols=None):
                              'PRECEDING': preceding,
                              'GROUP': (chat.title if chat.username is None else '@' + chat.username),
                              'REPLY': True,
-                             'TIME': tuple(datetime.now().timetuple())}}
+                             'TIME': tuple(datetime.now().timetuple()),
+                             'gamma': gamma}}
 
     interp.symtable = {**interp.symtable, **symbols}
 
@@ -137,11 +139,11 @@ def evaluate(bot, update, bot_globals, cmd=None, symbols=None):
 
             if reply:
                 if quoted is None:
-                    update.message.reply_photo(photo=open('temp.png', 'rb'), caption=str_result)
+                    update.message.reply_photo(photo=open('temp.jpeg', 'rb'), caption=str_result)
                 else:
-                    quoted.reply_photo(photo=open('temp.png', 'rb'), caption=str_result)
+                    quoted.reply_photo(photo=open('temp.jpeg', 'rb'), caption=str_result)
             else:
-                bot.send_photo(photo=open('temp.png', 'rb'), caption=str_result, chat_id=update.message.chat.id)
+                bot.send_photo(photo=open('temp.jpeg', 'rb'), caption=str_result, chat_id=update.message.chat.id)
 
         else:
             if not str_result:
@@ -162,6 +164,7 @@ handlers.append([CommandHandler("eval", evaluate), {'action': Ca.TYPING}])
 # creates and modifies macro commands
 def macro(bot, update, bot_globals):
     """user defined macro editor"""
+
     def no_flood(u):
         bot_globals['last_commands'][u] = time.time() - bot_globals['MESSAGE_TIMEOUT'] * 2
 
@@ -433,7 +436,7 @@ def call_macro(bot, update, bot_globals):  # process macros and invalid commands
                 if 'e621 command' in bot_globals['PLUGINS'].keys():
                     bot.sendChatAction(chat_id=message.chat_id, action=Ca.UPLOAD_PHOTO)
                     bot_globals['PLUGINS']['e621 command'].e621(bot, update, bot_globals,
-                                                 tags='{} {}'.format(content, clean(message.text)))
+                                                                tags='{} {}'.format(content, clean(message.text)))
                 else:
                     update.message.reply_text(err + "e621 plugin isn't installed.")
 

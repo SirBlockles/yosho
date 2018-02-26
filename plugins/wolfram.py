@@ -33,7 +33,7 @@ def wolfram(bot, update, bot_globals):
     if name not in WOLFRAM_RESULTS.keys():
         WOLFRAM_RESULTS[name] = None
 
-    if query != '':
+    if query:
         base = 'http://api.wolframalpha.com/v2/query'
         params = {'appid': bot_globals['WOLFRAM_TOKEN'], 'input': query, 'width': 800}
 

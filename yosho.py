@@ -15,8 +15,7 @@ from telegram.ext import Updater
 from helpers import is_mod, db_pull
 
 TOKEN_DICT = [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]
-TELEGRAM_TOKEN = TOKEN_DICT['yosho_bot']
-WOLFRAM_TOKEN = TOKEN_DICT['wolfram']
+TELEGRAM_TOKEN = TOKEN_DICT['yoshobeta_bot']
 
 SFW_PATH = 'SFW.pkl'
 db_pull(SFW_PATH)
@@ -32,7 +31,6 @@ MESSAGE_TIMEOUT = 60
 FLOOD_TIMEOUT = 20
 FLUSH_INTERVAL = 60 * 10
 IMAGE_SEND_TIMEOUT = 40
-
 
 bot = telegram.Bot(token=TELEGRAM_TOKEN)
 updater = Updater(token=TELEGRAM_TOKEN)
@@ -103,11 +101,6 @@ def modifiers(method=None, age=True, name=False, mods=False, flood=True, admins=
         admin_check = (not admins or message_user in admins_list) or is_mod(message_user)
         nsfw_check = not nsfw or (title in SFW.keys() and not SFW[title])
         if all((time_check, name_check, mod_check, admin_check, nsfw_check)):
-
-            if level:
-                logger.log(level, '{} command called from {} -> {{{}, {}}}, user: @{}, with message: "{}"'
-                           .format(method.__name__, chat.type, title, chat.id, message_user, message.text))
-
             # flood detector
             start = time.time()
             if flood and not chat.type == 'private':
@@ -194,7 +187,6 @@ def error(bot, update, error):
 
 
 updater.dispatcher.add_error_handler(error)
-
 
 # HARD-CODED COMMANDS GO HERE, BEFORE PLUGINS LOAD #
 
