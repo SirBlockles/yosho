@@ -1,4 +1,5 @@
 """yosho plugin:Wolfram Alpha command"""
+import csv
 import io
 import re
 import xml.etree.ElementTree as Xml
@@ -35,7 +36,8 @@ def wolfram(bot, update, bot_globals):
 
     if query:
         base = 'http://api.wolframalpha.com/v2/query'
-        params = {'appid': bot_globals['WOLFRAM_TOKEN'], 'input': query, 'width': 800}
+        params = {'appid': [l for l in csv.DictReader(open('tokens.csv', 'r'))][0]['wolfram'], 'input': query,
+                  'width': 800}
 
         r = requests.get(base, params=params)
         tree = Xml.XML(r.text)
@@ -56,7 +58,8 @@ def wolfram(bot, update, bot_globals):
                     m = message.reply_text('Input interpretation: {}\nChoose result to view:'.format(interp),
                                            reply_markup=markup)
                     bot_globals['jobs'].run_once(wolfram_timeout, WOLFRAM_TIMEOUT, context=(m.message_id, m.chat.id,
-                                                                             message.message_id, message.chat_id))
+                                                                                            message.message_id,
+                                                                                            message.chat_id))
                 else:
                     message.reply_text(text=failed)
             else:
@@ -128,4 +131,3 @@ def wolfram_timeout(bot, job):
     bot.send_message(reply_to_message_id=job.context[2], chat_id=job.context[3],
                      text='Failed to choose an option within {} seconds.\nResults timed out.'
                      .format(WOLFRAM_TIMEOUT))
-
