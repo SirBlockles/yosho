@@ -9,14 +9,11 @@ from re import match
 from telegram.ext import Updater
 
 PLUGINS = {}
-PASSABLE = {'plugins': lambda: PLUGINS,
-            'logger': lambda: logger,
-            'tokens': lambda: TOKENS}
 
-with open('tokens.json', 'r') as tokens:
-    TOKENS = load(tokens)
+with open('config.json', 'r') as config:
+    CONFIG = load(config)
 
-updater = Updater(token=TOKENS['beta'])
+updater = Updater(token=CONFIG['tokens']['beta'])
 
 logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -28,12 +25,17 @@ def err(bot, update, error):
 
 updater.dispatcher.add_error_handler(err)
 
+passable = {'plugins': lambda: PLUGINS,
+            'logger': lambda: logger,
+            'config': lambda: CONFIG,
+            'tokens': lambda: CONFIG['tokens']}
+
 
 def pass_globals(callback):
     @wraps(callback)
     def wrapper(*args, **kwargs):
         sig = signature(callback).parameters
-        return callback(*args, **{k: v() for k, v in PASSABLE.items() if k in sig}, **kwargs)
+        return callback(*args, **{k: v() for k, v in passable.items() if k in sig}, **kwargs)
 
     return wrapper
 
@@ -55,7 +57,7 @@ for k in sorted(PLUGINS, key=lambda k: PLUGINS[k].order if hasattr(PLUGINS[k], '
                 h = [h]
 
             # Wrap callback function with globals if required.
-            if any(a in PASSABLE for a in signature(h[0].callback).parameters):
+            if any(a in passable for a in signature(h[0].callback).parameters):
                 h[0].callback = pass_globals(h[0].callback)
 
             updater.dispatcher.add_handler(*h)
