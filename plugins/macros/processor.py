@@ -14,31 +14,31 @@ handlers = []
 
 
 def new(name, value, cmd, ctx):
-    return 'Created new {} macro "{}".'.format(cmd, name)
+    pass
 
 
 def modify(name, value, ctx):
-    return 'modify'
+    pass
 
 
 def remove(name, ctx):
-    return 'remove'
+    pass
 
 
 def contents(name, ctx):
-    return 'contents'
+    pass
 
 
 def show(*args, ctx):
-    return 'show'
+    pass
 
 
 def attributes(name, *args, ctx):
-    return 'attributes'
+    pass
 
 
 def clean(ctx):
-    return 'clean'
+    pass
 
 
 def info(): return '/macro help: https://pastebin.com/raw/qzBR6GgB'
