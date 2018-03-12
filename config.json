@@ -1,5 +1,13 @@
 {
   "macro editor": {
     "max chained commands": 5
-  }
+  },
+  "bot_mods": [
+    "@wyreyote",
+    "@teamfortress",
+    "@plusreed",
+    "@pixxo",
+    "@radookal",
+    "@pawjob"
+  ]
 }

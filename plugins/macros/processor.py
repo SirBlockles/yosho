@@ -4,7 +4,6 @@ from os.path import dirname
 
 from utils.command import Command
 from utils.dynamic import DynamicCommandHandler
-from utils.helpers import MODS
 from .macro import MacroContainer, Macro
 
 ABSOLUTE = dirname(__file__)
@@ -65,7 +64,7 @@ for k, v in dispatcher.table.items():
 
 def dispatch(args, update, logger, config):
     name = update.message.from_user.name
-    is_mod = name.lower() in MODS if name else False
+    is_mod = name.lower() in config.get('bot_mods', None) if name else False
     ctx = {'update': update,
            'logger': logger,
            'is_mod': is_mod}
