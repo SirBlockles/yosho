@@ -1,12 +1,5 @@
 {
-  "tokens": {
-    "beta": "PLACEHOLDER",
-    "e621": {
-      "login": "PLACEHOLDER",
-      "password_hash": "PLACEHOLDER",
-    },
-    "firebase": "PLACEHOLDER",
-    "production": "PLACEHOLDER",
-    "wolfram": "PLACEHOLDER",
+  "macro editor": {
+    "max chained commands": 5
   }
 }

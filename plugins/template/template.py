@@ -2,7 +2,7 @@
 # Docstring must be of the format """yosho plugin:<plugin name>""" or plugin will be ignored.
 from telegram import ChatAction
 
-from utils.specialhandlers import DynamicCommandHandler
+from utils.dynamic import DynamicCommandHandler
 
 # Load order, higher loads later. For preventing plugin conflicts. Removing this defaults load order to 0.
 order = -1

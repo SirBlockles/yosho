@@ -1,64 +1,90 @@
-"""yosho plugin:macro processor"""
-from math import inf
+"""yosho plugin: macro processor"""
+import json
 from os.path import dirname
 
-from .macro import *
+from utils.command import Command
+from utils.dynamic import DynamicCommandHandler
+from utils.helpers import MODS
+from .macro import MacroContainer, Macro
 
-_ABSOLUTE = dirname(__file__) + '/'
-ORDER = inf
+ABSOLUTE = dirname(__file__)
+with open(ABSOLUTE + '/macros.json', 'r') as read:
+    MACROS = MacroContainer.from_dict(json.load(read))
 
-with open(_ABSOLUTE + 'macros.json', 'r') as macros:
-    MACROS = MacroSet.load(macros)
+handlers = []
 
 
-def macro(*args: List[str]) -> str:
-    global MACROS
+def new(name, value, cmd, ctx):
+    return 'Created new {} macro "{}".'.format(cmd, name)
 
-    def new():
-        pass
 
-    def remove():
-        pass
+def modify(name, value, ctx):
+    return 'modify'
 
-    def hide():
-        pass
 
-    def protect():
-        pass
+def remove(name, ctx):
+    return 'remove'
 
-    def clean():
-        pass
 
-    def modify():
-        pass
+def contents(name, ctx):
+    return 'contents'
 
-    def rename():
-        pass
 
-    def nsfw():
-        pass
+def show(*args, ctx):
+    return 'show'
 
-    def contents():
-        pass
 
-    def show():
-        pass
+def attributes(name, *args, ctx):
+    return 'attributes'
 
-    modes = {'eval': new,
-             'text': new,
-             'inline': new,
-             'photo': new,
-             'e621': new,
-             'alias': new,
-             'markov': new,
-             'remove': remove,
-             'hide': hide,
-             'protect': protect,
-             'clean': clean,
-             'modify': modify,
-             'rename': rename,
-             'nsfw': nsfw,
-             'contents': contents,
-             'show': show}
 
-    return modes[args[0]]()
+def clean(ctx):
+    return 'clean'
+
+
+def info(): return '/macro help: https://pastebin.com/raw/qzBR6GgB'
+
+
+table = {('photo', 'eval', 'inline', 'text', 'e621', 'markov', 'alias'): Command(func=new),
+         ('modify', 'change', 'edit', 'alter'):                          Command(func=modify),
+         ('remove', 'delete'):                                           Command(func=remove),
+         ('contents', 'content', 'value'):                               Command(func=contents),
+         ('list', 'show', 'subset', 'search', 'find'):                   Command(func=show),
+         ('attribs', 'attributes', 'properties', 'settings'):            Command(func=attributes),
+         ('clean', 'purge'):                                             Command(func=clean),
+         (None, 'help', 'info'):                                         Command(func=info)}
+dispatcher = Command(table)
+
+# Create a link back to starting state from each child state.
+exclude = {None, 'clean', 'attribs'}
+for k, v in dispatcher.table.items():
+    # Exclude specified states from back-linking.
+    if not any(e in k for e in exclude):
+        v['&'] = dispatcher
+
+
+def dispatch(args, update, logger, config):
+    name = update.message.from_user.name
+    is_mod = name.lower() in MODS if name else False
+    ctx = {'update': update,
+           'logger': logger,
+           'is_mod': is_mod}
+
+    try:
+        max_chained_commands = config['macro editor']['max chained commands']
+
+    except KeyError:
+        max_chained_commands = 5
+
+    if not is_mod and sum(1 for a in args if a == '&') > max_chained_commands:
+        update.message.reply_text(text='Too many subsequent commands. (max 5)')
+        return
+
+    traceback = dispatcher(args, ctx)
+    if len(traceback) > 1:
+        traceback = ('{}: {}'.format(i, v) for i, v in enumerate(traceback))
+
+    update.message.reply_text(text='\n'.join(traceback))
+
+
+handlers.append(DynamicCommandHandler(['macro', 'macros'], dispatch))

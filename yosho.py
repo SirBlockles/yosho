@@ -13,7 +13,10 @@ PLUGINS = {}
 with open('config.json', 'r') as config:
     CONFIG = load(config)
 
-updater = Updater(token=CONFIG['tokens']['beta'])
+with open('tokens.json', 'r') as tokens:
+    TOKENS = load(tokens)
+
+updater = Updater(token=TOKENS['beta'])
 
 logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -25,10 +28,10 @@ def err(bot, update, error):
 
 updater.dispatcher.add_error_handler(err)
 
-passable = {'plugins': lambda: PLUGINS,
-            'logger': lambda: logger,
-            'config': lambda: CONFIG,
-            'tokens': lambda: CONFIG['tokens']}
+passable = {'plugins': (lambda: PLUGINS),
+            'logger':  (lambda: logger),
+            'config':  (lambda: CONFIG),
+            'tokens':  (lambda: TOKENS)}
 
 
 def pass_globals(callback):

@@ -1,11 +1,12 @@
 """yosho plugin:e621 plugin"""
 from random import choice
+from time import sleep
 from typing import Tuple
 
 import requests
 from telegram import ChatAction
 
-from utils.specialhandlers import DynamicCommandHandler
+from utils.dynamic import DynamicCommandHandler
 
 handlers = []
 
@@ -17,6 +18,7 @@ def random_image(tags, count, sfw, credentials) -> Tuple[str, int]:
     params = {'tags': '{} {}'.format(blacklist, tags).strip(), 'limit': count, **credentials}
 
     request = requests.get(index, params=params, headers=headers)
+    sleep(.5)  # rate limit
 
     if request.status_code == requests.codes.ok:
         data = request.json()

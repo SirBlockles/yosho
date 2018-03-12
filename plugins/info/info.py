@@ -1,7 +1,7 @@
 """yosho plugin:info commands"""
 from telegram import ChatAction
 
-from utils.specialhandlers import DynamicCommandHandler
+from utils.dynamic import DynamicCommandHandler
 
 handlers = []
 

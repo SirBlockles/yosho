@@ -1,4 +1,4 @@
-MODS = {'wyreyote', 'teamfortress', 'plusreed', 'pixxo', 'radookal', 'pawjob'}
+MODS = {'@wyreyote', '@teamfortress', '@plusreed', '@pixxo', '@radookal', '@pawjob'}
 
 
 def build_menu(buttons, n_cols, header_buttons=None, footer_buttons=None):

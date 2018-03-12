@@ -1,10 +1,1 @@
-{
-    "/example": {
-        "nsfw": false,
-        "creator": "JohnDoe",
-        "variety": "text",
-        "hidden": false,
-        "content": "example text",
-        "protected": false
-    }
-}
+{"/example": {"protected": false, "nsfw": false, "content": "example text", "creator": 0, "variety": "text", "hidden": false}}
