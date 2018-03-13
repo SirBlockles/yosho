@@ -4,7 +4,7 @@ from time import sleep
 from typing import Tuple
 
 import requests
-from telegram import ChatAction
+from telegram import ChatAction, Update
 
 from utils.dynamic import DynamicCommandHandler
 
@@ -29,7 +29,7 @@ def random_image(tags, count, sfw, credentials) -> Tuple[str, int]:
         raise requests.ConnectionError('Request failed, e621 returned status code {}.'.format(request.status_code))
 
 
-def e621(update, args, command, tokens, config):
+def e621(update: Update, args, command, tokens, config):
     """[tags]"""
     try:
         limit = config['e621 plugin']['post limit']
@@ -38,19 +38,27 @@ def e621(update, args, command, tokens, config):
         limit = 25
 
     try:
+        timeout = config['photo timeout']
+
+    except KeyError:
+        timeout = 10
+
+    msg = update.message
+    try:
         url, pid = random_image(' '.join(args), limit, command == 'e926', tokens['e621'])
 
     except requests.ConnectionError:
-        update.message.chat.send_action(ChatAction.TYPING)
-        update.message.reply_text(text='e621 connection/API error.')
+        msg.chat.send_action(ChatAction.TYPING)
+        msg.reply_text(text='e621 connection/API error.')
 
     except TypeError:
-        update.message.chat.send_action(ChatAction.TYPING)
-        update.message.reply_text(text='No images found.')
+        msg.chat.send_action(ChatAction.TYPING)
+        msg.reply_text(text='No images found.')
 
     else:
-        update.message.chat.send_action(ChatAction.UPLOAD_PHOTO)
-        update.message.reply_photo(photo=url, caption='https://e621.net/post/show/' + str(pid))
+        msg.chat.send_action(ChatAction.UPLOAD_PHOTO)
+        msg.reply_photo()
+        msg.reply_photo(photo=url, caption='https://e621.net/post/show/' + str(pid), timeout=timeout)
 
 
 handlers.append(DynamicCommandHandler(['e621', 'e926'], e621))

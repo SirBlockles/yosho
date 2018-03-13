@@ -12,5 +12,6 @@
   ],
   "e621 plugin": {
     "post limit": 25
-  }
+  },
+  "photo timeout": 10
 }

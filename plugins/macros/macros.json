@@ -2,7 +2,7 @@
   "!visible_macro": {
     "protected": false,
     "nsfw": false,
-    "content": "example text",
+    "content": "test",
     "creator": 0,
     "variety": "text",
     "hidden": false
@@ -10,7 +10,7 @@
   "!hidden_macro": {
     "protected": false,
     "nsfw": false,
-    "content": "example text",
+    "content": "test",
     "creator": 0,
     "variety": "text",
     "hidden": true

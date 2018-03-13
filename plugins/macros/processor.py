@@ -46,11 +46,11 @@ def remove(name=None, _ctx=None, _pipe=None):
     global MACROS
     if isinstance(_pipe, Signal) and _pipe.piped:
         if _pipe.data:
-            piped_macros = _pipe.data.macros
-            if _ctx['is_mod'] or not any(m.creator != _ctx['user'].id for m in piped_macros):
-                MACROS.macros = [m for m in MACROS.macros if m not in piped_macros]
-                return 'Removed macro{} {}.'.format('s' * (len(piped_macros) != 1),
-                                                    ', '.join('"{}"'.format(m.name) for m in piped_macros))
+            macros = _pipe.data.macros
+            if _ctx['is_mod'] or not any(m.creator != _ctx['user'].id for m in macros):
+                MACROS.macros = [m for m in MACROS.macros if m not in macros]
+                return 'Removed macro{} {}.'.format('s' * (len(macros) != 1),
+                                                    ', '.join('"{}"'.format(m.name) for m in macros))
 
             else:
                 return Errors.PERMISSION
@@ -114,6 +114,16 @@ def clean(_ctx):
     if _ctx['is_mod']:
         MACROS = MACROS.subset(protected=True)
         return 'Cleaned up macros.'
+
+    else:
+        return Errors.PERMISSION
+
+
+def save(_ctx):
+    if _ctx['is_mod']:
+        with open(ABSOLUTE + '/macros.json', 'r') as write:
+            json.dump(MACROS.to_dict(), write)
+        return 'Saved macros.'
 
     else:
         return Errors.PERMISSION
@@ -183,7 +193,8 @@ for g in groups:
 # Leaf nodes.
 unlinked = {('clean', 'purge'): Command(func=clean),
             (None, 'help', 'info'): Command(func=info),
-            ('sig', 'doc', 'args'): Command(func=sig)}
+            ('sig', 'doc', 'args'): Command(func=sig),
+            ('save', 'flush', 'push'): Command(func=save)}
 groups.append(Command(unlinked))
 
 # Merge base graphs.
