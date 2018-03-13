@@ -9,6 +9,7 @@ from utils.command import Command, Signal
 from utils.dynamic import DynamicCommandHandler
 from utils.helpers import arg_replace
 from .macro import MacroContainer
+from telegram import Update, ChatAction
 
 ABSOLUTE = dirname(__file__)
 with open(ABSOLUTE + '/macros.json', 'r') as read:
@@ -26,9 +27,13 @@ class Errors(Enum):
     def __str__(self):
         return self.value
 
+    def format(self, *args, **kwargs):
+        return str(self).format(*args, **kwargs)
 
-class SignalFlags(Enum):
+
+class Flags(Enum):
     INTERNAL = 0
+    IMAGE = 1
 
 
 def new(name, value, _cmd, _ctx):
@@ -131,7 +136,9 @@ def save(_ctx):
 
 def info():
     """Displays macro editor help link."""
-    return '/macro help: https://pastebin.com/raw/qzBR6GgB'
+    return Signal([open(ABSOLUTE + '/control graph.png', 'rb'),
+                   '/macro help: https://pastebin.com/raw/qzBR6GgB'],
+                  flag=Flags.IMAGE)
 
 
 def sig(name, _ctx):
@@ -164,7 +171,7 @@ def sig(name, _ctx):
 
 
 def pipes(_pipe: Signal):
-    return Signal(_pipe.contents, data=_pipe.data, flag=SignalFlags.INTERNAL, piped=True)
+    return Signal(_pipe.contents, data=_pipe.data, flag=Flags.INTERNAL, piped=True)
 
 
 # <-- CONTROL GRAPH SETUP --> #
@@ -213,12 +220,14 @@ graph[remove_key]['&'][search_key] = graph[search_key]
 graph[attrib_key]['&'][search_key] = graph[search_key]
 
 
-def dispatcher(args, update, logger, config):
+def dispatcher(args, update: Update, logger, config):
     """Macro editor dispatcher."""
-    name = update.message.from_user.name
+    msg = update.message
+    name = msg.from_user.name
+
     is_mod = name.lower() in config.get('bot_mods', None) if name else False
     _ctx = {'update': update,
-            'user': update.message.from_user,
+            'user': msg.from_user,
             'logger': logger,
             'is_mod': is_mod,
             'graph': graph}
@@ -230,18 +239,28 @@ def dispatcher(args, update, logger, config):
         max_chained_commands = 5
 
     if not is_mod and sum(1 for a in args if a == '&') > max_chained_commands:
-        update.message.reply_text(text='Too many subsequent commands. (max 5)')
+        msg.reply_text(text='Too many subsequent commands. (max 5)')
         return
 
     args = [arg_replace(a) for a in args]
 
     traceback = graph(args, _ctx)
-    trace_len = len(traceback)
-    traceback = (str(t) for t in traceback if
-                 (t.flag is not SignalFlags.INTERNAL if isinstance(t, Signal) else True))
-    if trace_len > 1:
-        traceback = ('{}: {}'.format(i, v) for i, v in enumerate(traceback))
-    update.message.reply_text(text='\n'.join(traceback))
+    try:
+        img = next(t for t in traceback if isinstance(t, Signal) and t.flag is Flags.IMAGE).contents
+        msg.chat.send_action(ChatAction.UPLOAD_PHOTO)
+        msg.reply_photo(photo=img[0], caption=img[1])
+        img[0].close()
+
+    except StopIteration:
+        trace_len = len(traceback)
+        traceback = (str(t) for t in traceback if
+                     (t.flag is not Flags.INTERNAL if isinstance(t, Signal) else True))
+
+        if trace_len > 1:
+            traceback = ('{}: {}'.format(i, v) for i, v in enumerate(traceback))
+
+        msg.chat.send_action(ChatAction.TYPING)
+        msg.reply_text(text='\n'.join(traceback))
 
 
 handlers.append(DynamicCommandHandler(['macro', 'macros'], dispatcher))
