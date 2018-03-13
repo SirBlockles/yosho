@@ -9,5 +9,8 @@
     "@pixxo",
     "@radookal",
     "@pawjob"
-  ]
+  ],
+  "e621 plugin": {
+    "post limit": 25
+  }
 }

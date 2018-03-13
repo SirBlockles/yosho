@@ -8,3 +8,7 @@ def build_menu(buttons, n_cols, header_buttons=None, footer_buttons=None):
         menu.append(footer_buttons)
 
     return menu
+
+
+def arg_replace(a):
+    return {'true': True, 'false': False, 'none': None, '...': ...}.get(a.lower(), a)

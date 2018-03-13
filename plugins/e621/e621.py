@@ -29,10 +29,16 @@ def random_image(tags, count, sfw, credentials) -> Tuple[str, int]:
         raise requests.ConnectionError('Request failed, e621 returned status code {}.'.format(request.status_code))
 
 
-def e621(update, args, command, tokens):
+def e621(update, args, command, tokens, config):
     """[tags]"""
     try:
-        url, pid = random_image(' '.join(args), 25, command == 'e926', tokens['e621'])
+        limit = config['e621 plugin']['post limit']
+
+    except KeyError:
+        limit = 25
+
+    try:
+        url, pid = random_image(' '.join(args), limit, command == 'e926', tokens['e621'])
 
     except requests.ConnectionError:
         update.message.chat.send_action(ChatAction.TYPING)

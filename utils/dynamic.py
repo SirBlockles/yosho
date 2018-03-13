@@ -12,15 +12,15 @@ class _DynamicHandler:
         chat = update.effective_chat
         user = update.effective_user
 
-        args = {'update':       (lambda: update),
-                'bot':          (lambda: dispatcher.bot),
-                'update_queue': (lambda: dispatcher.update_queue),
-                'job_queue':    (lambda: dispatcher.job_queue),
-                'user_data':    (lambda: dispatcher.user_data[user.id] if user else None),
-                'chat_data':    (lambda: dispatcher.chat_data[chat.id] if chat else None)}
+        passes = {'update':       (lambda: update),
+                  'bot':          (lambda: dispatcher.bot),
+                  'update_queue': (lambda: dispatcher.update_queue),
+                  'job_queue':    (lambda: dispatcher.job_queue),
+                  'user_data':    (lambda: dispatcher.user_data[user.id] if user else None),
+                  'chat_data':    (lambda: dispatcher.chat_data[chat.id] if chat else None)}
 
         sig = inspect.signature(self.callback).parameters
-        return {k: v() for k, v in args.items() if k in sig}
+        return {k: v() for k, v in passes.items() if k in sig}
 
 
 class DynamicCommandHandler(_DynamicHandler, CommandHandler):

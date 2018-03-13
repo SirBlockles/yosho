@@ -38,7 +38,8 @@ def pass_globals(callback):
     @wraps(callback)
     def wrapper(*args, **kwargs):
         sig = signature(callback).parameters
-        return callback(*args, **{k: v() for k, v in passable.items() if k in sig}, **kwargs)
+        passes = {k: v() for k, v in passable.items() if k in sig}
+        return callback(*args, **passes, **kwargs)
 
     return wrapper
 

@@ -1,11 +1,22 @@
+from enum import Enum
 from typing import List, Callable, Generator, Iterable
 
 
 class Macro:
+    class Variety(Enum):
+        TEXT = 0
+        EVAL = 1
+        PHOTO = 2
+        INLINE = 3
+        E621 = 4
+        E926 = 4
+        MARKOV = 5
+        ALIAS = 6
+
     __slots__ = {'name', 'variety', 'content', 'creator', 'hidden', 'protected', 'nsfw'}
 
     def __init__(self,
-                 name: str, variety: str, content: str, creator: str,
+                 name: str, content: str, creator: str, variety: Variety,
                  hidden=False, protected=False, nsfw=False):
         self.name = name
         self.variety = variety
@@ -15,7 +26,7 @@ class Macro:
         self.protected = protected
         self.nsfw = nsfw
 
-    def __repr__(self):
+    def __str__(self):
         return 'Macro "{}": {} "{}"'.format(self.name, self.variety, self.content)
 
 
@@ -25,18 +36,18 @@ class MacroContainer:
     def __init__(self, macros: List[Macro]):
         self.macros = macros
 
-    def __repr__(self):
-        return 'MacroSet {{{}}}'.format(', '.join(repr(m) for m in self.macros))
+    def __str__(self):
+        return 'MacroSet {{{}}}'.format(', '.join(str(m) for m in self.macros))
 
-    def __contains__(self, item: str):
-        return any(m.name == item for m in self.macros)
+    def __contains__(self, key: str):
+        return any(m.name == key for m in self.macros)
 
-    def __getitem__(self, item: str) -> Macro:
+    def __getitem__(self, key: str) -> Macro:
         try:
-            return next(m for m in self.macros if m.name == item)
+            return next(m for m in self.macros if m.name == key)
 
         except StopIteration:
-            raise KeyError('Key does not exist.')
+            raise KeyError('Macro {} does not exist.'.format(key))
 
     def __setitem__(self, key: str, value: Macro):
         try:
@@ -50,10 +61,10 @@ class MacroContainer:
             del self.macros[next(i for i, m in enumerate(self.macros) if m.name == key)]
 
         except StopIteration:
-            raise KeyError('Key does not exist.')
+            raise KeyError('Macro {} does not exist.'.format(key))
 
     def subset(self, **kwargs) -> 'MacroContainer':
-        return MacroContainer(list(self.iter_subset(self, **kwargs)))
+        return MacroContainer(list(self.iter_subset(**kwargs)))
 
     def iter_subset(self,
                     match=None,
@@ -73,7 +84,7 @@ class MacroContainer:
                        match:     (lambda m: m.name == match),
                        search:    (lambda m: search in m.name)}
 
-        comparisons = (v for k, v in comparisons.items() if k is not None)
+        comparisons = [v for k, v in comparisons.items() if k is not None]
         return (m for m in self.macros if criteria(c(m) for c in comparisons))
 
     def to_dict(self) -> dict:

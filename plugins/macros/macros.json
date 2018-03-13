@@ -1,1 +1,18 @@
-{"/example": {"protected": false, "nsfw": false, "content": "example text", "creator": 0, "variety": "text", "hidden": false}}
+{
+  "!visible_macro": {
+    "protected": false,
+    "nsfw": false,
+    "content": "example text",
+    "creator": 0,
+    "variety": "text",
+    "hidden": false
+  },
+  "!hidden_macro": {
+    "protected": false,
+    "nsfw": false,
+    "content": "example text",
+    "creator": 0,
+    "variety": "text",
+    "hidden": true
+  }
+}
