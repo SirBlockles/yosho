@@ -27,7 +27,7 @@ class Macro:
         self.nsfw = nsfw
 
     def __str__(self):
-        return 'Macro "{}": {} "{}"'.format(self.name, self.variety, self.contents)
+        return f'Macro(name="{self.name}", variety={self.variety}, contents="{self.contents}")'
 
     def zipped(self):
         return zip(self.__slots__, map(self.__getattribute__, self.__slots__))
@@ -40,7 +40,7 @@ class MacroContainer:
         self.macros = macros
 
     def __str__(self):
-        return 'MacroSet {{{}}}'.format(', '.join(str(m) for m in self.macros))
+        return f'MacroContainer({", ".join(str(m) for m in self.macros)})'
 
     def __contains__(self, key: str):
         return any(m.name == key for m in self.macros)
@@ -50,7 +50,7 @@ class MacroContainer:
             return next(m for m in self.macros if m.name == key)
 
         except StopIteration:
-            raise KeyError('Macro {} does not exist.'.format(key))
+            raise KeyError(f'Macro {key} does not exist.')
 
     def __setitem__(self, key: str, value: Macro):
         try:
@@ -64,7 +64,7 @@ class MacroContainer:
             del self.macros[next(i for i, m in enumerate(self.macros) if m.name == key)]
 
         except StopIteration:
-            raise KeyError('Macro {} does not exist.'.format(key))
+            raise KeyError(f'Macro {key} does not exist.')
 
     def subset(self, **kwargs) -> 'MacroContainer':
         return MacroContainer(list(self.iter_subset(**kwargs)))

@@ -34,7 +34,7 @@ class Command:
         self.func = func
 
     def __repr__(self):
-        return f'Command(func={self.func.__name__ if self.func else "None"}, table={self.table})'
+        return f"Command(func={self.func.__name__ if self.func else 'None'}, table={self.table})"
 
     def __str__(self):
         return str(self.table)
@@ -83,9 +83,9 @@ class Command:
                                  f' {minimum} argument{plural(minimum)} but {len(args)}'
                                  f' {plural(args, ("were", "was"))} given.']
 
-            # Ellipsis indicates no arguments are to be consumed, used with optional/gather arguments.
-            if minimum == 0 and (not args or args[0] is ...):
-                consume, args = [], args[1:]
+            # Ellipsis indicates no optional arguments are to be consumed.
+            if len(args) >= minimum + 1 and args[-1] is ...:
+                consume, args = args[:minimum], args[minimum + 1:]
             # Gather indicates all arguments are to be consumed.
             # (gather operator present in func sig, e.g *args)
             elif gather:
@@ -114,20 +114,24 @@ class Command:
             else:
                 return [*_trace, f'Missing sub-command for command "{_cmd}".']
 
-        _cmd, *args = args
-        _cmd = _cmd.lower() if isinstance(_cmd, str) else _cmd
+        next_cmd, *args = args
+        next_cmd = next_cmd.lower() if isinstance(next_cmd, str) else next_cmd
         try:
-            subsequent = self.val_of(_cmd)
+            subsequent = self.val_of(next_cmd)
 
         except KeyError:
-            return [*_trace, f'Unknown command or sub-command "{_cmd}".']
+            if _cmd is not None:
+                return [*_trace, f'Unknown sub-command of "{_cmd}": "{next_cmd}".']
+
+            else:
+                return [*_trace, f'Unknown command: "{next_cmd}".']
 
         else:
             # Call subsequent command and populate traceback recursively.
             if output:
                 _trace.append(output)
 
-            return subsequent(args, ctx, _cmd, _trace)
+            return subsequent(args, ctx, next_cmd, _trace)
 
     def key_of(self, item):
         try:

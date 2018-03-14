@@ -2,6 +2,7 @@
 import json
 import shlex
 from enum import Enum
+from functools import wraps
 from inspect import signature, Parameter
 from os.path import dirname
 
@@ -35,6 +36,17 @@ class Errors(Enum):
 class Flags(Enum):
     INTERNAL = 0
     PHOTO = 1
+
+
+def replaces_args(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        replace = {'true': True, 'false': False, 'none': None}
+        args = [arg_replace(a, replace) for a in args]
+        kwargs = {k: arg_replace(a, replace) for k, a in kwargs.items()}
+        return f(*args, **kwargs)
+
+    return wrapper
 
 
 def new(name, value, _cmd, _ctx):
@@ -104,19 +116,20 @@ def contents(name, _ctx):
     return ', '.join(f'{a[0]}: "{a[1]}"' for a in m.zipped() if a[0] not in exclude) + f'\n\nContents:\n{m.contents}'
 
 
-def show(search_parameters='', _ctx=None):
+def show(search_parameters='', _ctx=None, _cmd=None):
     """Searches macro list, check /macro help for details.
     Can be piped to "remove" or "attributes" commands.
     Piping example: /macro search "search:/tag" | remove"""
     kwargs = shlex.split(search_parameters)
     try:
         def ar(a, k):
-            return arg_replace(a, {'me': _ctx['user'].id} if k == 'creator' else {})
+            default = {'true': True, 'false': False, 'none': None}
+            return arg_replace(a, {'me': _ctx['user'].id} if k == 'creator' else default)
 
         kwargs = {k.lower(): ar(a, k) for k, a in (k.split(':') for k in kwargs)}
 
     except ValueError:
-        return Signal('Bad input. Accepts key:value pairs.')
+        return Signal(f'Malformed search query, command "{_cmd}" expects keyword:value pairs in quotes.')
 
     if not _ctx['is_mod']:
         kwargs['hidden'] = False
@@ -161,12 +174,15 @@ def save(_ctx):
 def info():
     """Displays macro editor help link."""
     return Signal([open(ABSOLUTE + '/control flow graph.png', 'rb'),
-                   '/macro help: https://pastebin.com/raw/qzBR6GgB'],
+                  '/macro help: https://pastebin.com/raw/qzBR6GgB'],
                   flag=Flags.PHOTO)
 
 
-def sig(name_or_path, _ctx):
+def sig(name_or_path, _ctx, _cmd):
     """Displays a given command or sub-command's documentation, aliases and arguments."""
+    if not isinstance(name_or_path, str):
+        return f'Command "{_cmd}" expects type str not {type(name_or_path).__name__}.'
+
     path = name_or_path.split()
     cmd = _ctx['graph']
     key = None
@@ -192,8 +208,8 @@ def sig(name_or_path, _ctx):
                 else:
                     return f'[required: {p.name}]'
 
-            args = (display(p) for k, p in signature(cmd.func).parameters.items() if not k.startswith('_'))
-            args = ', '.join(args)
+            target_sig = signature(cmd.func).parameters.items()
+            args = ', '.join(display(p) for k, p in target_sig if not k.startswith('_'))
             aliases = ', '.join(k for k in key) if isinstance(key, tuple) else key
             doc = '\n'.join(l.strip() for l in (cmd.func.__doc__ or '').split('\n'))
             return f'[{aliases}] {args}\n{doc}'.strip()
@@ -203,11 +219,11 @@ def sig(name_or_path, _ctx):
 
 
 def pipes(_pipe: Signal):
-    """Facilitates piping data between commands."""
+    """Facilitates piping of data between commands."""
     return Signal(_pipe.contents, data=_pipe.data, flag=Flags.INTERNAL, piped=True)
 
 
-# chains() exists purely to provide a docstring for /macro sig inspection of '&' (chain) nodes.
+# This exists purely to provide a docstring for /macro sig inspection of '&' (chain) nodes.
 def chains():
     """Facilitates chaining of commands."""
 
@@ -233,8 +249,7 @@ groups.append(Command(linked))
 # Cyclically link the groups via self reference.
 for g in groups:
     for v in g.table.values():
-        g.func = chains
-        v['&'] = g
+        v['&'] = Command(func=chains) + g
 
 # Leaf nodes.
 unlinked = {('clean', 'purge'):        Command(func=clean),
@@ -284,16 +299,23 @@ def dispatcher(args, update: Update, logger, config):
         msg.reply_text(text='Too many subsequent commands. (max 5)')
         return
 
-    args = [arg_replace(a) for a in args]
-
+    args = [arg_replace(a, {'...': ...}) for a in args]
     traceback = graph(args, _ctx)
-    try:
-        img = next(t for t in traceback if isinstance(t, Signal) and t.flag is Flags.PHOTO).contents
 
-    except StopIteration:
+    def flag(t):
+        return t.flag if isinstance(t, Signal) else None
+
+    if any(flag(t) is Flags.PHOTO for t in traceback):
+        file, caption = next(t for t in traceback if flag(t) is Flags.PHOTO).contents
+        timeout = config.get('photo timeout', 10)
+
+        msg.chat.send_action(ChatAction.UPLOAD_PHOTO)
+        msg.reply_photo(photo=file, caption=caption, timeout=timeout)
+        file.close()
+
+    else:
         trace_len = len(traceback)
-        traceback = (str(t) for t in traceback if
-                     (t.flag is not Flags.INTERNAL if isinstance(t, Signal) else True))
+        traceback = (str(t) for t in traceback if flag(t) is not Flags.INTERNAL)
 
         if trace_len > 1:
             traceback = (f'{i}: {t}' for i, t in enumerate(traceback))
@@ -302,13 +324,6 @@ def dispatcher(args, update: Update, logger, config):
         traceback = traceback if is_mod else traceback[:config.get('character limit', 256)]
         msg.chat.send_action(ChatAction.TYPING)
         msg.reply_text(text=traceback)
-
-    else:
-        timeout = config.get('photo timeout', 10)
-
-        msg.chat.send_action(ChatAction.UPLOAD_PHOTO)
-        msg.reply_photo(photo=img[0], caption=img[1], timeout=timeout)
-        img[0].close()
 
 
 handlers.append(DynamicCommandHandler(['macro', 'macros'], dispatcher))

@@ -1,7 +1,7 @@
 {
   "!visible_macro": {
     "nsfw": false,
-    "protected": false,
+    "protected": true,
     "variety": "text",
     "contents": "test",
     "creator": 353482248,
@@ -9,7 +9,7 @@
   },
   "!hidden_macro": {
     "nsfw": false,
-    "protected": false,
+    "protected": true,
     "variety": "text",
     "contents": "test",
     "creator": 353482248,
