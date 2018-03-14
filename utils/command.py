@@ -84,7 +84,7 @@ class Command:
                                  f' {plural(args, ("were", "was"))} given.']
 
             # Ellipsis indicates no optional arguments are to be consumed.
-            if len(args) >= minimum + 1 and args[-1] is ...:
+            if len(args) >= minimum + 1 and args[:minimum + 1][-1] is ...:
                 consume, args = args[:minimum], args[minimum + 1:]
             # Gather indicates all arguments are to be consumed.
             # (gather operator present in func sig, e.g *args)
@@ -105,6 +105,9 @@ class Command:
                     _trace.append(output)
 
                 return _trace
+
+        if output:
+            _trace.append(output)
 
         if not args:
             # If no arguments are given, check for a default command.
@@ -128,9 +131,6 @@ class Command:
 
         else:
             # Call subsequent command and populate traceback recursively.
-            if output:
-                _trace.append(output)
-
             return subsequent(args, ctx, next_cmd, _trace)
 
     def key_of(self, item):

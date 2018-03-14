@@ -1,4 +1,5 @@
 """yosho plugin:e621 plugin"""
+from http.client import responses
 from random import choice
 from time import sleep
 from typing import Tuple
@@ -11,7 +12,7 @@ from utils.dynamic import DynamicCommandHandler
 handlers = []
 
 
-def random_image(tags, count, sfw, credentials) -> Tuple[str, int]:
+def random_image(tags: str, count: int, sfw: bool, credentials: dict) -> Tuple[str, int]:
     blacklist = '-cub -young'
     index = 'https://e926.net/post/index.json' if sfw else 'https://e621.net/post/index.json'
     headers = {'User-Agent': 'YoshoBot e621 plugin || @WyreYote and @TeamFortress on Telegram'}
@@ -26,7 +27,7 @@ def random_image(tags, count, sfw, credentials) -> Tuple[str, int]:
         return choice(posts) if posts else None
 
     else:
-        raise requests.ConnectionError(f'Request failed, e621 returned status code {request.status_code}.')
+        raise requests.ConnectionError(f'Request failed, e621 returned status "{responses[request.status_code]}".')
 
 
 def e621(update: Update, args, command, tokens, config):

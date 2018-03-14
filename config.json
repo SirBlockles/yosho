@@ -14,5 +14,5 @@
     "post limit": 25
   },
   "photo timeout": 10,
-  "character limit": 512
+  "output character limit": 512
 }
