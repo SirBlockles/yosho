@@ -15,7 +15,7 @@ def random_image(tags, count, sfw, credentials) -> Tuple[str, int]:
     blacklist = '-cub -young'
     index = 'https://e926.net/post/index.json' if sfw else 'https://e621.net/post/index.json'
     headers = {'User-Agent': 'YoshoBot e621 plugin || @WyreYote and @TeamFortress on Telegram'}
-    params = {'tags': '{} {}'.format(blacklist, tags).strip(), 'limit': count, **credentials}
+    params = {'tags': f'{blacklist} {tags}'.strip(), 'limit': count, **credentials}
 
     request = requests.get(index, params=params, headers=headers)
     sleep(.5)  # rate limit
@@ -26,7 +26,7 @@ def random_image(tags, count, sfw, credentials) -> Tuple[str, int]:
         return choice(posts) if posts else None
 
     else:
-        raise requests.ConnectionError('Request failed, e621 returned status code {}.'.format(request.status_code))
+        raise requests.ConnectionError(f'Request failed, e621 returned status code {request.status_code}.')
 
 
 def e621(update: Update, args, command, tokens, config):
@@ -36,12 +36,6 @@ def e621(update: Update, args, command, tokens, config):
 
     except KeyError:
         limit = 25
-
-    try:
-        timeout = config['photo timeout']
-
-    except KeyError:
-        timeout = 10
 
     msg = update.message
     try:
@@ -56,9 +50,10 @@ def e621(update: Update, args, command, tokens, config):
         msg.reply_text(text='No images found.')
 
     else:
+        timeout = config.get('photo timeout', 10)
+
         msg.chat.send_action(ChatAction.UPLOAD_PHOTO)
-        msg.reply_photo()
-        msg.reply_photo(photo=url, caption='https://e621.net/post/show/' + str(pid), timeout=timeout)
+        msg.reply_photo(photo=url, caption=f'https://e621.net/post/show/{pid}', timeout=timeout)
 
 
 handlers.append(DynamicCommandHandler(['e621', 'e926'], e621))

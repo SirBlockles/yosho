@@ -13,21 +13,24 @@ class Macro:
         MARKOV = 5
         ALIAS = 6
 
-    __slots__ = {'name', 'variety', 'content', 'creator', 'hidden', 'protected', 'nsfw'}
+    __slots__ = {'name', 'variety', 'contents', 'creator', 'hidden', 'protected', 'nsfw'}
 
     def __init__(self,
-                 name: str, content: str, creator: str, variety: Variety,
+                 name: str, contents: str, creator: str, variety: Variety,
                  hidden=False, protected=False, nsfw=False):
         self.name = name
         self.variety = variety
-        self.content = content
+        self.contents = contents
         self.creator = creator
         self.hidden = hidden
         self.protected = protected
         self.nsfw = nsfw
 
     def __str__(self):
-        return 'Macro "{}": {} "{}"'.format(self.name, self.variety, self.content)
+        return 'Macro "{}": {} "{}"'.format(self.name, self.variety, self.contents)
+
+    def zipped(self):
+        return zip(self.__slots__, map(self.__getattribute__, self.__slots__))
 
 
 class MacroContainer:
@@ -88,8 +91,7 @@ class MacroContainer:
         return (m for m in self.macros if criteria(c(m) for c in comparisons))
 
     def to_dict(self) -> dict:
-        def zipped(m): return zip(m.__slots__, map(m.__getattribute__, m.__slots__))
-        return {m.name: {k: v for k, v in zipped(m) if not k == 'name'} for m in self.macros}
+        return {m.name: {k: v for k, v in m.zipped() if not k == 'name'} for m in self.macros}
 
     @classmethod
     def from_dict(cls, macros: dict) -> 'MacroContainer':

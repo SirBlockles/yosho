@@ -1,6 +1,8 @@
 import inspect
 from typing import Dict, Callable, Tuple
 
+from .helpers import plural
+
 
 class Signal:
     """Optional signal class which simplifies piping between Command instances."""
@@ -16,12 +18,15 @@ class Signal:
         return str(self.contents)
 
     def __repr__(self):
-        return 'Signal(contents={}, flag={}, piped={})'.format(self.contents, self.flag, self.piped)
+        return f'Signal(contents={self.contents}, flag={self.flag}, piped={self.piped}, data={self.data})'
 
 
 class Command:
-    """Dispatch table based class for defining and evaluating directed graphs of commands
-     with associated functions that consume input arguments. Returns a traceback on evaluation."""
+    """Dispatch table based class for defining directed graphs of commands with associated functions.
+    Uses mutual tail recursion between commands to evaluate lists of arguments.
+
+    Possible optimizations include flattening the recursion (manual tail call optimization),
+    and pre-computing the function signature properties on self.func assignment."""
     __slots__ = {'table', 'func'}
 
     def __init__(self, dispatcher: Dict[Tuple, 'Command'] = None, func: Callable = None):
@@ -29,8 +34,7 @@ class Command:
         self.func = func
 
     def __repr__(self):
-        return 'Command({}, {})' \
-            .format(self.func.__name__ if self.func else 'None', self.table)
+        return f'Command(func={self.func.__name__ if self.func else "None"}, table={self.table})'
 
     def __str__(self):
         return str(self.table)
@@ -50,8 +54,9 @@ class Command:
     def __contains__(self, item):
         return any(item in self._cast(k) for k in self.table)
 
-    def __call__(self, args: list, ctx=None, _cmd=None, _pipe=None) -> list:
-        output = []
+    def __call__(self, args: list, ctx=None, _cmd=None, _trace=None) -> list:
+        _trace = _trace if _trace else []
+        output = None
         if self.func:
             sig = inspect.signature(self.func).parameters
 
@@ -59,7 +64,7 @@ class Command:
             keyword = inspect.Parameter.KEYWORD_ONLY
             gather = any(v.kind is position for v in sig.values())
 
-            passes = {'_ctx': ctx, '_cmd': _cmd, '_pipe': _pipe}
+            passes = {'_ctx': ctx, '_cmd': _cmd, '_pipe': _trace[-1] if _trace else None}
             if gather:
                 passes = {k: v for k, v in passes.items() if k in sig and sig[k].kind is keyword}
 
@@ -74,8 +79,9 @@ class Command:
             maximum = sum(1 for a in sig.values() if count(a))
 
             if len(args) < minimum:
-                return [SyntaxError('Not enough arguments for command "{}": {} expected, {} given.'
-                                    .format(_cmd, minimum, len(args)))]
+                return [*_trace, f'Command "{_cmd}" expects {"at least" * (maximum > minimum)}'
+                                 f' {minimum} argument{plural(minimum)} but {len(args)}'
+                                 f' {plural(args, ("were", "was"))} given.']
 
             # Ellipsis indicates no arguments are to be consumed, used with optional/gather arguments.
             if minimum == 0 and (not args or args[0] is ...):
@@ -89,13 +95,16 @@ class Command:
                 consume, args = args[:maximum], args[maximum:]
 
             try:
-                output = [self.func(*consume, **passes)]
+                output = self.func(*consume, **passes)
 
             except Exception as e:
-                output = [e]
+                output = e
 
             if not args:
-                return output
+                if output:
+                    _trace.append(output)
+
+                return _trace
 
         if not args:
             # If no arguments are given, check for a default command.
@@ -103,32 +112,36 @@ class Command:
                 args = [None]
 
             else:
-                return [*output, SyntaxError('Missing sub-command for command "{}".'.format(_cmd))]
+                return [*_trace, f'Missing sub-command for command "{_cmd}".']
 
+        _cmd, *args = args
+        _cmd = _cmd.lower() if isinstance(_cmd, str) else _cmd
         try:
-            _cmd, *args = args
-            _cmd = _cmd.lower() if isinstance(_cmd, str) else _cmd
-
-            # Call subsequent command and populate trace list recursively.
             subsequent = self.val_of(_cmd)
-            return [*output, *subsequent(args, ctx, _cmd, *output)]
 
         except KeyError:
-            return [*output, SyntaxError('Unknown command or sub-command "{}".'.format(_cmd))]
+            return [*_trace, f'Unknown command or sub-command "{_cmd}".']
+
+        else:
+            # Call subsequent command and populate traceback recursively.
+            if output:
+                _trace.append(output)
+
+            return subsequent(args, ctx, _cmd, _trace)
 
     def key_of(self, item):
         try:
             return next(k for k in self.table if item in self._cast(k))
 
         except StopIteration:
-            raise KeyError('Command name {} not found in command keys.'.format(item))
+            raise KeyError(f'Command name "{item}" not found in command keys.')
 
     def val_of(self, item):
         try:
             return next(v for k, v in self.table.items() if item in self._cast(k))
 
         except StopIteration:
-            raise KeyError('Command name {} not found in command keys.'.format(item))
+            raise KeyError(f'Command name "{item}" not found in command keys.')
 
     @staticmethod
     def _cast(k):

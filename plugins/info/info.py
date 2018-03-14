@@ -15,15 +15,15 @@ def list_plugins(update, args, plugins):
 
         elif args[0] in plugins:
             p = plugins[args[0]]
-            names = '"{}" plugin has no commands.'.format(args[0])
+            names = f'"{args[0]}" plugin has no commands.'
             if hasattr(p, 'handlers') and p.handlers:
-                names = '\n'.join(['[{}] {}'.format(str(', '.join('/' + c for c in h.command)), h.callback.__doc__ or
-                                                    '') for h in p.handlers if isinstance(h, DynamicCommandHandler)])
+                names = '\n'.join([f'[{", ".join("/" + c for c in h.command)}] {h.callback.__doc__ or ""}'
+                                   for h in p.handlers if isinstance(h, DynamicCommandHandler)])
 
-            update.message.reply_text(text='"{}" plugin commands:\n{}'.format(args[0], names).strip())
+            update.message.reply_text(text=f'"{args[0]}" plugin commands:\n{names}'.strip())
 
         else:
-            update.message.reply_text(text='No plugin named "{}".'.format(args[0]))
+            update.message.reply_text(text=f'No plugin named "{args[0]}".')
 
     else:
         update.message.reply_text(text='Proper usage:\n[/plugin, /plugins] [list] or ["plugin name"]')

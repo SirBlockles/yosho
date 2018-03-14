@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 def err(bot, update, error):
-    logger.error('update "{}" caused error "{}"'.format(update, error))
+    logger.error(f'update "{update}" caused error "{error}"')
 
 
 updater.dispatcher.add_error_handler(err)
@@ -47,7 +47,7 @@ def pass_globals(callback):
 # Find plugins in their directories and add them to the PLUGINS dictionary.
 for directory in (s for s in os.listdir('plugins') if os.path.isdir('plugins/' + s)):
     for fn in (s[:-3] for s in os.listdir('plugins/' + directory) if s.endswith('.py')):
-        plugin = import_module('plugins.{}.{}'.format(directory, fn))
+        plugin = import_module(f'plugins.{directory}.{fn}')
 
         name = match(r'yosho plugin:([\w\s]+)', plugin.__doc__ or '')
         if name:
@@ -66,7 +66,7 @@ for k in sorted(PLUGINS, key=lambda k: PLUGINS[k].order if hasattr(PLUGINS[k], '
 
             updater.dispatcher.add_handler(*h)
 
-    logger.debug('loaded plugin "{}"'.format(k[0]))
+    logger.debug(f'loaded plugin "{k[0]}"')
 
 updater.start_polling(clean=True)
 logger.info('bot loaded')

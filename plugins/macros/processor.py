@@ -5,11 +5,12 @@ from enum import Enum
 from inspect import signature, Parameter
 from os.path import dirname
 
+from telegram import Update, ChatAction
+
 from utils.command import Command, Signal
 from utils.dynamic import DynamicCommandHandler
-from utils.helpers import arg_replace
+from utils.helpers import arg_replace, plural
 from .macro import MacroContainer
-from telegram import Update, ChatAction
 
 ABSOLUTE = dirname(__file__)
 with open(ABSOLUTE + '/macros.json', 'r') as read:
@@ -33,12 +34,12 @@ class Errors(Enum):
 
 class Flags(Enum):
     INTERNAL = 0
-    IMAGE = 1
+    PHOTO = 1
 
 
 def new(name, value, _cmd, _ctx):
     """Creates a new macro."""
-    return 'Created new {} macro "{}".'.format(_cmd, name)
+    return f'Created new {_cmd} macro "{name}".'
 
 
 def modify(name, value, _ctx):
@@ -54,8 +55,8 @@ def remove(name=None, _ctx=None, _pipe=None):
             macros = _pipe.data.macros
             if _ctx['is_mod'] or not any(m.creator != _ctx['user'].id for m in macros):
                 MACROS.macros = [m for m in MACROS.macros if m not in macros]
-                return 'Removed macro{} {}.'.format('s' * (len(macros) != 1),
-                                                    ', '.join('"{}"'.format(m.name) for m in macros))
+                macros_string = ', '.join(f'"{m.name}"' for m in macros)
+                return f"Removed macro{plural(macros)} {macros_string}."
 
             else:
                 return Errors.PERMISSION
@@ -72,7 +73,7 @@ def remove(name=None, _ctx=None, _pipe=None):
 
         if _ctx['is_mod'] or _ctx['user'].id == m.id:
             del MACROS[name]
-            return 'Removed macro "{}".'.format(name)
+            return f'Removed macro "{name}".'
 
     else:
         return Errors.INPUT_REQUIRED
@@ -80,7 +81,27 @@ def remove(name=None, _ctx=None, _pipe=None):
 
 def contents(name, _ctx):
     """Displays the contents and attributes of a given macro."""
-    return name
+    try:
+        m = MACROS[name]
+
+    except KeyError:
+        return Errors.NONEXISTENT.format(name)
+
+    else:
+        if _ctx['is_mod'] or m.creator == _ctx['user'].id:
+            if _ctx['is_mod']:
+                exclude = {'contents'}
+
+            elif not m.hidden:
+                exclude = {'contents', 'creator'}
+
+            else:
+                return Errors.PERMISSION
+
+        else:
+            return Errors.PERMISSION
+
+    return ', '.join(f'{a[0]}: "{a[1]}"' for a in m.zipped() if a[0] not in exclude) + f'\n\nContents:\n{m.contents}'
 
 
 def show(search_parameters='', _ctx=None):
@@ -89,22 +110,25 @@ def show(search_parameters='', _ctx=None):
     Piping example: /macro search "search:/tag" | remove"""
     kwargs = shlex.split(search_parameters)
     try:
-        kwargs = {k.lower(): arg_replace(v) for k, v in (k.split(':') for k in kwargs)}
+        def ar(a, k):
+            return arg_replace(a, {'me': _ctx['user'].id} if k == 'creator' else {})
+
+        kwargs = {k.lower(): ar(a, k) for k, a in (k.split(':') for k in kwargs)}
 
     except ValueError:
-        return Signal('Malformed input.')
+        return Signal('Bad input. Accepts key:value pairs.')
 
     if not _ctx['is_mod']:
         kwargs['hidden'] = False
 
     subset_sig = signature(MacroContainer.iter_subset).parameters
-    unexpected = ['"{}"'.format(k) for k in kwargs if k not in subset_sig or k == 'criteria']
+    unexpected = [f'"{k}"' for k in kwargs if k not in subset_sig or k == 'criteria']
     if unexpected:
-        return Signal('Unexpected keyword{}: {}.'
-                      .format('s' * (len(unexpected) != 1), ', '.join(unexpected)))
+        return Signal(f"Unexpected keyword{plural(unexpected)}: {', '.join(unexpected)}.")
 
     subset = MACROS.subset(**kwargs)
-    return Signal(', '.join('"{}"'.format(m.name) for m in subset.macros) if subset.macros else
+    joined = ', '.join(f'"{m.name}"' for m in subset.macros)
+    return Signal(f'Matching macros: {joined}' if subset.macros else
                   'No matching macros found.', data=subset if subset.macros else None)
 
 
@@ -126,8 +150,8 @@ def clean(_ctx):
 
 def save(_ctx):
     if _ctx['is_mod']:
-        with open(ABSOLUTE + '/macros.json', 'r') as write:
-            json.dump(MACROS.to_dict(), write)
+        with open(ABSOLUTE + '/macros.json', 'w+') as write:
+            json.dump(MACROS.to_dict(), write, indent=2)
         return 'Saved macros.'
 
     else:
@@ -136,71 +160,85 @@ def save(_ctx):
 
 def info():
     """Displays macro editor help link."""
-    return Signal([open(ABSOLUTE + '/control graph.png', 'rb'),
+    return Signal([open(ABSOLUTE + '/control flow graph.png', 'rb'),
                    '/macro help: https://pastebin.com/raw/qzBR6GgB'],
-                  flag=Flags.IMAGE)
+                  flag=Flags.PHOTO)
 
 
-def sig(name, _ctx):
-    """Displays a given command's documentation, aliases and arguments."""
+def sig(name_or_path, _ctx):
+    """Displays a given command or sub-command's documentation, aliases and arguments."""
+    path = name_or_path.split()
+    cmd = _ctx['graph']
+    key = None
+    last = None
     try:
-        key = _ctx['graph'].key_of(name)
-        func = _ctx['graph'][key].func
-        if func:
+        for a in path:
+            last = a
+            key = cmd.key_of(a)
+            cmd = cmd.val_of(a)
+
+    except KeyError:
+        return f'Command "{last}" not found.'
+
+    else:
+        if cmd.func:
             def display(p):
                 if p.default is not Parameter.empty:
-                    return '[optional: {}]'.format(p.name)
+                    return f'[optional: {p.name}]'
 
                 elif p.kind is Parameter.VAR_POSITIONAL:
                     return '[all remaining args]'
 
                 else:
-                    return '[required: {}]'.format(p.name)
+                    return f'[required: {p.name}]'
 
-            args = (display(p) for k, p in signature(func).parameters.items() if not k.startswith('_'))
+            args = (display(p) for k, p in signature(cmd.func).parameters.items() if not k.startswith('_'))
             args = ', '.join(args)
             aliases = ', '.join(k for k in key) if isinstance(key, tuple) else key
-            doc = '\n'.join(l.strip() for l in (func.__doc__ or '').split('\n'))
-            return '[{}] {}\n\n{}'.format(aliases, args, doc).strip()
+            doc = '\n'.join(l.strip() for l in (cmd.func.__doc__ or '').split('\n'))
+            return f'[{aliases}] {args}\n{doc}'.strip()
 
         else:
-            return 'Command {} has no associated function.'.format(name)
-
-    except KeyError:
-        return 'Command "{}" not found.'.format(name)
+            return f'Command {path[-1]} has no associated function.'
 
 
 def pipes(_pipe: Signal):
+    """Facilitates piping data between commands."""
     return Signal(_pipe.contents, data=_pipe.data, flag=Flags.INTERNAL, piped=True)
+
+
+# chains() exists purely to provide a docstring for /macro sig inspection of '&' (chain) nodes.
+def chains():
+    """Facilitates chaining of commands."""
 
 
 # <-- CONTROL GRAPH SETUP --> #
 # Groups of nodes which are cyclical through an '&' (chain) node.
 groups = []
 linked = {('photo', 'eval', 'inline', 'text',
-           'e621', 'e926', 'markov', 'alias'): Command(func=new),
-          ('modify', 'change', 'edit', 'alter'): Command(func=modify),
+           'e621', 'e926', 'markov', 'alias'):                 Command(func=new),
+          ('modify', 'change', 'edit', 'alter'):               Command(func=modify),
           ('attribs', 'attributes', 'properties', 'settings'): Command(func=attributes)}
 groups.append(Command(linked))
 
-linked = {('remove', 'delete'): Command(func=remove)}
+linked = {('remove', 'delete'):                         Command(func=remove)}
 groups.append(Command(linked))
-
 linked = {('list', 'show', 'subset', 'search', 'find'): Command(func=show)}
 groups.append(Command(linked))
-
-linked = {('contents', 'content', 'value'): Command(func=contents)}
+linked = {('contents', 'content', 'value'):             Command(func=contents)}
+groups.append(Command(linked))
+linked = {('sig', 'doc', 'docs', 'args'):               Command(func=sig)}
 groups.append(Command(linked))
 
 # Cyclically link the groups via self reference.
 for g in groups:
     for v in g.table.values():
+        g.func = chains
         v['&'] = g
 
 # Leaf nodes.
-unlinked = {('clean', 'purge'): Command(func=clean),
-            (None, 'help', 'info'): Command(func=info),
-            ('sig', 'doc', 'args'): Command(func=sig),
+unlinked = {('clean', 'purge'):        Command(func=clean),
+            (None, 'help', 'info'):    Command(func=info),
             ('save', 'flush', 'push'): Command(func=save)}
 groups.append(Command(unlinked))
 
@@ -215,9 +253,13 @@ graph[search_key]['|'] = Command({remove_key: graph[remove_key],
                                   attrib_key: graph[attrib_key]},
                                  func=pipes)
 
-# Create edges from '&' (chain) nodes to search node.
+# Create edges from remove and attrib '&' (chain) nodes to search and save nodes.
 graph[remove_key]['&'][search_key] = graph[search_key]
 graph[attrib_key]['&'][search_key] = graph[search_key]
+
+save_key = graph.key_of('save')
+graph[remove_key]['&'][save_key] = graph[save_key]
+graph[attrib_key]['&'][save_key] = graph[save_key]
 
 
 def dispatcher(args, update: Update, logger, config):
@@ -246,10 +288,7 @@ def dispatcher(args, update: Update, logger, config):
 
     traceback = graph(args, _ctx)
     try:
-        img = next(t for t in traceback if isinstance(t, Signal) and t.flag is Flags.IMAGE).contents
-        msg.chat.send_action(ChatAction.UPLOAD_PHOTO)
-        msg.reply_photo(photo=img[0], caption=img[1])
-        img[0].close()
+        img = next(t for t in traceback if isinstance(t, Signal) and t.flag is Flags.PHOTO).contents
 
     except StopIteration:
         trace_len = len(traceback)
@@ -257,10 +296,19 @@ def dispatcher(args, update: Update, logger, config):
                      (t.flag is not Flags.INTERNAL if isinstance(t, Signal) else True))
 
         if trace_len > 1:
-            traceback = ('{}: {}'.format(i, v) for i, v in enumerate(traceback))
+            traceback = (f'{i}: {t}' for i, t in enumerate(traceback))
 
+        traceback = '\n'.join(traceback)
+        traceback = traceback if is_mod else traceback[:config.get('character limit', 256)]
         msg.chat.send_action(ChatAction.TYPING)
-        msg.reply_text(text='\n'.join(traceback))
+        msg.reply_text(text=traceback)
+
+    else:
+        timeout = config.get('photo timeout', 10)
+
+        msg.chat.send_action(ChatAction.UPLOAD_PHOTO)
+        msg.reply_photo(photo=img[0], caption=img[1], timeout=timeout)
+        img[0].close()
 
 
 handlers.append(DynamicCommandHandler(['macro', 'macros'], dispatcher))

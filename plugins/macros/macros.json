@@ -1,18 +1,18 @@
 {
   "!visible_macro": {
-    "protected": false,
     "nsfw": false,
-    "content": "test",
-    "creator": 0,
+    "protected": false,
     "variety": "text",
+    "contents": "test",
+    "creator": 353482248,
     "hidden": false
   },
   "!hidden_macro": {
-    "protected": false,
     "nsfw": false,
-    "content": "test",
-    "creator": 0,
+    "protected": false,
     "variety": "text",
+    "contents": "test",
+    "creator": 353482248,
     "hidden": true
   }
 }

@@ -10,5 +10,14 @@ def build_menu(buttons, n_cols, header_buttons=None, footer_buttons=None):
     return menu
 
 
-def arg_replace(a):
-    return {'true': True, 'false': False, 'none': None, '...': ...}.get(a.lower(), a)
+def arg_replace(a, replace: dict = None):
+    return {'true': True,
+            'false': False,
+            'none': None,
+            '...': ...,
+            **(replace if replace else {})}.get(a.lower(), a)
+
+
+def plural(args: [int, list], append=('s', '')):
+    condition = args == 1 if isinstance(args, int) else len(args) == 1
+    return append[condition]
