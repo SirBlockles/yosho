@@ -6,20 +6,31 @@ from inspect import signature
 from json import load
 from re import match
 
+import firebase_admin
+from firebase_admin import credentials, storage
 from telegram.ext import Updater
 
 PLUGINS = {}
 
-with open('config.json', 'r') as config:
+with open('config.json', 'r') as config, open('tokens.json', 'r') as tokens:
     CONFIG = load(config)
-
-with open('tokens.json', 'r') as tokens:
     TOKENS = load(tokens)
+
+_ = credentials.Certificate(TOKENS['firebase'])
+firebase_admin.initialize_app(_, {'storageBucket': CONFIG['firebase bucket']})
+firebase = storage.bucket()
 
 updater = Updater(token=TOKENS['beta'])
 
 logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+passable = {'plugins':   (lambda: PLUGINS),
+            'logger':    (lambda: logger),
+            'config':    (lambda: CONFIG),
+            'tokens':    (lambda: TOKENS),
+            'firebase':  (lambda: firebase),
+            'job_queue': (lambda: updater.dispatcher.job_queue)}
 
 
 def err(bot, update, error):
@@ -27,11 +38,6 @@ def err(bot, update, error):
 
 
 updater.dispatcher.add_error_handler(err)
-
-passable = {'plugins': (lambda: PLUGINS),
-            'logger':  (lambda: logger),
-            'config':  (lambda: CONFIG),
-            'tokens':  (lambda: TOKENS)}
 
 
 def pass_globals(callback):
@@ -65,6 +71,11 @@ for k in sorted(PLUGINS, key=lambda k: PLUGINS[k].order if hasattr(PLUGINS[k], '
                 h[0].callback = pass_globals(h[0].callback)
 
             updater.dispatcher.add_handler(*h)
+
+    # Initialize plugin if it contains an init function.
+    if hasattr(PLUGINS[k], 'init') and callable(PLUGINS[k].init):
+        sig = signature(PLUGINS[k].init).parameters
+        PLUGINS[k].init(**{k: v() for k, v in passable.items() if k in sig})
 
     logger.debug(f'loaded plugin "{k[0]}"')
 

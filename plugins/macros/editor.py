@@ -2,27 +2,110 @@
 import json
 import shlex
 from enum import Enum
-from functools import wraps
 from inspect import signature, Parameter, getdoc
 from os.path import dirname
 
+from google.cloud import storage
 from requests import head
 from telegram import Update, ChatAction
+from telegram.ext import JobQueue
 
 from utils.command import Command, Signal
 from utils.dynamic import DynamicCommandHandler
 from utils.helpers import arg_replace, plural, clip
 from .macro import MacroContainer, Macro
 
-ABSOLUTE = dirname(__file__)
-with open(ABSOLUTE + '/macros.json', 'r') as read:
-    MACROS = MacroContainer.from_dict(json.load(read))
+GRAPH = Command()
+MACROS = None
 
 handlers = []
 
 
+def init(firebase: storage.Bucket, job_queue: JobQueue, config):
+    """Grabs macros from firebase and initializes command graph."""
+    global MACROS, GRAPH
+
+    blob = firebase.get_blob('macros.json')
+    if not blob:
+        raise FileNotFoundError('macros.json not found in Firebase bucket.')
+
+    MACROS = MacroContainer.from_dict(json.loads(blob.download_as_string()))
+
+    try:
+        interval = config["macro editor"]["macro push interval (minutes)"]
+
+    except KeyError:
+        interval = 15
+
+    job_queue.run_repeating(callback=lambda bot, job: push_macros(job.context),
+                            interval=60 * interval,
+                            context=firebase)
+
+    # <-- CONTROL FLOW GRAPH SETUP --> #
+    # Groups of nodes which are cyclical through an '&' (chain) node.
+    groups = []
+    linked = {tuple(s.name.lower() for s in Macro.Variety):        Command(func=new),
+              ('modify', 'change', 'edit', 'alter'):               Command(func=modify),
+              ('attribs', 'attributes', 'properties', 'settings'): Command(func=attributes)}
+    groups.append(Command(linked))
+
+    linked = {('remove', 'delete'):                         Command(func=remove)}
+    groups.append(Command(linked))
+    linked = {('list', 'show', 'subset', 'search', 'find'): Command(func=find)}
+    groups.append(Command(linked))
+    linked = {('contents', 'content', 'value'):             Command(func=value)}
+    groups.append(Command(linked))
+    linked = {('sig', 'doc', 'docs', 'args'):               Command(func=sig)}
+    groups.append(Command(linked))
+
+    # Cyclically link the groups via self reference.
+    for g in groups:
+        for v in g.table.values():
+            v['&'] = Command(func=chains) + g
+
+    # Leaf nodes.
+    unlinked = {(None, 'help', 'info'):    Command(func=info),
+                ('save', 'flush', 'push'): Command(func=save)}
+    groups.append(Command(unlinked))
+
+    # Merge base graphs.
+    GRAPH = sum(groups, Command())
+
+    # Create edges from search node to '|' (pipe) node, and then to editing nodes.
+    search_key = GRAPH.key_of('search')
+    remove_key = GRAPH.key_of('remove')
+    attrib_key = GRAPH.key_of('attribs')
+    GRAPH[search_key]['|'] = Command({remove_key: GRAPH[remove_key],
+                                      attrib_key: GRAPH[attrib_key]},
+                                     func=pipes)
+
+    # Create edges from remove, edit, new and attrib '&' (chain) nodes to search and save nodes.
+    GRAPH[remove_key]['&'][search_key] = GRAPH[search_key]
+    GRAPH[attrib_key]['&'][search_key] = GRAPH[search_key]
+
+    save_key = GRAPH.key_of('save')
+    GRAPH[remove_key]['&'][save_key] = GRAPH[save_key]
+    GRAPH[attrib_key]['&'][save_key] = GRAPH[save_key]
+
+    edit_key = GRAPH.key_of('edit')
+    new_key = GRAPH.key_of('text')
+    GRAPH[edit_key]['&'][save_key] = GRAPH[save_key]
+    GRAPH[new_key]['&'][save_key] = GRAPH[save_key]
+
+
+def push_macros(firebase):
+    """Pushes macros to Firebase, use by both the save command
+    function and the repeating job defined above."""
+    blob = firebase.get_blob('macros.json')
+    if not blob:
+        raise FileNotFoundError('macros.json not found in Firebase bucket.')
+
+    blob.upload_from_string(json.dumps(MACROS.to_dict(), indent=2))
+    return 'Saved macros.'
+
+
 class Errors(Enum):
-    """Enum for common error messages.
+    """Enum for shared error messages.
     Used so changes to error messages are reflected across all commands."""
     PERMISSION = "You don't have permission to do that."
     EMPTY_PIPE = "Input pipe is empty."
@@ -30,6 +113,7 @@ class Errors(Enum):
     INPUT_REQUIRED = "Input or pipe required."
     ALREADY_EXISTS = 'A macro named "{}" already exists'
     BAD_KEYWORDS = 'Command "{}" expects a keyword:value pair or multiple pairs in a quoted string.'
+    UNEXPECTED_KEYWORDS = "Unexpected keyword{}: {}."
     BAD_PHOTO = "Photo macro content must be a valid photo url."
 
     def __str__(self):
@@ -43,19 +127,6 @@ class Flags(Enum):
     """Enum for signal flags, simplifies piping."""
     INTERNAL = 0
     PHOTO = 1
-
-
-# Currently unused but may find use in the future.
-def replaces_args(f):
-    """Decorator that replaces certain argument values automatically."""
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        replace = {'true': True, 'false': False, 'none': None}
-        args = arg_replace(args, replace)
-        kwargs = {k: arg_replace(a, replace) for k, a in kwargs.items()}
-        return f(*args, **kwargs)
-
-    return wrapper
 
 
 def new(name, contents, _cmd, _ctx):
@@ -90,10 +161,13 @@ def modify(name, contents, _ctx):
             if head(contents).headers.get('content-type') not in {'image/png', 'image/jpeg'}:
                 return Errors.BAD_PHOTO
 
-        if _ctx['is_mod'] or m.creator == _ctx['user'].id:
+        if _ctx['is_mod'] or (m.creator == _ctx['user'].id and not m.protected):
             m.contents = contents
             MACROS[name] = m
             return f'Modified contents of {m.variety.name.lower()} macro "{name}".'
+
+        else:
+            return Errors.PERMISSION
 
     else:
         return Errors.NONEXISTENT
@@ -105,7 +179,7 @@ def remove(name=None, _ctx=None, _pipe=None):
     if isinstance(_pipe, Signal) and _pipe.piped:
         if _pipe.data:
             macros = _pipe.data.macros
-            if _ctx['is_mod'] or not any(m.creator != _ctx['user'].id for m in macros):
+            if _ctx['is_mod'] or not any(m.creator != _ctx['user'].id or m.protected for m in macros):
                 MACROS.macros = [m for m in MACROS.macros if m not in macros]
                 macros_string = ', '.join(f'"{m.name}"' for m in macros)
                 return f"Removed macro{plural(macros)} {macros_string}."
@@ -123,7 +197,7 @@ def remove(name=None, _ctx=None, _pipe=None):
         except KeyError:
             return Errors.NONEXISTENT.format(name)
 
-        if _ctx['is_mod'] or _ctx['user'].id == m.id:
+        if _ctx['is_mod'] or (_ctx['user'].id == m.id and not m.protected):
             del MACROS[name]
             return f'Removed macro "{name}".'
 
@@ -156,7 +230,21 @@ def value(name, _ctx):
         else:
             return Errors.PERMISSION
 
-    return ', '.join(f'{a[0]}: "{a[1]}"' for a in m.zipped() if a[0] not in exclude) + f'\n\nContents:\n{m.contents}'
+    attribs = (a for a in m.zipped() if a[0] not in exclude)
+    return ', '.join(f'{a[0]}: "{a[1]}"' for a in attribs) + f'\n\nContents:\n{m.contents}'
+
+
+# Helper function for the next two command functions.
+def ar(a, k, _ctx):
+    if isinstance(a, str):
+        if a.isnumeric():
+            return int(a)
+
+    if k == 'variety':
+        a = Macro.Variety[a.upper()]
+
+    replace = {'true': True, 'false': False, 'none': None}
+    return arg_replace(a, {'me': _ctx['user'].id} if k == 'creator' else replace)
 
 
 def find(search_parameters='', _ctx=None, _cmd=None):
@@ -165,11 +253,7 @@ def find(search_parameters='', _ctx=None, _cmd=None):
     Piping example: /macro search creator:me | remove"""
     kwargs = shlex.split(search_parameters)
     try:
-        def ar(a, k):
-            replace = {'true': True, 'false': False, 'none': None}
-            return arg_replace(a, {'me': _ctx['user'].id} if k == 'creator' else replace)
-
-        kwargs = {k.lower(): ar(a, k) for k, a in (k.split(':') for k in kwargs)}
+        kwargs = {k.strip().lower(): ar(a.strip(), k, _ctx) for k, a in (k.split(':') for k in kwargs)}
 
     except ValueError:
         return Signal(Errors.BAD_KEYWORDS.format(_cmd))
@@ -180,7 +264,12 @@ def find(search_parameters='', _ctx=None, _cmd=None):
     subset_sig = signature(MacroContainer.iter_subset).parameters
     unexpected = [f'"{k}"' for k in kwargs if k not in subset_sig or k == 'criteria']
     if unexpected:
-        return Signal(f"Unexpected keyword{plural(unexpected)}: {', '.join(unexpected)}.")
+        return Signal(Errors.UNEXPECTED_KEYWORDS.format(plural(unexpected), ', '.join(unexpected)))
+
+    wrong_type = [f'"{k}": {type(a).__name__} != {subset_sig[k].annotation.__name__}'
+                  for k, a in kwargs.items() if subset_sig[k].annotation is not type(a)]
+    if wrong_type:
+        return Signal(f'''Incorrect type for keyword{plural(wrong_type)}: {', '.join(wrong_type)}.''')
 
     subset = MACROS.subset(**kwargs)
     joined = ', '.join(f'"{m.name}"' for m in subset.macros)
@@ -193,18 +282,7 @@ def attributes(attribs, name=None, _ctx=None, _pipe=None, _cmd=None):
     global MACROS
     kwargs = shlex.split(attribs)
     try:
-        def ar(a, k):
-            if isinstance(a, str):
-                if a.isnumeric():
-                    return int(a)
-
-            if k == 'variety':
-                a = Macro.Variety[a.upper()]
-
-            replace = {'true': True, 'false': False, 'none': None}
-            return arg_replace(a, {'me': _ctx['user'].id} if k == 'creator' else replace)
-
-        kwargs = {k.lower(): ar(a, k) for k, a in (k.split(':') for k in kwargs)}
+        kwargs = {k.strip().lower(): ar(a.strip(), k, _ctx) for k, a in (k.split(':') for k in kwargs)}
 
     except (KeyError, AttributeError, ValueError):
         return Errors.BAD_KEYWORDS.format(_cmd)
@@ -217,26 +295,29 @@ def attributes(attribs, name=None, _ctx=None, _pipe=None, _cmd=None):
 
     unexpected = [f'"{k}"' for k in kwargs if k not in macro_sig or k in unexpected]
     if unexpected:
-        return Signal(f"Unexpected keyword{plural(unexpected)}: {', '.join(unexpected)}.")
+        return Errors.UNEXPECTED_KEYWORDS.format(plural(unexpected), ', '.join(unexpected))
 
     wrong_type = [f'"{k}": {type(a).__name__} != {macro_sig[k].annotation.__name__}'
                   for k, a in kwargs.items() if macro_sig[k].annotation is not type(a)]
-
     if wrong_type:
-        return Signal(f'''Incorrect type for keyword{plural(wrong_type)}: {', '.join(wrong_type)}.''')
+        return f'''Incorrect type for keyword{plural(wrong_type)}: {', '.join(wrong_type)}.'''
 
     if isinstance(_pipe, Signal) and _pipe.piped:
         if _pipe.data:
             macros = _pipe.data.macros
             if all(k != 'name' for k in kwargs) or len(macros) == 1:
-                for m in macros:
-                    for k, a in kwargs.items():
-                        setattr(m, k, a)
+                if _ctx['is_mod'] or not any(m.creator != _ctx['user'].id or m.protected for m in macros):
+                    for m in macros:
+                        for k, a in kwargs.items():
+                            setattr(m, k, a)
 
-                    MACROS[m.name] = m
+                        MACROS[m.name] = m
 
-                macros_string = ', '.join(f'"{m.name}"' for m in macros)
-                return f"Set attributes of macro{plural(macros)} {macros_string}."
+                    macros_string = ', '.join(f'"{m.name}"' for m in macros)
+                    return f"Set attributes of macro{plural(macros)} {macros_string}."
+
+                else:
+                    return Errors.PERMISSION
 
             else:
                 return 'Cannot batch edit macro names.'
@@ -251,7 +332,7 @@ def attributes(attribs, name=None, _ctx=None, _pipe=None, _cmd=None):
         except KeyError:
             return Errors.NONEXISTENT.format(name)
 
-        if _ctx['is_mod'] or _ctx['user'].id == m.id:
+        if _ctx['is_mod'] or (_ctx['user'].id == m.id and not m.protected):
             if name in kwargs and kwargs[name] in MACROS:
                 return Errors.ALREADY_EXISTS.format(name)
 
@@ -269,18 +350,17 @@ def attributes(attribs, name=None, _ctx=None, _pipe=None, _cmd=None):
 
 
 def save(_ctx):
+    """Pushes macro updates."""
     if _ctx['is_mod']:
-        with open(ABSOLUTE + '/macros.json', 'w+') as write:
-            json.dump(MACROS.to_dict(), write, indent=2)
-        return 'Saved macros.'
+        return push_macros(_ctx['firebase'])
 
     else:
         return Errors.PERMISSION
 
 
 def info():
-    """Displays macro editor help link."""
-    return Signal([open(ABSOLUTE + '/control flow graph.png', 'rb'),
+    """Displays macro editor help."""
+    return Signal([open(dirname(__file__) + '/control flow graph.png', 'rb'),
                   'Do /macro docs [command] for info on a specific command.'],
                   flag=Flags.PHOTO)
 
@@ -317,7 +397,7 @@ def sig(name_or_path, _ctx, _cmd):
 
             target_sig = signature(cmd.func).parameters.items()
             args = ', '.join(display(p) for k, p in target_sig if not k.startswith('_'))
-            aliases = ', '.join(k for k in key) if isinstance(key, tuple) else key
+            aliases = ', '.join(k for k in key if isinstance(k, str)) if isinstance(key, tuple) else key
             return f'[{aliases}] {args}\n{getdoc(cmd.func)}'.strip()
 
         else:
@@ -334,69 +414,18 @@ def chains():
     """Facilitates chaining of commands."""
 
 
-# <-- CONTROL GRAPH SETUP --> #
-# Groups of nodes which are cyclical through an '&' (chain) node.
-groups = []
-linked = {tuple(s.name.lower() for s in Macro.Variety):                Command(func=new),
-          ('modify', 'change', 'edit', 'alter'):               Command(func=modify),
-          ('attribs', 'attributes', 'properties', 'settings'): Command(func=attributes)}
-groups.append(Command(linked))
-
-linked = {('remove', 'delete'):                         Command(func=remove)}
-groups.append(Command(linked))
-linked = {('list', 'show', 'subset', 'search', 'find'): Command(func=find)}
-groups.append(Command(linked))
-linked = {('contents', 'content', 'value'):             Command(func=value)}
-groups.append(Command(linked))
-linked = {('sig', 'doc', 'docs', 'args'):               Command(func=sig)}
-groups.append(Command(linked))
-
-# Cyclically link the groups via self reference.
-for g in groups:
-    for v in g.table.values():
-        v['&'] = Command(func=chains) + g
-
-# Leaf nodes.
-unlinked = {(None, 'help', 'info'):    Command(func=info),
-            ('save', 'flush', 'push'): Command(func=save)}
-groups.append(Command(unlinked))
-
-# Merge base graphs.
-graph = sum(groups, Command())
-
-# Create edges from search node to '|' (pipe) node, and then to editing nodes.
-search_key = graph.key_of('search')
-remove_key = graph.key_of('remove')
-attrib_key = graph.key_of('attribs')
-graph[search_key]['|'] = Command({remove_key: graph[remove_key],
-                                  attrib_key: graph[attrib_key]},
-                                 func=pipes)
-
-# Create edges from remove, edit, new and attrib '&' (chain) nodes to search and save nodes.
-graph[remove_key]['&'][search_key] = graph[search_key]
-graph[attrib_key]['&'][search_key] = graph[search_key]
-
-save_key = graph.key_of('save')
-graph[remove_key]['&'][save_key] = graph[save_key]
-graph[attrib_key]['&'][save_key] = graph[save_key]
-
-edit_key = graph.key_of('edit')
-new_key = graph.key_of('text')
-graph[edit_key]['&'][save_key] = graph[save_key]
-graph[new_key]['&'][save_key] = graph[save_key]
-
-
-def dispatcher(args, update: Update, logger, config):
+def dispatcher(args, update: Update, logger, config, firebase):
     """Macro editor dispatcher."""
     msg = update.message
     name = msg.from_user.name
 
     is_mod = name.lower() in config.get('bot_mods', None) if name else False
-    _ctx = {'update': update,
-            'user': msg.from_user,
-            'logger': logger,
-            'is_mod': is_mod,
-            'graph': graph}
+    _ctx = {'update':   update,
+            'user':     msg.from_user,
+            'logger':   logger,
+            'is_mod':   is_mod,
+            'graph':    GRAPH,
+            'firebase': firebase}
 
     try:
         max_chained_commands = config['macro editor']['max chained commands']
@@ -409,7 +438,7 @@ def dispatcher(args, update: Update, logger, config):
         return
 
     args = arg_replace(args, {'...': ...})
-    traceback = graph(args, _ctx)
+    traceback = GRAPH(args, _ctx)
 
     def flag(t):
         return t.flag if isinstance(t, Signal) else None

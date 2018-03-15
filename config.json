@@ -1,6 +1,7 @@
 {
   "macro editor": {
-    "max chained commands": 5
+    "max chained commands": 5,
+    "macro push interval (minutes)": 15
   },
   "bot_mods": [
     "@wyreyote",
@@ -14,5 +15,6 @@
     "post limit": 25
   },
   "photo timeout": 10,
-  "output character limit": 512
+  "output character limit": 512,
+  "firebase bucket": "yoshobot.appspot.com"
 }

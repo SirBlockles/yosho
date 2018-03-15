@@ -78,13 +78,13 @@ class MacroContainer:
         return MacroContainer(list(self.iter_subset(**kwargs)))
 
     def iter_subset(self,
-                    match=None,
-                    search=None,
-                    creator=None,
-                    variety=None,
-                    hidden=None,
-                    protected=None,
-                    nsfw=None,
+                    match: str = None,
+                    search: str = None,
+                    creator: int = None,
+                    variety: Macro.Variety = None,
+                    hidden: bool = None,
+                    protected: bool = None,
+                    nsfw: bool = None,
                     criteria: Callable[[Iterable], bool] = all) -> Generator:
 
         comparisons = {hidden:    (lambda m: m.hidden == hidden),
