@@ -1,9 +1,10 @@
 {
   "macro editor": {
     "max chained commands": 5,
+    "max piped macros": 5,
     "macro push interval (minutes)": 15
   },
-  "bot_mods": [
+  "bot mods": [
     "@wyreyote",
     "@teamfortress",
     "@plusreed",

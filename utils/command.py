@@ -1,5 +1,5 @@
 import inspect
-from typing import Dict, Callable, Tuple
+from typing import Dict, Callable, Any
 
 from .helpers import plural
 
@@ -29,7 +29,7 @@ class Command:
     and pre-computing the function signature properties on self.func assignment."""
     __slots__ = {'table', 'func'}
 
-    def __init__(self, dispatcher: Dict[Tuple, 'Command'] = None, func: Callable = None):
+    def __init__(self, dispatcher: Dict[Any, 'Command'] = None, func: Callable = None):
         self.table = dispatcher if dispatcher else {}
         self.func = func
 
@@ -83,9 +83,11 @@ class Command:
                                  f' {minimum} argument{plural(minimum)} but {len(args)}'
                                  f' {plural(args, ("were", "was"))} given.']
 
-            # Ellipsis indicates no optional arguments are to be consumed.
-            if len(args) >= minimum + 1 and args[:minimum + 1][-1] is ...:
-                consume, args = args[:minimum], args[minimum + 1:]
+            # Ellipsis, pipe, chain indicate no optional arguments are to be consumed.
+            # Ellipsis is essentially NOP and removed, pipe and chain are left.
+            if len(args) >= minimum + 1 and args[:minimum + 1][-1] in {..., '|', '&'}:
+                consume, args = args[:minimum], (args[minimum + 1:] if
+                                                 args[:minimum + 1][-1] is ... else args[minimum:])
             # Gather indicates all arguments are to be consumed.
             # (gather operator present in func sig, e.g *args)
             elif gather:

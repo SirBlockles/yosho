@@ -1,14 +1,13 @@
 """yosho plugin:macro editor"""
+# TODO Gratuitous commenting.
 import json
 import shlex
 from enum import Enum
 from inspect import signature, Parameter, getdoc
 from os.path import dirname
 
-from google.cloud import storage
 from requests import head
 from telegram import Update, ChatAction
-from telegram.ext import JobQueue
 
 from utils.command import Command, Signal
 from utils.dynamic import DynamicCommandHandler
@@ -18,10 +17,8 @@ from .macro import MacroContainer, Macro
 GRAPH = Command()
 MACROS = None
 
-handlers = []
 
-
-def init(firebase: storage.Bucket, job_queue: JobQueue, config):
+def init(firebase, job_queue, config, logger):
     """Grabs macros from firebase and initializes command graph."""
     global MACROS, GRAPH
 
@@ -37,7 +34,7 @@ def init(firebase: storage.Bucket, job_queue: JobQueue, config):
     except KeyError:
         interval = 15
 
-    job_queue.run_repeating(callback=lambda bot, job: push_macros(job.context),
+    job_queue.run_repeating(callback=lambda bot, job: push_macros(job.context, logger),
                             interval=60 * interval,
                             context=firebase)
 
@@ -93,14 +90,15 @@ def init(firebase: storage.Bucket, job_queue: JobQueue, config):
     GRAPH[new_key]['&'][save_key] = GRAPH[save_key]
 
 
-def push_macros(firebase):
-    """Pushes macros to Firebase, use by both the save command
+def push_macros(firebase, logger):
+    """Pushes macros to Firebase, used by both the save command
     function and the repeating job defined above."""
     blob = firebase.get_blob('macros.json')
     if not blob:
         raise FileNotFoundError('macros.json not found in Firebase bucket.')
 
     blob.upload_from_string(json.dumps(MACROS.to_dict(), indent=2))
+    logger.info('Pushed macros to Firebase.')
     return 'Saved macros.'
 
 
@@ -138,6 +136,9 @@ def new(name, contents, _cmd, _ctx):
         if head(contents).headers.get('content-type') not in {'image/png', 'image/jpeg'}:
             return Errors.BAD_PHOTO
 
+    elif variety is not Macro.Variety.INLINE and not name.startswith('!'):
+        return f'Non-inline macros much have names beginning with !, not "{name[0]}".'
+
     if name not in MACROS:
         MACROS.append(Macro(name=name,
                             contents=contents,
@@ -173,41 +174,6 @@ def modify(name, contents, _ctx):
         return Errors.NONEXISTENT
 
 
-def remove(name=None, _ctx=None, _pipe=None):
-    """Deletes a given macro."""
-    global MACROS
-    if isinstance(_pipe, Signal) and _pipe.piped:
-        if _pipe.data:
-            macros = _pipe.data.macros
-            if _ctx['is_mod'] or not any(m.creator != _ctx['user'].id or m.protected for m in macros):
-                MACROS.macros = [m for m in MACROS.macros if m not in macros]
-                macros_string = ', '.join(f'"{m.name}"' for m in macros)
-                return f"Removed macro{plural(macros)} {macros_string}."
-
-            else:
-                return Errors.PERMISSION
-
-        else:
-            return Errors.EMPTY_PIPE
-
-    elif name:
-        try:
-            m = MACROS[name]
-
-        except KeyError:
-            return Errors.NONEXISTENT.format(name)
-
-        if _ctx['is_mod'] or (_ctx['user'].id == m.id and not m.protected):
-            del MACROS[name]
-            return f'Removed macro "{name}".'
-
-        else:
-            return Errors.PERMISSION
-
-    else:
-        return Errors.INPUT_REQUIRED
-
-
 def value(name, _ctx):
     """Displays the contents and attributes of a given macro."""
     try:
@@ -235,7 +201,7 @@ def value(name, _ctx):
 
 
 # Helper function for the next two command functions.
-def ar(a, k, _ctx):
+def _ar(a, k, _ctx):
     if isinstance(a, str):
         if a.isnumeric():
             return int(a)
@@ -253,7 +219,7 @@ def find(search_parameters='', _ctx=None, _cmd=None):
     Piping example: /macro search creator:me | remove"""
     kwargs = shlex.split(search_parameters)
     try:
-        kwargs = {k.strip().lower(): ar(a.strip(), k, _ctx) for k, a in (k.split(':') for k in kwargs)}
+        kwargs = {k.lower(): _ar(a, k, _ctx) for k, a in (k.split(':') for k in kwargs)}
 
     except ValueError:
         return Signal(Errors.BAD_KEYWORDS.format(_cmd))
@@ -282,7 +248,7 @@ def attributes(attribs, name=None, _ctx=None, _pipe=None, _cmd=None):
     global MACROS
     kwargs = shlex.split(attribs)
     try:
-        kwargs = {k.strip().lower(): ar(a.strip(), k, _ctx) for k, a in (k.split(':') for k in kwargs)}
+        kwargs = {k.lower(): _ar(a, k, _ctx) for k, a in (k.split(':') for k in kwargs)}
 
     except (KeyError, AttributeError, ValueError):
         return Errors.BAD_KEYWORDS.format(_cmd)
@@ -349,10 +315,45 @@ def attributes(attribs, name=None, _ctx=None, _pipe=None, _cmd=None):
         return Errors.INPUT_REQUIRED
 
 
+def remove(name=None, _ctx=None, _pipe=None):
+    """Deletes a given macro."""
+    global MACROS
+    if isinstance(_pipe, Signal) and _pipe.piped:
+        if _pipe.data:
+            macros = _pipe.data.macros
+            if _ctx['is_mod'] or not any(m.creator != _ctx['user'].id or m.protected for m in macros):
+                MACROS.macros = [m for m in MACROS.macros if m not in macros]
+                macros_string = ', '.join(f'"{m.name}"' for m in macros)
+                return f"Removed macro{plural(macros)} {macros_string}."
+
+            else:
+                return Errors.PERMISSION
+
+        else:
+            return Errors.EMPTY_PIPE
+
+    elif name:
+        try:
+            m = MACROS[name]
+
+        except KeyError:
+            return Errors.NONEXISTENT.format(name)
+
+        if _ctx['is_mod'] or (_ctx['user'].id == m.id and not m.protected):
+            del MACROS[name]
+            return f'Removed macro "{name}".'
+
+        else:
+            return Errors.PERMISSION
+
+    else:
+        return Errors.INPUT_REQUIRED
+
+
 def save(_ctx):
     """Pushes macro updates."""
     if _ctx['is_mod']:
-        return push_macros(_ctx['firebase'])
+        return push_macros(_ctx['firebase'], _ctx['logger'])
 
     else:
         return Errors.PERMISSION
@@ -419,7 +420,7 @@ def dispatcher(args, update: Update, logger, config, firebase):
     msg = update.message
     name = msg.from_user.name
 
-    is_mod = name.lower() in config.get('bot_mods', None) if name else False
+    is_mod = name.lower() in config.get('bot mods', None) if name else False
     _ctx = {'update':   update,
             'user':     msg.from_user,
             'logger':   logger,
@@ -466,4 +467,4 @@ def dispatcher(args, update: Update, logger, config, firebase):
         msg.reply_text(text=traceback)
 
 
-handlers.append(DynamicCommandHandler(['macro', 'macros'], dispatcher))
+handlers = [DynamicCommandHandler(['macro', 'macros'], dispatcher)]

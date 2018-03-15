@@ -3,6 +3,7 @@ from typing import List, Callable, Generator, Iterable
 
 
 class Macro:
+    """YoshoBot macro class."""
     class Variety(Enum):
         TEXT = 0
         EVAL = 1
@@ -39,6 +40,7 @@ class Macro:
 
 
 class MacroContainer:
+    """Container for macros."""
     __slots__ = {'macros'}
 
     def __init__(self, macros: List[Macro]):
