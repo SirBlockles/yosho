@@ -6,25 +6,24 @@ from enum import Enum
 from inspect import signature, Parameter, getdoc
 from os.path import dirname
 
-from requests import head
-from telegram import Update, ChatAction
+from telegram import ChatAction
 
 from utils.command import Command, Signal
 from utils.dynamic import DynamicCommandHandler
-from utils.helpers import arg_replace, plural, clip
+from utils.helpers import arg_replace, plural, clip, valid_photo, is_mod
 from .macro import MacroContainer, Macro
 
 GRAPH = Command()
 MACROS = None
 
 
-def init(firebase, job_queue, config, logger):
-    """Grabs macros from firebase and initializes command graph."""
+def init(firebase, jobs, config, logger):
+    """Pulls macros from firebase and initializes command graph."""
     global MACROS, GRAPH
 
     blob = firebase.get_blob('macros.json')
     if not blob:
-        raise FileNotFoundError('macros.json not found in Firebase bucket.')
+        raise FileNotFoundError('File macros.json not found in Firebase bucket.')
 
     MACROS = MacroContainer.from_dict(json.loads(blob.download_as_string()))
 
@@ -34,9 +33,9 @@ def init(firebase, job_queue, config, logger):
     except KeyError:
         interval = 15
 
-    job_queue.run_repeating(callback=lambda bot, job: push_macros(job.context, logger),
-                            interval=60 * interval,
-                            context=firebase)
+    jobs.run_repeating(callback=lambda bot, job: push_macros(job.context, logger),
+                       interval=60 * interval,
+                       context=firebase)
 
     # <-- CONTROL FLOW GRAPH SETUP --> #
     # Groups of nodes which are cyclical through an '&' (chain) node.
@@ -95,7 +94,7 @@ def push_macros(firebase, logger):
     function and the repeating job defined above."""
     blob = firebase.get_blob('macros.json')
     if not blob:
-        raise FileNotFoundError('macros.json not found in Firebase bucket.')
+        raise FileNotFoundError('File macros.json not found in Firebase bucket.')
 
     blob.upload_from_string(json.dumps(MACROS.to_dict(), indent=2))
     logger.info('Pushed macros to Firebase.')
@@ -113,6 +112,8 @@ class Errors(Enum):
     BAD_KEYWORDS = 'Command "{}" expects a keyword:value pair or multiple pairs in a quoted string.'
     UNEXPECTED_KEYWORDS = "Unexpected keyword{}: {}."
     BAD_PHOTO = "Photo macro content must be a valid photo url."
+    BAD_ALIAS = 'Macro "{}" does not exist, so it may not be aliased.'
+    ALIAS_NESTING = 'Cannot alias an alias macro.'
 
     def __str__(self):
         return self.value
@@ -123,8 +124,7 @@ class Errors(Enum):
 
 class Flags(Enum):
     """Enum for signal flags, simplifies piping."""
-    INTERNAL = 0
-    PHOTO = 1
+    INTERNAL, PHOTO = range(2)
 
 
 def new(name, contents, _cmd, _ctx):
@@ -132,9 +132,15 @@ def new(name, contents, _cmd, _ctx):
     global MACROS
     variety = Macro.Variety[_cmd.upper()]
 
-    if variety in {Macro.Variety.PHOTO, Macro.Variety.IMAGE}:
-        if head(contents).headers.get('content-type') not in {'image/png', 'image/jpeg'}:
-            return Errors.BAD_PHOTO
+    if variety in {Macro.Variety.PHOTO, Macro.Variety.IMAGE} and not valid_photo(contents):
+        return Errors.BAD_PHOTO
+
+    if variety is Macro.Variety.ALIAS:
+        if contents not in MACROS:
+            return Errors.BAD_ALIAS.format(contents)
+
+        elif MACROS[contents].variety is Macro.Variety.ALIAS:
+            return Errors.ALIAS_NESTING
 
     elif variety is not Macro.Variety.INLINE and not name.startswith('!'):
         return f'Non-inline macros much have names beginning with !, not "{name[0]}".'
@@ -158,9 +164,15 @@ def modify(name, contents, _ctx):
     global MACROS
     if name in MACROS:
         m = MACROS[name]
-        if m.variety in {Macro.Variety.PHOTO, Macro.Variety.IMAGE}:
-            if head(contents).headers.get('content-type') not in {'image/png', 'image/jpeg'}:
-                return Errors.BAD_PHOTO
+        if m.variety in {Macro.Variety.PHOTO, Macro.Variety.IMAGE} and not valid_photo(contents):
+            return Errors.BAD_PHOTO
+
+        if m.variety is Macro.Variety.ALIAS:
+            if contents not in MACROS:
+                return Errors.BAD_ALIAS.format(contents)
+
+            elif MACROS[contents].variety is Macro.Variety.ALIAS:
+                return Errors.ALIAS_NESTING
 
         if _ctx['is_mod'] or (m.creator == _ctx['user'].id and not m.protected):
             m.contents = contents
@@ -202,14 +214,11 @@ def value(name, _ctx):
 
 # Helper function for the next two command functions.
 def _ar(a, k, _ctx):
-    if isinstance(a, str):
-        if a.isnumeric():
-            return int(a)
 
     if k == 'variety':
         a = Macro.Variety[a.upper()]
 
-    replace = {'true': True, 'false': False, 'none': None}
+    replace = {'true': True, 'false': False, 'none': None, str.isnumeric: int}
     return arg_replace(a, {'me': _ctx['user'].id} if k == 'creator' else replace)
 
 
@@ -221,7 +230,7 @@ def find(search_parameters='', _ctx=None, _cmd=None):
     try:
         kwargs = {k.lower(): _ar(a, k, _ctx) for k, a in (k.split(':') for k in kwargs)}
 
-    except ValueError:
+    except (KeyError, AttributeError, ValueError):
         return Signal(Errors.BAD_KEYWORDS.format(_cmd))
 
     if not _ctx['is_mod']:
@@ -415,16 +424,15 @@ def chains():
     """Facilitates chaining of commands."""
 
 
-def dispatcher(args, update: Update, logger, config, firebase):
+def dispatcher(args, update, user, logger, config, firebase):
     """Macro editor dispatcher."""
     msg = update.message
-    name = msg.from_user.name
+    name = user.name
 
-    is_mod = name.lower() in config.get('bot mods', None) if name else False
     _ctx = {'update':   update,
-            'user':     msg.from_user,
+            'user':     user,
             'logger':   logger,
-            'is_mod':   is_mod,
+            'is_mod':   is_mod(name, config),
             'graph':    GRAPH,
             'firebase': firebase}
 
@@ -434,7 +442,7 @@ def dispatcher(args, update: Update, logger, config, firebase):
     except KeyError:
         max_chained_commands = 5
 
-    if not is_mod and sum(1 for a in args if a == '&') > max_chained_commands - 1:
+    if not is_mod(name, config) and sum(1 for a in args if a == '&') > max_chained_commands - 1:
         msg.reply_text(text=f'Too many subsequent commands. (max {max_chained_commands})')
         return
 

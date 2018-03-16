@@ -30,7 +30,7 @@ def random_image(tags: str, count: int, sfw: bool, credentials: dict) -> Tuple[s
         raise requests.ConnectionError(f'Request failed, e621 returned status "{responses[request.status_code]}".')
 
 
-def e621(message, args, command, tokens, config):
+def e621(message, chat, args, command, tokens, config):
     """[tags]"""
     try:
         limit = config['e621 plugin']['post limit']
@@ -42,17 +42,17 @@ def e621(message, args, command, tokens, config):
         url, pid = random_image(' '.join(args), limit, command == 'e926', tokens['e621'])
 
     except requests.ConnectionError:
-        message.chat.send_action(ChatAction.TYPING)
+        chat.send_action(ChatAction.TYPING)
         message.reply_text(text='e621 connection/API error.')
 
     except TypeError:
-        message.chat.send_action(ChatAction.TYPING)
+        chat.send_action(ChatAction.TYPING)
         message.reply_text(text='No images found.')
 
     else:
         timeout = config.get('photo timeout', 10)
 
-        message.chat.send_action(ChatAction.UPLOAD_PHOTO)
+        chat.send_action(ChatAction.UPLOAD_PHOTO)
         message.reply_photo(photo=url, caption=f'https://e621.net/post/show/{pid}', timeout=timeout)
 
 

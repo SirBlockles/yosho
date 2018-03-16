@@ -1,16 +1,17 @@
-"""yosho plugin:info commands"""
+"""yosho plugin:bot info plugin"""
 from inspect import getdoc
 
 from telegram import ChatAction
+from telegram.ext import Filters
 
 from utils.dynamic import DynamicCommandHandler
 
 handlers = []
 
 
-def list_plugins(message, args, plugins):
+def list_plugins(message, chat, args, plugins):
     """[list] or ["plugin name"]"""
-    message.chat.send_action(ChatAction.TYPING)
+    chat.send_action(ChatAction.TYPING)
     if args:
         if args[0].lower() == 'list':
             message.reply_text(text='Installed plugins:\n\n' + '\n'.join(p for p in plugins))
@@ -38,4 +39,4 @@ def start(message):
     message.reply_text(text='Yosho bot by @TeamFortress and @WyreYote.')
 
 
-handlers.append(DynamicCommandHandler('start', start))
+handlers.append(DynamicCommandHandler('start', start, Filters.private))

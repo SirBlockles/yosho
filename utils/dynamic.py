@@ -1,14 +1,13 @@
-from inspect import Parameter, signature
 import shlex
+from inspect import signature
 from typing import Callable
 
+from telegram import ChatAction
 from telegram.ext import CommandHandler, MessageHandler
 from telegram.ext.filters import BaseFilter
 from telegram.message import Message
 
-
-def _valid(k, sig):
-    return k in sig and sig[k].kind is Parameter.POSITIONAL_OR_KEYWORD
+from utils.helpers import can_pass_to
 
 
 class _DynamicHandler:
@@ -22,16 +21,22 @@ class _DynamicHandler:
                   'bot':          (lambda: dispatcher.bot),
                   'update_queue': (lambda: dispatcher.update_queue),
                   'job_queue':    (lambda: dispatcher.job_queue),
-                  'user_data':    (lambda: dispatcher.user_data[user.id] if user else None),
-                  'chat_data':    (lambda: dispatcher.chat_data[chat.id] if chat else None)}
+                  'user':         (lambda: user if user else None),
+                  'chat':         (lambda: chat if chat else None)}
 
         sig = signature(self.callback).parameters
 
         # Optimization for large messages.
-        send_args = _valid('args', sig)
-        send_command = _valid('command', sig)
+        send_args = can_pass_to('args', sig)
+        send_command = can_pass_to('command', sig)
         if send_args or send_command:
-            command, *params = shlex.split((update.message or update.edited_message).text)
+            try:
+                command, *params = shlex.split((update.message or update.edited_message).text)
+
+            except Exception as e:
+                update.message.chat.send_action(ChatAction.TYPING)
+                update.message.reply_text(f'Error parsing input: "{e}".')
+                return
 
             if send_args:
                 passes['args'] = lambda: params
@@ -39,14 +44,15 @@ class _DynamicHandler:
             if send_command:
                 passes['command'] = lambda: command.lstrip('/')
 
-        return {k: v() for k, v in passes.items() if _valid(k, sig)}
+        return {k: v() for k, v in passes.items() if can_pass_to(k, sig)}
 
 
 class DynamicCommandHandler(_DynamicHandler, CommandHandler):
     """Autowiring CommandHandler."""
     def handle_update(self, update, dispatcher):
         args = self.collect_args(dispatcher, update)
-        return self.callback(**args)
+
+        return not args or self.callback(**args)
 
 
 class DynamicMessageHandler(_DynamicHandler, MessageHandler):
@@ -57,7 +63,7 @@ class DynamicMessageHandler(_DynamicHandler, MessageHandler):
 
 
 class DynamicFilter(BaseFilter):
-    """Filter that allows for arbitrary conditions."""
+    """Autowiring filter that allows for arbitrary conditions."""
     def __init__(self, func: Callable[[Message], bool], ctx=None):
         self.func = func
         self.ctx = ctx
@@ -65,5 +71,6 @@ class DynamicFilter(BaseFilter):
     def filter(self, message):
         sig = signature(self.func).parameters
         passes = {'ctx':     (lambda: self.ctx),
-                  'message': (lambda: message)}
-        return self.func(**{k: v() for k, v in passes.items() if _valid(k, sig)})
+                  'message': (lambda: message),
+                  'user':    (lambda: message.from_user)}
+        return self.func(**{k: v() for k, v in passes.items() if can_pass_to(k, sig)})

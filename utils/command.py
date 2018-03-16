@@ -27,14 +27,14 @@ class Command:
 
     Possible optimizations include flattening the recursion (manual tail call optimization),
     and pre-computing the function signature properties on self.func assignment."""
-    __slots__ = {'table', 'func'}
+    __slots__ = {'table', 'callback'}
 
     def __init__(self, dispatcher: Dict[Any, 'Command'] = None, func: Callable = None):
-        self.table = dispatcher if dispatcher else {}
-        self.func = func
+        self.table = dispatcher or {}
+        self.callback = func
 
     def __repr__(self):
-        return f"Command(func={self.func.__name__ if self.func else 'None'}, table={self.table})"
+        return f"Command(func={self.callback.__name__ if self.callback else 'None'}, table={self.table})"
 
     def __str__(self):
         return str(self.table)
@@ -49,16 +49,16 @@ class Command:
         del self.table[key]
 
     def __add__(self, other: 'Command') -> 'Command':
-        return Command({**other.table, **self.table}, self.func or other.func)
+        return Command({**other.table, **self.table}, self.callback or other.callback)
 
     def __contains__(self, item):
         return any(item in self._cast(k) for k in self.table)
 
     def __call__(self, args: list, ctx=None, _cmd=None, _trace=None) -> list:
-        _trace = _trace if _trace else []
+        _trace = _trace or []
         output = None
-        if self.func:
-            sig = inspect.signature(self.func).parameters
+        if self.callback:
+            sig = inspect.signature(self.callback).parameters
 
             position = inspect.Parameter.VAR_POSITIONAL
             keyword = inspect.Parameter.KEYWORD_ONLY
@@ -86,8 +86,8 @@ class Command:
             # Ellipsis, pipe, chain indicate no optional arguments are to be consumed.
             # Ellipsis is essentially NOP and removed, pipe and chain are left.
             if len(args) >= minimum + 1 and args[:minimum + 1][-1] in {..., '|', '&'}:
-                consume, args = args[:minimum], (args[minimum + 1:] if
-                                                 args[:minimum + 1][-1] is ... else args[minimum:])
+                consume, args = args[:minimum], \
+                                (args[minimum + 1:] if args[:minimum + 1][-1] is ... else args[minimum:])
             # Gather indicates all arguments are to be consumed.
             # (gather operator present in func sig, e.g *args)
             elif gather:
@@ -97,7 +97,7 @@ class Command:
                 consume, args = args[:maximum], args[maximum:]
 
             try:
-                output = self.func(*consume, **passes)
+                output = self.callback(*consume, **passes)
 
             except Exception as e:
                 output = e

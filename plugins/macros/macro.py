@@ -1,3 +1,4 @@
+# TODO docstrings.
 from enum import Enum
 from typing import List, Callable, Generator, Iterable
 
@@ -5,15 +6,7 @@ from typing import List, Callable, Generator, Iterable
 class Macro:
     """YoshoBot macro class."""
     class Variety(Enum):
-        TEXT = 0
-        EVAL = 1
-        PHOTO = 2
-        IMAGE = 2
-        INLINE = 3
-        E621 = 4
-        E926 = 5
-        MARKOV = 6
-        ALIAS = 7
+        TEXT, EVAL, PHOTO, IMAGE, INLINE, E621, E926, MARKOV, ALIAS = range(9)
 
     __slots__ = {'name', 'variety', 'contents', 'creator', 'hidden', 'protected', 'nsfw'}
 
@@ -87,6 +80,7 @@ class MacroContainer:
                     hidden: bool = None,
                     protected: bool = None,
                     nsfw: bool = None,
+                    contents: str = None,
                     criteria: Callable[[Iterable], bool] = all) -> Generator:
 
         comparisons = {hidden:    (lambda m: m.hidden == hidden),
@@ -95,7 +89,8 @@ class MacroContainer:
                        nsfw:      (lambda m: m.nsfw == nsfw),
                        variety:   (lambda m: m.variety == variety),
                        match:     (lambda m: m.name == match),
-                       search:    (lambda m: search in m.name)}
+                       search:    (lambda m: search in m.name),
+                       contents:  (lambda m: contents in m.contents)}
 
         comparisons = [v for k, v in comparisons.items() if k is not None]
         return (m for m in self.macros if criteria(c(m) for c in comparisons))
