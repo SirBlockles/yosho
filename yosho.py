@@ -14,7 +14,8 @@ from utils.helpers import can_pass_to
 
 
 def init():
-    plugins, config, tokens = ({},) * 3
+    plugins = {}
+    config = {}
 
     with open('tokens.json', 'r') as tokens:
         tokens = load(tokens)
@@ -23,16 +24,15 @@ def init():
     firebase_admin.initialize_app(_, {'storageBucket': tokens['firebase']['bucket']})
     firebase = storage.bucket()
 
-    updater = Updater(token=tokens['beta'])
+    updater = Updater(token=tokens['beta'], workers=16)
 
     blob = firebase.get_blob('config.json')
-    if not blob:
-        raise FileNotFoundError('File config.json not found in Firebase bucket.')
+    if blob:
+        config = loads(blob.download_as_string())
 
-    config = loads(blob.download_as_string())
-
-    logging.basicConfig(format='[%(levelname)s] %(message)s', level=config.get('logging level', logging.INFO))
+    logging.basicConfig(format='%(message)s', level=logging.ERROR)
     logger = logging.getLogger(__name__)
+    logger.setLevel(config.get('logging level', logging.INFO))
 
     passable = {'plugins':  (lambda: plugins),
                 'logger':   (lambda: logger),
@@ -41,11 +41,6 @@ def init():
                 'firebase': (lambda: firebase),
                 'jobs':     (lambda: updater.dispatcher.job_queue),
                 'updater':  (lambda: updater)}
-
-    def err(bot, update, error):
-        logger.error(f'Bot error: "{error}"')
-
-    updater.dispatcher.add_error_handler(err)
 
     def pass_globals(callback):
         @wraps(callback)
@@ -59,11 +54,16 @@ def init():
     # Find plugins in their directories and add them to the plugins dictionary.
     for directory in (s for s in os.listdir('plugins') if os.path.isdir('plugins/' + s)):
         for fn in (s[:-3] for s in os.listdir('plugins/' + directory) if s.endswith('.py')):
-            plugin = import_module(f'plugins.{directory}.{fn}')
+            try:
+                plugin = import_module(f'plugins.{directory}.{fn}')
 
-            name = match(r'yosho plugin:([\w\s]+)', plugin.__doc__ or '')
-            if name:
-                plugins[name.group(1)] = plugin
+            except Exception as e:
+                logger.error(f'Could not import file "{fn}.py" from plugins/{directory}/: "{e}".')
+
+            else:
+                name = match(r'yosho plugin:([\w\s]+)', plugin.__doc__ or '')
+                if name:
+                    plugins[name.group(1)] = plugin
 
     # Load plugins in specified order.
     for k in sorted(plugins, key=lambda p: plugins[p].order if hasattr(plugins[p], 'order') else 0):
@@ -78,7 +78,7 @@ def init():
                     h[0].callback = pass_globals(h[0].callback)
 
                 updater.dispatcher.add_handler(*h)
-                logger.debug(f'Hooked handler function "{h[0].callback.__name__}" from plugin {k}.')
+                logger.debug(f'Hooked handler function "{h[0].callback.__name__}" from plugin "{k}".')
 
         # Initialize plugin if it contains an init function.
         if hasattr(plugins[k], 'init') and callable(plugins[k].init):
@@ -87,6 +87,11 @@ def init():
             logger.debug(f'Initialized plugin "{k}".')
 
         logger.info(f'Loaded plugin "{k}".')
+
+    def err(bot, update, error):
+            logger.error(f'Error: "{error}".')
+
+    updater.dispatcher.add_error_handler(err)
 
     updater.start_polling(clean=True)
     logger.info('Bot loaded.')

@@ -1,25 +1,6 @@
 import inspect
 from typing import Dict, Callable, Any
 
-from .helpers import plural
-
-
-class Signal:
-    """Optional signal class which simplifies piping between Command instances."""
-    __slots__ = {'contents', 'flag', 'piped', 'data'}
-
-    def __init__(self, contents, data=None, flag=None, piped=False):
-        self.contents = contents
-        self.flag = flag
-        self.piped = piped
-        self.data = data
-
-    def __str__(self):
-        return str(self.contents)
-
-    def __repr__(self):
-        return f'Signal(contents={self.contents}, flag={self.flag}, piped={self.piped}, data={self.data})'
-
 
 class Command:
     """Dispatch table based class for defining directed graphs of commands with associated functions.
@@ -27,11 +8,18 @@ class Command:
 
     Possible optimizations include flattening the recursion (manual tail call optimization),
     and pre-computing the function signature properties on self.func assignment."""
-    __slots__ = {'table', 'callback'}
+    __slots__ = {'table', 'callback', 'unions', 'stops', 'kwargs'}
 
-    def __init__(self, dispatcher: Dict[Any, 'Command'] = None, func: Callable = None):
+    def __init__(self, dispatcher: Dict[Any, 'Command'] = None,
+                 callback: Callable = None,
+                 kwargs: str = None,
+                 unions: set = {'&', '|'},
+                 stops: set = {...}):
         self.table = dispatcher or {}
-        self.callback = func
+        self.callback = callback
+        self.kwargs = kwargs
+        self.unions = unions
+        self.stops = stops
 
     def __repr__(self):
         return f"Command(func={self.callback.__name__ if self.callback else 'None'}, table={self.table})"
@@ -60,47 +48,54 @@ class Command:
         if self.callback:
             sig = inspect.signature(self.callback).parameters
 
-            position = inspect.Parameter.VAR_POSITIONAL
-            keyword = inspect.Parameter.KEYWORD_ONLY
-            gather = any(v.kind is position for v in sig.values())
-
             passes = {'_ctx': ctx, '_cmd': _cmd, '_pipe': _trace[-1] if _trace else None}
-            if gather:
-                passes = {k: v for k, v in passes.items() if k in sig and sig[k].kind is keyword}
 
-            else:
-                passes = {k: v for k, v in passes.items() if k in sig}
+            keyword = inspect.Parameter.KEYWORD_ONLY
+            pos_or_key = inspect.Parameter.POSITIONAL_OR_KEYWORD
+            passes = {k: v for k, v in passes.items() if k in sig and sig[k].kind in {keyword, pos_or_key}}
 
-            def count(a):
-                return a.name not in passes and a.kind is not position
+            def consume():
+                nonlocal args
+                while args and args[0] not in self.unions | self.stops:
+                    yield args.pop(0)
 
-            empty = inspect.Parameter.empty
-            minimum = sum(1 for a in sig.values() if a.default is empty and count(a))
-            maximum = sum(1 for a in sig.values() if count(a))
+                if args and args[0] in self.stops:
+                    del args[0]
 
-            if len(args) < minimum:
-                return [*_trace, f'Command "{_cmd}" expects {"at least" * (maximum > minimum)}'
-                                 f' {minimum} argument{plural(minimum)} but {len(args)}'
-                                 f' {plural(args, ("were", "was"))} given.']
+                raise StopIteration
 
-            # Ellipsis, pipe, chain indicate no optional arguments are to be consumed.
-            # Ellipsis is essentially NOP and removed, pipe and chain are left.
-            if len(args) >= minimum + 1 and args[:minimum + 1][-1] in {..., '|', '&'}:
-                consume, args = args[:minimum], \
-                                (args[minimum + 1:] if args[:minimum + 1][-1] is ... else args[minimum:])
-            # Gather indicates all arguments are to be consumed.
-            # (gather operator present in func sig, e.g *args)
-            elif gather:
-                consume, args = args, []
-            # Otherwise, consume exactly as many arguments as are present in func sig.
-            else:
-                consume, args = args[:maximum], args[maximum:]
+            func_args = []
+            func_kwargs = {}
+            if _cmd not in self.unions | self.stops:
+                for a in consume():
+                    if self.kwargs and isinstance(a, str) and self.kwargs in a:
+                        kwarg = a.split(self.kwargs)
+
+                        if len(kwarg) > 2:
+                            kwarg[1] = self.kwargs.join(kwarg[1:])
+
+                        if any(not k for k in kwarg):
+                            _trace.append('Malformed keyword arguments.')
+                            return _trace
+
+                        if kwarg[0].startswith('_'):
+                            _trace.append('Cannot pass kwargs that start with an underscore.')
+
+                        func_kwargs[kwarg[0]] = kwarg[1]
+
+                    else:
+                        if func_kwargs:
+                            _trace.append('Positional arguments must proceed keyword arguments.')
+                            return _trace
+
+                        func_args.append(a)
 
             try:
-                output = self.callback(*consume, **passes)
+                output = self.callback(*func_args, **func_kwargs, **passes)
 
-            except Exception as e:
-                output = e
+            except (IndexError, TypeError):
+                _trace.append(f'Incorrect number or type of args for command "{_cmd}".')
+                return _trace
 
             if not args:
                 if output:
@@ -117,7 +112,8 @@ class Command:
                 args = [None]
 
             else:
-                return [*_trace, f'Missing sub-command for command "{_cmd}".']
+                _trace.append(f'Missing sub-command for command "{_cmd}".')
+                return _trace
 
         next_cmd, *args = args
         next_cmd = next_cmd.lower() if isinstance(next_cmd, str) else next_cmd
@@ -126,10 +122,12 @@ class Command:
 
         except KeyError:
             if _cmd is not None:
-                return [*_trace, f'Unknown sub-command of "{_cmd}": "{next_cmd}".']
+                _trace.append(f'Unknown sub-command of "{_cmd}": "{next_cmd}".')
+                return _trace
 
             else:
-                return [*_trace, f'Unknown command: "{next_cmd}".']
+                _trace.append(f'Unknown command: "{next_cmd}".')
+                return _trace
 
         else:
             # Call subsequent command and populate traceback recursively.

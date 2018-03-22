@@ -1,16 +1,15 @@
 """yosho plugin:macro editor"""
 # TODO Gratuitous commenting.
 import json
-import shlex
 from enum import Enum
 from inspect import signature, Parameter, getdoc
 from os.path import dirname
 
 from telegram import ChatAction
 
-from utils.command import Command, Signal
+from utils.command import Command
 from utils.dynamic import DynamicCommandHandler
-from utils.helpers import arg_replace, plural, clip, valid_photo, is_mod
+from utils.helpers import translate_args, plural, clip, valid_photo, is_mod, nested_get
 from .macro import MacroContainer, Macro
 
 GRAPH = Command()
@@ -21,18 +20,14 @@ def init(firebase, jobs, config, logger):
     """Pulls macros from firebase and initializes command graph."""
     global MACROS, GRAPH
 
-    blob = firebase.get_blob('macros.json')
+    path = nested_get(config, ['macro editor', 'firebase macro path'], 'macros.json')
+    blob = firebase.get_blob(path)
     if not blob:
-        raise FileNotFoundError('File macros.json not found in Firebase bucket.')
+        raise FileNotFoundError(f'File {path} not found in Firebase bucket.')
 
     MACROS = MacroContainer.from_dict(json.loads(blob.download_as_string()))
 
-    try:
-        interval = config["macro editor"]["macro push interval (minutes)"]
-
-    except KeyError:
-        interval = 15
-
+    interval = nested_get(config, ['macro editor', 'macro push interval (minutes)'], 15)
     jobs.run_repeating(callback=lambda bot, job: push_macros(job.context, logger),
                        interval=60 * interval,
                        context=firebase)
@@ -40,28 +35,30 @@ def init(firebase, jobs, config, logger):
     # <-- CONTROL FLOW GRAPH SETUP --> #
     # Groups of nodes which are cyclical through an '&' (chain) node.
     groups = []
-    linked = {tuple(s.name.lower() for s in Macro.Variety):        Command(func=new),
-              ('modify', 'change', 'edit', 'alter'):               Command(func=modify),
-              ('attribs', 'attributes', 'properties', 'settings'): Command(func=attributes)}
+    linked = {tuple(s.name.lower() for s in Macro.Variety):        Command(callback=new),
+              ('modify', 'change', 'edit', 'alter'):               Command(callback=modify),
+              ('attribs', 'attributes', 'properties', 'settings'): Command(callback=attribs,
+                                                                           kwargs=':')}
     groups.append(Command(linked))
 
-    linked = {('remove', 'delete'):                         Command(func=remove)}
+    linked = {('remove', 'delete'):                         Command(callback=remove)}
     groups.append(Command(linked))
-    linked = {('list', 'show', 'subset', 'search', 'find'): Command(func=find)}
+    linked = {('contents', 'content', 'value'):             Command(callback=value)}
     groups.append(Command(linked))
-    linked = {('contents', 'content', 'value'):             Command(func=value)}
+    linked = {('sig', 'doc', 'docs', 'args'):               Command(callback=sig)}
     groups.append(Command(linked))
-    linked = {('sig', 'doc', 'docs', 'args'):               Command(func=sig)}
+    linked = {('list', 'show', 'subset', 'search', 'find'): Command(callback=find,
+                                                                    kwargs=':')}
     groups.append(Command(linked))
 
     # Cyclically link the groups via self reference.
     for g in groups:
         for v in g.table.values():
-            v['&'] = Command(func=chains) + g
+            v['&'] = Command(callback=chains) + g
 
     # Leaf nodes.
-    unlinked = {(None, 'help', 'info'):    Command(func=info),
-                ('save', 'flush', 'push'): Command(func=save)}
+    unlinked = {(None, 'help', 'info'):    Command(callback=info),
+                ('save', 'flush', 'push'): Command(callback=save)}
     groups.append(Command(unlinked))
 
     # Merge base graphs.
@@ -73,7 +70,7 @@ def init(firebase, jobs, config, logger):
     attrib_key = GRAPH.key_of('attribs')
     GRAPH[search_key]['|'] = Command({remove_key: GRAPH[remove_key],
                                       attrib_key: GRAPH[attrib_key]},
-                                     func=pipes)
+                                     callback=pipes)
 
     # Create edges from remove, edit, new and attrib '&' (chain) nodes to search and save nodes.
     GRAPH[remove_key]['&'][search_key] = GRAPH[search_key]
@@ -109,21 +106,38 @@ class Errors(Enum):
     NONEXISTENT = 'Macro "{}" does not exist.'
     INPUT_REQUIRED = "Input or pipe required."
     ALREADY_EXISTS = 'A macro named "{}" already exists'
-    BAD_KEYWORDS = 'Command "{}" expects a keyword:value pair or multiple pairs in a quoted string.'
     UNEXPECTED_KEYWORDS = "Unexpected keyword{}: {}."
+    ALIAS_NESTING = 'Cannot alias an alias macro.'
     BAD_PHOTO = "Photo macro content must be a valid photo url."
     BAD_ALIAS = 'Macro "{}" does not exist, so it may not be aliased.'
-    ALIAS_NESTING = 'Cannot alias an alias macro.'
+    BAD_NAME = 'Non-inline macros much have names beginning with !, not "{}".'
 
     def __str__(self):
         return self.value
 
-    def format(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs):
         return str(self).format(*args, **kwargs)
 
 
+class Signal:
+    """Class which simplifies piping between Command instances."""
+    __slots__ = {'contents', 'flag', 'piped', 'data'}
+
+    def __init__(self, contents, data=None, flag=None, piped=False):
+        self.contents = contents
+        self.flag = flag
+        self.piped = piped
+        self.data = data
+
+    def __str__(self):
+        return str(self.contents)
+
+    def __repr__(self):
+        return f'Signal(contents={self.contents}, flag={self.flag}, piped={self.piped}, data={self.data})'
+
+
 class Flags(Enum):
-    """Enum for signal flags, simplifies piping."""
+    """Enum for signal flags."""
     INTERNAL, PHOTO = range(2)
 
 
@@ -137,13 +151,13 @@ def new(name, contents, _cmd, _ctx):
 
     if variety is Macro.Variety.ALIAS:
         if contents not in MACROS:
-            return Errors.BAD_ALIAS.format(contents)
+            return Errors.BAD_ALIAS(contents)
 
         elif MACROS[contents].variety is Macro.Variety.ALIAS:
             return Errors.ALIAS_NESTING
 
     elif variety is not Macro.Variety.INLINE and not name.startswith('!'):
-        return f'Non-inline macros much have names beginning with !, not "{name[0]}".'
+        return Errors.BAD_NAME(name[0])
 
     if name not in MACROS:
         MACROS.append(Macro(name=name,
@@ -156,7 +170,7 @@ def new(name, contents, _cmd, _ctx):
         return f'Created new {_cmd} macro "{name}".'
 
     else:
-        return Errors.ALREADY_EXISTS.format(name)
+        return Errors.ALREADY_EXISTS(name)
 
 
 def modify(name, contents, _ctx):
@@ -169,7 +183,7 @@ def modify(name, contents, _ctx):
 
         if m.variety is Macro.Variety.ALIAS:
             if contents not in MACROS:
-                return Errors.BAD_ALIAS.format(contents)
+                return Errors.BAD_ALIAS(contents)
 
             elif MACROS[contents].variety is Macro.Variety.ALIAS:
                 return Errors.ALIAS_NESTING
@@ -183,7 +197,7 @@ def modify(name, contents, _ctx):
             return Errors.PERMISSION
 
     else:
-        return Errors.NONEXISTENT
+        return Errors.NONEXISTENT(name)
 
 
 def value(name, _ctx):
@@ -192,7 +206,7 @@ def value(name, _ctx):
         m = MACROS[name]
 
     except KeyError:
-        return Errors.NONEXISTENT.format(name)
+        return Errors.NONEXISTENT(name)
 
     else:
         if _ctx['is_mod'] or m.creator == _ctx['user'].id:
@@ -208,8 +222,8 @@ def value(name, _ctx):
         else:
             return Errors.PERMISSION
 
-    attribs = (a for a in m.zipped() if a[0] not in exclude)
-    return ', '.join(f'{a[0]}: "{a[1]}"' for a in attribs) + f'\n\nContents:\n{m.contents}'
+    attributes = (a for a in m.zipped() if a[0] not in exclude)
+    return ', '.join(f'{a[0]}: "{a[1]}"' for a in attributes) + f'\n\nContents:\n{m.contents}'
 
 
 # Helper function for the next two command functions.
@@ -219,48 +233,35 @@ def _ar(a, k, _ctx):
         a = Macro.Variety[a.upper()]
 
     replace = {'true': True, 'false': False, 'none': None, str.isnumeric: int}
-    return arg_replace(a, {'me': _ctx['user'].id} if k == 'creator' else replace)
+    return translate_args(a, {'me': _ctx['user'].id} if k == 'creator' else replace)
 
 
-def find(search_parameters='', _ctx=None, _cmd=None):
+def find(_ctx=None, _cmd=None, **parameters):
     """Searches macro list, check /macro help for details.
     Can be piped to "remove" or "attribs" commands.
     Piping example: /macro search creator:me | remove"""
-    kwargs = shlex.split(search_parameters)
-    try:
-        kwargs = {k.lower(): _ar(a, k, _ctx) for k, a in (k.split(':') for k in kwargs)}
-
-    except (KeyError, AttributeError, ValueError):
-        return Signal(Errors.BAD_KEYWORDS.format(_cmd))
-
     if not _ctx['is_mod']:
-        kwargs['hidden'] = False
+        parameters['hidden'] = False
 
-    subset_sig = signature(MacroContainer.iter_subset).parameters
-    unexpected = [f'"{k}"' for k in kwargs if k not in subset_sig or k == 'criteria']
+    subset_sig = signature(MacroContainer.subset).parameters
+    unexpected = [f'"{k}"' for k in parameters if k not in subset_sig or k == 'criteria']
     if unexpected:
-        return Signal(Errors.UNEXPECTED_KEYWORDS.format(plural(unexpected), ', '.join(unexpected)))
+        return Signal(Errors.UNEXPECTED_KEYWORDS(plural(unexpected), ', '.join(unexpected)))
 
     wrong_type = [f'"{k}": {type(a).__name__} != {subset_sig[k].annotation.__name__}'
-                  for k, a in kwargs.items() if subset_sig[k].annotation is not type(a)]
+                  for k, a in parameters.items() if subset_sig[k].annotation is not type(a)]
     if wrong_type:
         return Signal(f'''Incorrect type for keyword{plural(wrong_type)}: {', '.join(wrong_type)}.''')
 
-    subset = MACROS.subset(**kwargs)
+    subset = MacroContainer(list(MACROS.subset(**parameters)))
     joined = ', '.join(f'"{m.name}"' for m in subset.macros)
     return Signal(f'Matching macros: {joined}' if subset.macros else
                   'No matching macros found.', data=subset if subset.macros else None)
 
 
-def attributes(attribs, name=None, _ctx=None, _pipe=None, _cmd=None):
+def attribs(name=None, _ctx=None, _pipe=None, _cmd=None, **attributes):
     """Modifies the attributes of a given macro."""
     global MACROS
-    kwargs = shlex.split(attribs)
-    try:
-        kwargs = {k.lower(): _ar(a, k, _ctx) for k, a in (k.split(':') for k in kwargs)}
-
-    except (KeyError, AttributeError, ValueError):
-        return Errors.BAD_KEYWORDS.format(_cmd)
 
     macro_sig = signature(Macro.__init__).parameters
 
@@ -268,57 +269,59 @@ def attributes(attribs, name=None, _ctx=None, _pipe=None, _cmd=None):
     if not _ctx['is_mod']:
         unexpected |= {'protected', 'creator'}
 
-    unexpected = [f'"{k}"' for k in kwargs if k not in macro_sig or k in unexpected]
+    unexpected = [f'"{k}"' for k in attributes if k not in macro_sig or k in unexpected]
     if unexpected:
-        return Errors.UNEXPECTED_KEYWORDS.format(plural(unexpected), ', '.join(unexpected))
+        return Errors.UNEXPECTED_KEYWORDS(plural(unexpected), ', '.join(unexpected))
 
     wrong_type = [f'"{k}": {type(a).__name__} != {macro_sig[k].annotation.__name__}'
-                  for k, a in kwargs.items() if macro_sig[k].annotation is not type(a)]
+                  for k, a in attributes.items() if macro_sig[k].annotation is not type(a)]
     if wrong_type:
         return f'''Incorrect type for keyword{plural(wrong_type)}: {', '.join(wrong_type)}.'''
 
     if isinstance(_pipe, Signal) and _pipe.piped:
-        if _pipe.data:
-            macros = _pipe.data.macros
-            if all(k != 'name' for k in kwargs) or len(macros) == 1:
-                if _ctx['is_mod'] or not any(m.creator != _ctx['user'].id or m.protected for m in macros):
-                    for m in macros:
-                        for k, a in kwargs.items():
-                            setattr(m, k, a)
-
-                        MACROS[m.name] = m
-
-                    macros_string = ', '.join(f'"{m.name}"' for m in macros)
-                    return f"Set attributes of macro{plural(macros)} {macros_string}."
-
-                else:
-                    return Errors.PERMISSION
-
-            else:
-                return 'Cannot batch edit macro names.'
-
-        else:
+        if not _pipe.data:
             return Errors.EMPTY_PIPE
+
+        macros = _pipe.data.macros
+
+        if any(k == 'name' for k in attributes) or len(macros) != 1:
+            return 'Cannot batch edit macro names.'
+
+        if not (_ctx['is_mod'] or all(m.creator == _ctx['user'].id and not m.protected for m in macros)):
+            return Errors.PERMISSION
+
+        for m in macros:
+            for k, a in attributes.items():
+                setattr(m, k, a)
+
+            MACROS[m.name] = m
+
+        macros_string = ', '.join(f'"{m.name}"' for m in macros)
+        return f"Set attributes of macro{plural(macros)} {macros_string}."
 
     elif name:
         try:
             m = MACROS[name]
 
         except KeyError:
-            return Errors.NONEXISTENT.format(name)
+            return Errors.NONEXISTENT(name)
 
-        if _ctx['is_mod'] or (_ctx['user'].id == m.id and not m.protected):
-            if name in kwargs and kwargs[name] in MACROS:
-                return Errors.ALREADY_EXISTS.format(name)
-
-            for k, a in kwargs.items():
-                setattr(m, k, a)
-
-            MACROS[m.name] = m
-            return f'Set attributes of macro "{m.name}".'
-
-        else:
+        if not (_ctx['is_mod'] or (_ctx['user'].id == m.id and not m.protected)):
             return Errors.PERMISSION
+
+        if 'name' in attributes:
+            if attributes['name'] in MACROS:
+                return Errors.ALREADY_EXISTS(attributes['name'])
+
+            if (attributes.get('variety') or m.variety) != Macro.Variety.INLINE:
+                if not attributes['name'].startswith('!'):
+                    return Errors.BAD_NAME(attributes['name'][0])
+
+        for k, a in attributes.items():
+            setattr(m, k, a)
+
+        MACROS[m.name] = m
+        return f'Set attributes of macro "{m.name}".'
 
     else:
         return Errors.INPUT_REQUIRED
@@ -328,25 +331,24 @@ def remove(name=None, _ctx=None, _pipe=None):
     """Deletes a given macro."""
     global MACROS
     if isinstance(_pipe, Signal) and _pipe.piped:
-        if _pipe.data:
-            macros = _pipe.data.macros
-            if _ctx['is_mod'] or not any(m.creator != _ctx['user'].id or m.protected for m in macros):
-                MACROS.macros = [m for m in MACROS.macros if m not in macros]
-                macros_string = ', '.join(f'"{m.name}"' for m in macros)
-                return f"Removed macro{plural(macros)} {macros_string}."
+        if not _pipe.data:
+            return Errors.EMPTY_PIPE
 
-            else:
-                return Errors.PERMISSION
+        macros = _pipe.data.macros
+        if _ctx['is_mod'] or all(m.creator == _ctx['user'].id and not m.protected for m in macros):
+            MACROS.macros = [m for m in MACROS.macros if m not in macros]
+            macros_string = ', '.join(f'"{m.name}"' for m in macros)
+            return f"Removed macro{plural(macros)} {macros_string}."
 
         else:
-            return Errors.EMPTY_PIPE
+            return Errors.PERMISSION
 
     elif name:
         try:
             m = MACROS[name]
 
         except KeyError:
-            return Errors.NONEXISTENT.format(name)
+            return Errors.NONEXISTENT(name)
 
         if _ctx['is_mod'] or (_ctx['user'].id == m.id and not m.protected):
             del MACROS[name]
@@ -394,24 +396,26 @@ def sig(name_or_path, _ctx, _cmd):
         return f'Command "{last}" not found.'
 
     else:
-        if cmd.func:
-            def display(p):
-                if p.default is not Parameter.empty:
-                    return f'[optional: {p.name}]'
-
-                elif p.kind is Parameter.VAR_POSITIONAL:
-                    return '[all remaining args]'
-
-                else:
-                    return f'[required: {p.name}]'
-
-            target_sig = signature(cmd.func).parameters.items()
-            args = ', '.join(display(p) for k, p in target_sig if not k.startswith('_'))
-            aliases = ', '.join(k for k in key if isinstance(k, str)) if isinstance(key, tuple) else key
-            return f'[{aliases}] {args}\n{getdoc(cmd.func)}'.strip()
-
-        else:
+        if not cmd.callback:
             return f'Command {path[-1]} has no associated function.'
+
+        def display(p):
+            if p.default is not Parameter.empty:
+                return f'[optional: {p.name}]'
+
+            elif p.kind is Parameter.VAR_POSITIONAL:
+                return f'[any args: {p.name}]'
+
+            elif p.kind is Parameter.VAR_KEYWORD:
+                return f'[any kwargs: {p.name}]'
+
+            else:
+                return f'[required: {p.name}]'
+
+        target_sig = signature(cmd.callback).parameters.items()
+        args = ', '.join(display(p) for k, p in target_sig if not k.startswith('_'))
+        aliases = ', '.join(k for k in key if isinstance(k, str)) if isinstance(key, tuple) else key
+        return f'[/macro] [{aliases}] {args}\n{getdoc(cmd.callback)}'.strip()
 
 
 def pipes(_pipe: Signal):
@@ -424,29 +428,22 @@ def chains():
     """Facilitates chaining of commands."""
 
 
-def dispatcher(args, update, user, logger, config, firebase):
+def dispatcher(message, args, user, logger, config, firebase):
     """Macro editor dispatcher."""
-    msg = update.message
     name = user.name
 
-    _ctx = {'update':   update,
-            'user':     user,
+    _ctx = {'user':     user,
             'logger':   logger,
             'is_mod':   is_mod(name, config),
             'graph':    GRAPH,
             'firebase': firebase}
 
-    try:
-        max_chained_commands = config['macro editor']['max chained commands']
-
-    except KeyError:
-        max_chained_commands = 5
-
+    max_chained_commands = nested_get(config, ['macro editor', 'max chained commands'], 5)
     if not is_mod(name, config) and sum(1 for a in args if a == '&') > max_chained_commands - 1:
-        msg.reply_text(text=f'Too many subsequent commands. (max {max_chained_commands})')
+        message.reply_text(text=f'Too many subsequent commands. (max {max_chained_commands})')
         return
 
-    args = arg_replace(args, {'...': ...})
+    args = translate_args(args, {'...': ...})
     traceback = GRAPH(args, _ctx)
 
     def flag(t):
@@ -455,8 +452,8 @@ def dispatcher(args, update, user, logger, config, firebase):
     if any(flag(t) is Flags.PHOTO for t in traceback):
         file, caption = next(t for t in traceback if flag(t) is Flags.PHOTO).contents
 
-        msg.chat.send_action(ChatAction.UPLOAD_PHOTO)
-        msg.reply_photo(photo=file, caption=caption, timeout=config.get('photo timeout', 10))
+        message.chat.send_action(ChatAction.UPLOAD_PHOTO)
+        message.reply_photo(photo=file, caption=caption, timeout=config.get('photo timeout', 10))
         file.close()
 
     else:
@@ -468,11 +465,11 @@ def dispatcher(args, update, user, logger, config, firebase):
 
         traceback = '\n'.join(traceback)
 
-        if not is_mod:
+        if not is_mod(name, config):
             traceback = clip(traceback, config)
 
-        msg.chat.send_action(ChatAction.TYPING)
-        msg.reply_text(text=traceback)
+        message.chat.send_action(ChatAction.TYPING)
+        message.reply_text(text=traceback)
 
 
 handlers = [DynamicCommandHandler(['macro', 'macros'], dispatcher)]

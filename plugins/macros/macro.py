@@ -22,7 +22,7 @@ class Macro:
         self.nsfw = nsfw
 
     def __str__(self):
-        return f'Macro(name="{self.name}", variety={self.variety}, contents="{self.contents}")'
+        return f'Macro(name="{self.name}", variety={self.variety.name}, contents="{self.contents}")'
 
     def zipped(self):
         def cast(k):
@@ -69,28 +69,27 @@ class MacroContainer:
     def append(self, macro: Macro):
         self.macros.append(macro)
 
-    def subset(self, **kwargs) -> 'MacroContainer':
-        return MacroContainer(list(self.iter_subset(**kwargs)))
+    def subset(self,
+               name: str = None,
+               creator: int = None,
+               variety: Macro.Variety = None,
+               hidden: bool = None,
+               protected: bool = None,
+               nsfw: bool = None,
+               contents: str = None,
+               inv: str = '~',
+               criteria: Callable[[Iterable], bool] = all) -> Generator:
 
-    def iter_subset(self,
-                    match: str = None,
-                    search: str = None,
-                    creator: int = None,
-                    variety: Macro.Variety = None,
-                    hidden: bool = None,
-                    protected: bool = None,
-                    nsfw: bool = None,
-                    contents: str = None,
-                    criteria: Callable[[Iterable], bool] = all) -> Generator:
+        def invert(s):
+            return s.startswith(inv)
 
         comparisons = {hidden:    (lambda m: m.hidden == hidden),
                        protected: (lambda m: m.protected == protected),
                        creator:   (lambda m: m.creator == creator),
                        nsfw:      (lambda m: m.nsfw == nsfw),
                        variety:   (lambda m: m.variety == variety),
-                       match:     (lambda m: m.name == match),
-                       search:    (lambda m: search in m.name),
-                       contents:  (lambda m: contents in m.contents)}
+                       name:      (lambda m: (name.lstrip(inv) in m.name) ^ invert(name)),
+                       contents:  (lambda m: (contents.lstrip(inv) in m.contents) ^ invert(contents))}
 
         comparisons = [v for k, v in comparisons.items() if k is not None]
         return (m for m in self.macros if criteria(c(m) for c in comparisons))

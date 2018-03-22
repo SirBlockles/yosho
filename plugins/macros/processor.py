@@ -3,54 +3,63 @@ from telegram import ChatAction
 
 from utils.command import Command
 from utils.dynamic import DynamicFilter, DynamicMessageHandler
-from utils.helpers import clip, plural, arg_replace, valid_photo
+from utils.helpers import clip, translate_args, valid_photo, nested_get
 from .macro import Macro
 
+MACROS = {}
+SFW = set()
 
-def orchestrate(command, args, message, user, chat, config, plugins, tokens):
-    from .editor import MACROS
+
+def orchestrate(command, args, text, message, user, chat, config, plugins, tokens):
+    global SFW
+    SFW = chat.id in nested_get(plugins, ['chat administration', 'CHAT_CONFIG', 'sfw'], set())
+
+    text = text.lstrip(command).strip()
 
     if '|' in args:
-        try:
-            max_piped = config['macro editor']['max piped macros']
+        chat.send_action(ChatAction.TYPING)
 
-        except KeyError:
-            max_piped = 5
-
+        max_piped = nested_get(config, ['macro editor', 'max piped macros'], 3)
         if user.name not in config['bot mods'] and \
                 sum(1 for a in args if a == '|') > max_piped - 1:
             message.reply_text(f'Too many piped macros. (max {max_piped})')
             return
 
-        def is_macro_name(a):
-            return a.startswith('!') and not a == '|'
+        def is_macro_name(i, a):
+            return (i == 0 or args[i - 1] == '|') and a.startswith('!')
 
-        if any(is_macro_name(a) and a not in MACROS for a in args):
-            not_found = [f'"{a}"' for a in args if is_macro_name(a) and a not in MACROS]
-            message.reply_text(f'Macro{plural(not_found)} {" ,".join(not_found)} not found.')
-            return
+        for i, a in enumerate([command] + args):
+            if is_macro_name(i, a):
+                if i > 0:
+                    if a not in MACROS:
+                        message.reply_text(f'Macro "{a}" not found.')
+                        return
 
-        if MACROS[command].variety not in {Macro.Variety.TEXT,
-                                           Macro.Variety.EVAL,
-                                           Macro.Variety.MARKOV}:
-            message.reply_text(f"Pipe start macro must be eval, text, "
-                               f"or markov, not {MACROS[command].variety.name.lower()}.")
-            return
+                    m = MACROS[a]
+                    if m.variety not in {Macro.Variety.EVAL, Macro.Variety.MARKOV}:
+                        message.reply_text(f'Subsequent pipe macros must be eval or markov, '
+                                           f'"{m.name}" is a {m.variety.name.lower()} macro.')
+                        return
 
-        bad = [MACROS[a].variety.name.lower() for a in args if is_macro_name(a) and MACROS[a].variety not in
-               {Macro.Variety.EVAL, Macro.Variety.MARKOV}]
+                else:
+                    m = MACROS[a]
+                    if m.variety not in {Macro.Variety.EVAL, Macro.Variety.MARKOV, Macro.Variety.TEXT}:
+                        message.reply_text(f'Initial pipe macro must be eval, text or markov, '
+                                           f'"{m.name}" is a {m.variety.name.lower()} macro.')
+                        return
 
-        if bad:
-            message.reply_text(f'Subsequent pipe macro{plural(bad)} must be eval or markov, not {" ,".join(bad)}')
-            return
+                if m.nsfw and chat.id in SFW:
+                    message.reply_text(f'Macro "{a}" is NSFW, this chat is SFW.')
+                    return
 
-        graph = Command(func=lambda _pipe: _pipe)
+        graph = Command(callback=lambda _pipe: _pipe)
 
-        for a in [command] + args:
-            if is_macro_name(a):
-                graph[a] = Command(func=lambda *v, _pipe, m=MACROS[a]:
-                                   process(m=m,
+        for i, a in enumerate([command] + args):
+            if is_macro_name(i, a):
+                graph[a] = Command(callback=lambda *v, _pipe, _m=MACROS[a]:
+                                   process(m=_m,
                                            args=[_pipe, *v],
+                                           text=text,
                                            message=message,
                                            chat=chat,
                                            config=config,
@@ -61,14 +70,13 @@ def orchestrate(command, args, message, user, chat, config, plugins, tokens):
         for g in graph.table.values():
             g['|'] = graph
 
-        result = str(graph([command] + arg_replace(args))[-1])
-
-        chat.send_action(ChatAction.TYPING)
+        result = str(graph([command] + translate_args(args))[-1])
         message.reply_text(clip(result, config))
 
     else:
         process(m=MACROS[command],
-                args=arg_replace(args),
+                args=translate_args(args),
+                text=text,
                 message=message,
                 chat=chat,
                 config=config,
@@ -77,7 +85,7 @@ def orchestrate(command, args, message, user, chat, config, plugins, tokens):
                 pipe=False)
 
 
-def process(m: Macro, args, message, chat, config, plugins, tokens, pipe):
+def process(m: Macro, args, text, message, chat, config, plugins, tokens, pipe):
     if m.variety is Macro.Variety.TEXT:
         if pipe:
             return m.contents
@@ -87,10 +95,18 @@ def process(m: Macro, args, message, chat, config, plugins, tokens, pipe):
             message.reply_text(clip(m.contents, config))
 
     elif m.variety is Macro.Variety.EVAL:
-        ...
+        if pipe:
+            return ...
+
+        else:
+            chat.send_action(ChatAction.TYPING)
 
     elif m.variety is Macro.Variety.MARKOV:
-        ...
+        if pipe:
+            return ...
+
+        else:
+            chat.send_action(ChatAction.TYPING)
 
     elif m.variety in {Macro.Variety.PHOTO, Macro.Variety.IMAGE}:
         if valid_photo(m.contents):
@@ -106,19 +122,23 @@ def process(m: Macro, args, message, chat, config, plugins, tokens, pipe):
     elif m.variety in {Macro.Variety.E621, Macro.Variety.E926}:
         e621 = plugins.get('e621 plugin')
         if e621:
+            site = 'e621'
+            if m.variety is Macro.Variety.E926:
+                site = 'e926'
+
             e621.e621(message=message,
                       chat=chat,
-                      args=[m.contents] + args,
-                      command=m.variety.name.lower(),
+                      args=m.contents.split() + args,
+                      command=site,
                       tokens=tokens,
-                      config=config)
+                      config=config,
+                      plugins=plugins)
 
         else:
             chat.send_action(ChatAction.TYPING)
             message.reply_text('e621 plugin not installed.')
 
     elif m.variety is Macro.Variety.ALIAS:
-        from .editor import MACROS
         try:
             m = MACROS[m.contents]
 
@@ -134,6 +154,7 @@ def process(m: Macro, args, message, chat, config, plugins, tokens, pipe):
             else:
                 process(m=m,
                         args=args,
+                        text=text,
                         message=message,
                         chat=chat,
                         config=config,
@@ -144,7 +165,9 @@ def process(m: Macro, args, message, chat, config, plugins, tokens, pipe):
 
 def _is_macro(message):
     if message.text and message.text.startswith('!'):
-        from .editor import MACROS
+        from .editor import MACROS as M
+        global MACROS
+        MACROS = M
         return message.text.split()[0] in MACROS
 
     return False

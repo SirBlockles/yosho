@@ -1,0 +1,2 @@
+"""yosho plugin:wolfram alpha"""
+
